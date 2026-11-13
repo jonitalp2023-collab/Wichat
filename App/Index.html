@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wi Chat</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10131b;color:#fff;font-family:Arial,sans-serif}
+header{background:#191f2d;padding:18px;text-align:center;font-size:25px;font-weight:bold;color:#36d6c3}
+#login{padding:25px;text-align:center}
+input,button{padding:13px;border:0;border-radius:9px;font-size:16px}
+input{background:#252d3d;color:white;width:100%;margin:8px 0}
+button{background:#20bfae;color:#071411;font-weight:bold;cursor:pointer}
+#chat{display:none}
+#messages{height:65vh;overflow-y:auto;padding:15px}
+.msg{background:#202838;padding:12px;border-radius:10px;margin:9px 0;overflow-wrap:anywhere}
+.nick{color:#36d6c3;font-weight:bold}
+#send{display:flex;gap:8px;padding:12px;background:#191f2d}
+#send input{margin:0}
+#send button{flex-shrink:0}
+.small{color:#aab3c5;font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<header>💬 Wi Chat</header>
+
+<div id="login">
+<h2>Entrá a la sala general</h2>
+<p class="small">Elegí un apodo para comenzar</p>
+<input id="nickname" maxlength="24" placeholder="Tu apodo">
+<button onclick="enterChat()">ENTRAR AL CHAT</button>
+<p id="error"></p>
+</div>
+
+<div id="chat">
+<div class="small">🟢 Sala general</div>
+<div id="messages"></div>
+<div id="send">
+<input id="message" maxlength="1000" placeholder="Escribí un mensaje...">
+<button onclick="sendMessage()">ENVIAR</button>
+</div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://pqnnzkqxkndzelsbtxvv.supabase.co";
+const SUPABASE_KEY = "PEGAR_AQUI_LA_CLAVE_PUBLICA_ANON";
+
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let nickname = "";
+
+function enterChat(){
+  const name = document.getElementById("nickname").value.trim();
+  if(name.length < 2 || name.length > 24){
+    document.getElementById("error").textContent =
+      "El apodo debe tener entre 2 y 24 caracteres.";
+    return;
+  }
+  nickname = name;
+  document.getElementById("login").style.display = "none";
+  document.getElementById("chat").style.display = "block";
+  loadMessages();
+  db.channel("sala-general")
+    .on("postgres_changes",
+      {event:"INSERT",schema:"public",table:"messages"},
+      payload => showMessage(payload.new))
+    .subscribe();
+}
+
+function showMessage(msg){
+  const area = document.getElementById("messages");
+  if(area.querySelector('[data-id="'+msg.id+'"]')) return;
+  const div = document.createElement("div");
+  div.className = "msg";
+  div.dataset.id = msg.id;
+  const nick = document.createElement("div");
+  nick.className = "nick";
+  nick.textContent = msg.nickname;
+  const body = document.createElement("div");
+  body.textContent = msg.body;
+  div.append(nick,body);
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+async function loadMessages(){
+  const {data,error} = await db.from("messages")
+    .select("*").order("created_at",{ascending:true}).limit(100);
+  if(error){alert("No se pudieron cargar los mensajes.");return;}
+  document.getElementById("messages").innerHTML = "";
+  data.forEach(showMessage);
+}
+
+async function sendMessage(){
+  const input = document.getElementById("message");
+  const body = input.value.trim();
+  if(!body) return;
+  const {error} = await db.from("messages").insert({
+    nickname:nickname,
+    body:body
+  });
+  if(error){alert("No se pudo enviar el mensaje.");return;}
+  input.value = "";
+}
+
+document.getElementById("message").addEventListener("keydown",e=>{
+  if(e.key==="Enter") sendMessage();
+});
+</script>
+</body>
+</html>

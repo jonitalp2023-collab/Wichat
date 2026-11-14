@@ -22,11 +22,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Dar permisos a Gradle
-        run: chmod +x gradlew
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Compilar CHAT ARGENTINA
-        run: ./gradlew --no-daemon :app:assembleDebug --stacktrace --info
+        run: gradle --no-daemon :app:assembleDebug --stacktrace
 
       - name: Guardar APK
         if: success()

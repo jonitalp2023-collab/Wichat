@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -100,7 +99,6 @@ overscroll-behavior:contain
 
 #privateNotice{display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 30px);max-width:500px;background:#168bea;color:white;padding:15px;border-radius:12px;z-index:9999;text-align:center;font-weight:bold;box-shadow:0 5px 20px #0008}
 
-/* Avisos de moderación */
 #moderationModal{
 display:none;
 position:fixed;
@@ -351,13 +349,13 @@ const message=$("moderationMessage");
 
 if(blocked){
 title.textContent="⛔ Acceso restringido";
-message.textContent="No podés entrar a la sala "+roomName+". Puede ser porque fuiste expulsado o porque todavía está vigente un baneo.";
+message.textContent="No podés entrar a la sala "+roomName+". Tu expulsión o baneo sigue vigente. Podrás volver cuando termine el plazo.";
 }else if(action==="ban"){
 title.textContent="🚫 Fuiste baneado";
-message.textContent="UNIX te baneó de la sala "+roomName+" por cinco minutos. Podrás volver a entrar cuando termine ese plazo. Mientras tanto, podés participar en las demás salas.";
+message.textContent="UNIX te baneó de la sala "+roomName+" por cinco minutos. Podrás volver a entrar cuando termine ese plazo.";
 }else{
 title.textContent="🚪 Fuiste expulsado";
-message.textContent="UNIX te expulsó de la sala "+roomName+". No podés volver a entrar a esta sala, pero podés participar en las demás.";
+message.textContent="UNIX te expulsó de la sala "+roomName+" por cinco minutos. Podrás volver a entrar cuando termine ese plazo.";
 }
 
 $("moderationModal").classList.add("show");

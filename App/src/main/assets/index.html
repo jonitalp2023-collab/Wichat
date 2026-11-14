@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Wi Chat</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -68,10 +68,11 @@ button:disabled{opacity:.5}
  overflow-wrap:anywhere;
 }
 .nickname{color:#55b8ff;font-weight:bold}
-.time{font-size:11px;color:#8293b1}
+.time{font-size:11px;color:#8293b1;margin-top:5px}
 .row{display:flex;gap:8px}
 .row input{flex:1;min-width:0}
 .status{color:#70dca1;font-size:13px}
+#error{color:#ff7777}
 </style>
 </head>
 
@@ -87,10 +88,9 @@ button:disabled{opacity:.5}
 <div id="login" class="panel">
 <h2>Bienvenido a Wi Chat</h2>
 <p>Elegí tu apodo para entrar a la sala general.</p>
-<input id="nickname" maxlength="25"
-placeholder="Escribí tu apodo">
+<input id="nickname" maxlength="25" placeholder="Escribí tu apodo">
 <button id="enterBtn" onclick="enterChat()">ENTRAR AL CHAT</button>
-<p id="error" style="color:#ff7777"></p>
+<p id="error"></p>
 </div>
 
 <div id="chat">
@@ -119,9 +119,8 @@ Salir del chat
 const SUPABASE_URL =
 "https://pqnnzkqxkndzelsbtxvv.supabase.co";
 
-// PEGÁ AQUÍ TU CLAVE PUBLICABLE (anon)
-// Nunca uses la clave secret o service_role.
-const SUPABASE_KEY = "sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
+const SUPABASE_KEY =
+"sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
 
 const db = window.supabase.createClient(
  SUPABASE_URL,
@@ -130,43 +129,56 @@ const db = window.supabase.createClient(
 
 let nickname = "";
 let channel = null;
+let receivedIds = new Set();
 
 async function enterChat(){
+
  const name = document.getElementById("nickname").value.trim();
- const error = document.getElementById("error");
+ const errorBox = document.getElementById("error");
+ const btn = document.getElementById("enterBtn");
+
+ errorBox.textContent = "";
 
  if(!name){
-  error.textContent = "Escribí un apodo.";
+  errorBox.textContent = "Escribí un apodo.";
   return;
  }
 
- if(SUPABASE_KEY === "PEGAR_AQUI_TU_CLAVE_PUBLICABLE"){
-  error.textContent = "Falta configurar la clave pública de Supabase.";
+ if(!window.supabase){
+  errorBox.textContent = "No se pudo cargar Supabase. Revisá Internet.";
   return;
  }
 
  nickname = name;
- document.getElementById("enterBtn").disabled = true;
+ btn.disabled = true;
 
- const {error: testError} = await db
-  .from("messages")
-  .select("id")
-  .limit(1);
+ try{
 
- if(testError){
-  error.textContent = "Error de conexión: " + testError.message;
-  document.getElementById("enterBtn").disabled = false;
-  return;
+  const {error} = await db
+   .from("messages")
+   .select("id")
+   .limit(1);
+
+  if(error) throw error;
+
+  document.getElementById("login").style.display = "none";
+  document.getElementById("chat").style.display = "block";
+
+  receivedIds.clear();
+
+  await subscribeMessages();
+  await loadMessages();
+
+ }catch(err){
+
+  errorBox.textContent = "Error: " + err.message;
+  btn.disabled = false;
+
  }
-
- document.getElementById("login").style.display = "none";
- document.getElementById("chat").style.display = "block";
-
- await loadMessages();
- subscribeMessages();
 }
 
 async function loadMessages(){
+
  const box = document.getElementById("messages");
 
  const {data,error} = await db
@@ -177,70 +189,91 @@ async function loadMessages(){
 
  if(error){
   document.getElementById("status").textContent =
-   "Error cargando mensajes";
+   "Error cargando mensajes: " + error.message;
   return;
  }
 
- box.innerHTML = "";
-
  data.forEach(addMessage);
+
  box.scrollTop = box.scrollHeight;
 
- document.getElementById("status").textContent =
-  "● Conectado a la sala general";
 }
 
 function addMessage(msg){
+
+ if(receivedIds.has(msg.id)) return;
+
+ receivedIds.add(msg.id);
+
  const box = document.getElementById("messages");
  const div = document.createElement("div");
  div.className = "message";
 
  const name = document.createElement("div");
  name.className = "nickname";
- name.textContent = msg.nickname;
+ name.textContent = msg.nickname || "Usuario";
 
  const content = document.createElement("div");
- content.textContent = msg.content;
+ content.textContent = msg.content || "";
 
  const time = document.createElement("div");
  time.className = "time";
+
  time.textContent = msg.created_at
-  ? new Date(msg.created_at).toLocaleTimeString("es-AR",
-    {hour:"2-digit",minute:"2-digit"})
+  ? new Date(msg.created_at).toLocaleTimeString(
+    "es-AR",
+    {hour:"2-digit",minute:"2-digit"}
+   )
   : "";
 
  div.append(name,content,time);
  box.appendChild(div);
+
  box.scrollTop = box.scrollHeight;
+
 }
 
 async function sendMessage(){
+
  const input = document.getElementById("messageInput");
  const btn = document.getElementById("sendBtn");
  const content = input.value.trim();
 
- if(!content) return;
+ if(!content || !nickname) return;
 
  btn.disabled = true;
 
- const {error} = await db
-  .from("messages")
-  .insert({
-   nickname:nickname,
-   content:content
-  });
+ try{
 
- if(error){
-  alert("No se pudo enviar: " + error.message);
- }else{
+  const {error} = await db
+   .from("messages")
+   .insert({
+    nickname:nickname,
+    content:content
+   });
+
+  if(error) throw error;
+
   input.value = "";
+
+ }catch(err){
+
+  alert("No se pudo enviar el mensaje: " + err.message);
+
+ }finally{
+
+  btn.disabled = false;
+  input.focus();
+
  }
 
- btn.disabled = false;
- input.focus();
 }
 
-function subscribeMessages(){
+async function subscribeMessages(){
+
+ document.getElementById("status").textContent =
+  "Conectando a la sala...";
+
  channel = db
   .channel("wi-chat-messages")
   .on(
@@ -254,22 +287,42 @@ function subscribeMessages(){
     addMessage(payload.new);
    }
   )
-  .subscribe();
+  .subscribe(status=>{
+
+   const statusBox = document.getElementById("status");
+
+   if(status === "SUBSCRIBED"){
+    statusBox.textContent = "● Conectado a la sala general";
+   }else if(status === "CHANNEL_ERROR"){
+    statusBox.textContent = "Error de conexión en tiempo real";
+   }else if(status === "TIMED_OUT"){
+    statusBox.textContent = "Tiempo de conexión agotado";
+   }else if(status === "CLOSED"){
+    statusBox.textContent = "Conexión cerrada";
+   }
+
+  });
+
 }
 
 async function exitChat(){
+
  if(channel){
   await db.removeChannel(channel);
   channel = null;
  }
+
+ receivedIds.clear();
 
  document.getElementById("chat").style.display = "none";
  document.getElementById("login").style.display = "block";
  document.getElementById("nickname").value = nickname;
  document.getElementById("enterBtn").disabled = false;
  document.getElementById("messages").innerHTML = "";
-}
+ document.getElementById("error").textContent = "";
 
+}
 </script>
+
 </body>
 </html>

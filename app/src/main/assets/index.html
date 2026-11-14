@@ -49,9 +49,28 @@ button:disabled{opacity:.5}
 .user-count{font-size:12px;color:#9baac5;margin-bottom:10px}
 .private-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .private-header h3{overflow-wrap:anywhere}
+#privateNotice{
+display:none;
+position:fixed;
+top:12px;
+left:50%;
+transform:translateX(-50%);
+width:calc(100% - 30px);
+max-width:500px;
+background:#168bea;
+color:white;
+padding:15px;
+border-radius:12px;
+z-index:9999;
+text-align:center;
+font-weight:bold;
+box-shadow:0 5px 20px #0008;
+}
 </style>
 </head>
 <body>
+
+<div id="privateNotice" role="status" aria-live="polite"></div>
 
 <header>
 <h1>Wi Chat</h1>
@@ -169,13 +188,14 @@ const $=id=>document.getElementById(id);
 
 let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null;
-let privateChannel=null;
+let privateChannel=null,privateNoticeChannel=null;
 let receivedIds=new Set(),privateReceivedIds=new Set();
 let roomUsers=new Map();
 let activePrivateUser=null;
 let isAdmin=false,adminPin="";
+let privateNoticeTimer=null;
 
-// AUTENTICACIÓN ANÓNIMA PARA MENSAJES PRIVADOS.
+// AUTENTICACIÓN ANÓNIMA.
 
 async function ensureAuthUser(){
 let {data:{session},error}=await db.auth.getSession();
@@ -242,17 +262,13 @@ return;
 nickname=name;
 isAdmin=false;
 adminPin="";
-
 btn.disabled=true;
 
 try{
-
-// Se obtiene el ID autenticado de Supabase.
 senderId=await ensureAuthUser();
 
 if(name.toUpperCase()==="UNIX"){
 const pin=$("adminPin").value;
-
 if(!pin)throw new Error("Ingresá el PIN de administrador.");
 
 const {data,error}=await db.rpc("verify_admin_pin",{pin_input:pin});
@@ -285,6 +301,7 @@ $("adminOpenBtn").classList.toggle("hidden",!isAdmin);
 renderTabs();
 await switchRoom(currentRoom);
 subscribeRooms();
+subscribePrivateNotifications();
 
 }catch(e){
 showError("No se pudo ingresar: "+e.message);
@@ -306,15 +323,33 @@ $("roomTabs").appendChild(b);
 });
 }
 
+function savePrivateCutoff(){
+if(!activePrivateUser||!senderId)return;
+localStorage.setItem(
+privateCutoffKey(activePrivateUser.id),
+new Date().toISOString()
+);
+}
+
+function clearPrivateView(){
+$("privateMessages").innerHTML="";
+privateReceivedIds.clear();
+}
+
 function showMainTab(which){
 const users=which==="users";
+
+if(activePrivateUser){
+savePrivateCutoff();
+activePrivateUser=null;
+clearPrivateView();
+}
 
 if(privateChannel){
 db.removeChannel(privateChannel);
 privateChannel=null;
 }
 
-activePrivateUser=null;
 $("privateView").classList.add("hidden");
 $("chatView").classList.toggle("hidden",users);
 $("usersView").classList.toggle("hidden",!users);
@@ -361,7 +396,6 @@ renderUsers();
 const room=rooms.find(r=>String(r.id)===String(id));
 $("status").textContent="Cargando "+(room?.name||"sala")+"...";
 
-// No se cargan mensajes anteriores.
 messageChannel=db.channel("wichat-messages-"+id)
 .on("postgres_changes",{
 event:"INSERT",
@@ -425,12 +459,15 @@ renderUsers();
 renderModerationUsers();
 }
 
+// LISTA DE USUARIOS: UNIX PRIMERO MIENTRAS ESTÁ CONECTADO.
+
 function renderUsers(){
 const list=$("usersList");
 if(!list)return;
 
 const users=Array.from(roomUsers.values()).sort((a,b)=>{
-if(a.admin!==b.admin)return a.admin?-1:1;
+if(a.id===senderId)return -1;
+if(b.id===senderId)return 1;
 return a.nick.localeCompare(b.nick);
 });
 
@@ -455,7 +492,7 @@ dot.className="online-dot";
 const name=document.createElement("span");
 name.className="user-name";
 
-if(u.admin){
+if(u.id===senderId || u.admin){
 const star=document.createElement("span");
 star.className="admin-star";
 star.textContent="⭐";
@@ -557,6 +594,60 @@ input.focus();
 // CHAT PRIVADO
 // =================================
 
+// CLAVE PARA RECORDAR CUÁNDO SALIÓ CADA USUARIO DE CADA PRIVADO.
+
+function privateCutoffKey(otherId){
+return "wichat_private_cutoff_"+senderId+"_"+otherId;
+}
+
+// NOTIFICACIÓN DE MENSAJES PRIVADOS.
+
+function showPrivateNotification(senderNick){
+const notice=$("privateNotice");
+notice.textContent="🔔 "+senderNick+" te está hablando por privado";
+notice.style.display="block";
+
+if(privateNoticeTimer){
+clearTimeout(privateNoticeTimer);
+}
+
+privateNoticeTimer=setTimeout(()=>{
+notice.style.display="none";
+},5000);
+}
+
+// ESCUCHAR TODOS LOS PRIVADOS QUE LLEGAN A ESTE USUARIO.
+
+function subscribePrivateNotifications(){
+if(privateNoticeChannel){
+db.removeChannel(privateNoticeChannel);
+privateNoticeChannel=null;
+}
+
+privateNoticeChannel=db.channel("wichat-private-notifications-"+senderId)
+.on("postgres_changes",{
+event:"INSERT",
+schema:"public",
+table:"private_messages",
+filter:"recipient_id=eq."+senderId
+},payload=>{
+const m=payload.new;
+
+if(!m||m.recipient_id!==senderId)return;
+
+const fromNick=m.sender_nickname||"Un usuario";
+showPrivateNotification(fromNick);
+
+// Si el privado está abierto, mostrar el mensaje también.
+if(activePrivateUser&&activePrivateUser.id===m.sender_id){
+addPrivateMessage(m);
+}
+})
+.subscribe();
+}
+
+// ABRIR PRIVADO.
+
 async function openPrivateChat(user){
 if(!user||user.id===senderId)return;
 
@@ -576,7 +667,6 @@ privateChannel=null;
 
 await loadPrivateMessages();
 
-// ESCUCHAR MENSAJES PRIVADOS EN TIEMPO REAL.
 privateChannel=db.channel("wichat-private-"+senderId)
 .on("postgres_changes",{
 event:"INSERT",
@@ -608,11 +698,18 @@ const filter=
 "and(sender_id.eq."+senderId+",recipient_id.eq."+other+"),"+
 "and(sender_id.eq."+other+",recipient_id.eq."+senderId+")";
 
-const {data,error}=await db
+const cutoff=localStorage.getItem(privateCutoffKey(other));
+
+let query=db
 .from("private_messages")
 .select("*")
-.or(filter)
-.order("created_at",{ascending:true});
+.or(filter);
+
+if(cutoff){
+query=query.gt("created_at",cutoff);
+}
+
+const {data,error}=await query.order("created_at",{ascending:true});
 
 if(error){
 $("privateMessages").textContent="No se pudo cargar la conversación: "+error.message;
@@ -620,6 +717,7 @@ return;
 }
 
 $("privateMessages").innerHTML="";
+privateReceivedIds.clear();
 
 (data||[]).forEach(addPrivateMessage);
 
@@ -628,7 +726,7 @@ $("privateMessages").innerHTML='<p class="muted">Todavía no hay mensajes. ¡Sal
 }
 }
 
-// MOSTRAR MENSAJE PRIVADO.
+// MOSTRAR MENSAJE PRIVADO CON ESTRELLA PARA UNIX.
 
 function addPrivateMessage(m){
 if(!m||privateReceivedIds.has(m.id))return;
@@ -643,7 +741,19 @@ div.className="private-message"+(m.sender_id===senderId?" mine":"");
 
 const who=document.createElement("strong");
 who.className="nickname";
-who.textContent=(m.sender_id===senderId?"Vos":(m.sender_nickname||"Usuario"))+": ";
+
+const privateNick=m.sender_id===senderId
+?nickname
+:(m.sender_nickname||"Usuario");
+
+if(privateNick.toUpperCase()==="UNIX"){
+const star=document.createElement("span");
+star.className="admin-star";
+star.textContent="⭐";
+who.appendChild(star);
+}
+
+who.appendChild(document.createTextNode(privateNick+": "));
 
 const msg=document.createElement("span");
 msg.className="msgtext";
@@ -699,15 +809,18 @@ input.focus();
 }
 }
 
-// VOLVER A USUARIOS.
+// SALIR DEL PRIVADO: LIMPIAR SOLO PARA ESTE USUARIO.
 
 async function backToUsers(){
+savePrivateCutoff();
 activePrivateUser=null;
 
 if(privateChannel){
 await db.removeChannel(privateChannel);
 privateChannel=null;
 }
+
+clearPrivateView();
 
 $("privateView").classList.add("hidden");
 $("usersView").classList.remove("hidden");
@@ -856,13 +969,22 @@ $("adminStatus").textContent=error?
 (action==="ban"?"Usuario baneado.":"Usuario expulsado de esta sala.");
 }
 
-// SALIR.
+// SALIR DEL CHAT.
 
 async function exitChat(){
+
+if(activePrivateUser){
+savePrivateCutoff();
+}
 
 if(privateChannel){
 await db.removeChannel(privateChannel);
 privateChannel=null;
+}
+
+if(privateNoticeChannel){
+await db.removeChannel(privateNoticeChannel);
+privateNoticeChannel=null;
 }
 
 if(messageChannel){
@@ -880,6 +1002,13 @@ if(roomChannel){
 await db.removeChannel(roomChannel);
 roomChannel=null;
 }
+
+if(privateNoticeTimer){
+clearTimeout(privateNoticeTimer);
+privateNoticeTimer=null;
+}
+
+$("privateNotice").style.display="none";
 
 receivedIds.clear();
 privateReceivedIds.clear();

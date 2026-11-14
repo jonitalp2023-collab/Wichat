@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Wi Chat</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#0b1020;color:white;font-family:Arial,sans-serif}
@@ -68,6 +69,7 @@ box-shadow:0 5px 20px #0008;
 }
 </style>
 </head>
+
 <body>
 
 <div id="privateNotice" role="status" aria-live="polite"></div>
@@ -100,6 +102,7 @@ box-shadow:0 5px 20px #0008;
 </section>
 
 <section id="chat">
+
 <div class="panel">
 
 <div class="row" style="justify-content:space-between">
@@ -145,9 +148,11 @@ box-shadow:0 5px 20px #0008;
 
 <br>
 <button class="danger" onclick="exitChat()">Salir del chat</button>
+
 </div>
 
 <div id="adminPanel" class="panel admin-box hidden">
+
 <div class="row" style="justify-content:space-between">
 <h3 style="margin:0">Administración UNIX</h3>
 <button class="secondary" onclick="closeAdmin()">Cerrar</button>
@@ -175,15 +180,17 @@ box-shadow:0 5px 20px #0008;
 <button class="danger" onclick="moderateUser('ban')">Banear</button>
 </div>
 <p id="adminStatus" class="muted"></p>
+
 </div>
 </section>
 </div>
 
 <script>
+
 const SUPABASE_URL="https://pqnnzkqxkndzelsbtxvv.supabase.co";
 const SUPABASE_KEY="sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 
 let nickname="",senderId="",currentRoom=null,rooms=[];
@@ -195,9 +202,10 @@ let activePrivateUser=null;
 let isAdmin=false,adminPin="";
 let privateNoticeTimer=null;
 
-// AUTENTICACIÓN ANÓNIMA.
+// AUTENTICACIÓN
 
 async function ensureAuthUser(){
+
 let {data:{session},error}=await db.auth.getSession();
 if(error)throw error;
 
@@ -223,9 +231,10 @@ const admin=$("nickname").value.trim().toUpperCase()==="UNIX";
 $("adminPinWrap").classList.toggle("hidden",!admin);
 });
 
-// CARGAR SALAS.
+// CARGAR SALAS
 
 async function fetchRooms(){
+
 const {data,error}=await db.from("rooms").select("id,name").order("name");
 if(error)throw error;
 
@@ -246,9 +255,10 @@ throw new Error("No hay salas. Creá una desde Administración.");
 }
 }
 
-// INGRESAR.
+// INGRESAR
 
 async function enterChat(){
+
 showError("");
 
 const name=$("nickname").value.trim();
@@ -265,9 +275,11 @@ adminPin="";
 btn.disabled=true;
 
 try{
+
 senderId=await ensureAuthUser();
 
 if(name.toUpperCase()==="UNIX"){
+
 const pin=$("adminPin").value;
 if(!pin)throw new Error("Ingresá el PIN de administrador.");
 
@@ -309,9 +321,10 @@ btn.disabled=false;
 }
 }
 
-// PESTAÑAS DE SALAS.
+// PESTAÑAS DE SALAS
 
 function renderTabs(){
+
 $("roomTabs").innerHTML="";
 
 rooms.forEach(r=>{
@@ -321,14 +334,22 @@ b.textContent=r.name;
 b.onclick=()=>switchRoom(r.id);
 $("roomTabs").appendChild(b);
 });
+
+}
+
+function privateCutoffKey(otherId){
+return "wichat_private_cutoff_"+senderId+"_"+otherId;
 }
 
 function savePrivateCutoff(){
+
 if(!activePrivateUser||!senderId)return;
+
 localStorage.setItem(
 privateCutoffKey(activePrivateUser.id),
 new Date().toISOString()
 );
+
 }
 
 function clearPrivateView(){
@@ -337,6 +358,7 @@ privateReceivedIds.clear();
 }
 
 function showMainTab(which){
+
 const users=which==="users";
 
 if(activePrivateUser){
@@ -355,9 +377,10 @@ $("chatView").classList.toggle("hidden",users);
 $("usersView").classList.toggle("hidden",!users);
 $("chatTab").classList.toggle("active",!users);
 $("usersTab").classList.toggle("active",users);
+
 }
 
-// CAMBIAR DE SALA.
+// CAMBIAR DE SALA
 
 async function switchRoom(id){
 
@@ -389,6 +412,7 @@ presenceChannel=null;
 currentRoom=id;
 receivedIds.clear();
 roomUsers.clear();
+
 $("messages").innerHTML="";
 renderTabs();
 renderUsers();
@@ -405,11 +429,11 @@ filter:"room_id=eq."+id
 },p=>addMessage(p.new))
 .subscribe(s=>{
 if(s==="SUBSCRIBED"){
-$("status").textContent="● Conectado a "+(room?.name||"la sala");
+$("status").textContent="● Conectado a "+(room?.name||"sala");
 }
 });
 
-// USUARIOS CONECTADOS.
+// USUARIOS CONECTADOS
 
 presenceChannel=db.channel("wichat-presence-"+id,{
 config:{presence:{key:senderId}}
@@ -420,29 +444,39 @@ presenceChannel
 .on("presence",{event:"join"},updatePresenceList)
 .on("presence",{event:"leave"},updatePresenceList)
 .subscribe(async state=>{
+
 if(state==="SUBSCRIBED"){
+
 await presenceChannel.track({
 nickname,
 sender_id:senderId,
 is_admin:isAdmin,
 online_at:new Date().toISOString()
 });
+
 updatePresenceList();
-}
-});
+
 }
 
-// ACTUALIZAR USUARIOS.
+});
+
+}
+
+// ACTUALIZAR USUARIOS
 
 function updatePresenceList(){
+
 if(!presenceChannel)return;
 
 const state=presenceChannel.presenceState();
 const next=new Map();
 
 Object.keys(state).forEach(key=>{
+
 const entries=state[key]||[];
+
 if(entries.length){
+
 const p=entries[entries.length-1];
 const id=p.sender_id||key;
 
@@ -451,27 +485,35 @@ id,
 nick:p.nickname||"Usuario",
 admin:p.is_admin===true
 });
+
 }
+
 });
 
 roomUsers=next;
 renderUsers();
 renderModerationUsers();
+
 }
 
-// LISTA DE USUARIOS: UNIX PRIMERO MIENTRAS ESTÁ CONECTADO.
+// LISTA DE USUARIOS
 
 function renderUsers(){
+
 const list=$("usersList");
 if(!list)return;
 
 const users=Array.from(roomUsers.values()).sort((a,b)=>{
-if(a.id===senderId)return -1;
-if(b.id===senderId)return 1;
+
+if(a.admin && a.nick.toUpperCase()==="UNIX")return -1;
+if(b.admin && b.nick.toUpperCase()==="UNIX")return 1;
+
 return a.nick.localeCompare(b.nick);
+
 });
 
 $("usersCount").textContent=String(users.length);
+
 $("usersCountText").textContent=users.length+" "+
 (users.length===1?"usuario conectado":"usuarios conectados");
 
@@ -483,6 +525,7 @@ return;
 }
 
 users.forEach(u=>{
+
 const item=document.createElement("div");
 item.className="user-item";
 
@@ -492,50 +535,68 @@ dot.className="online-dot";
 const name=document.createElement("span");
 name.className="user-name";
 
-if(u.id===senderId || u.admin){
+// ESTRELLA EXCLUSIVA DE UNIX VERIFICADO
+
+if(u.admin && u.nick.toUpperCase()==="UNIX"){
+
 const star=document.createElement("span");
 star.className="admin-star";
 star.textContent="⭐";
 name.appendChild(star);
+
 }
 
 name.appendChild(document.createTextNode(u.nick));
+
 item.append(dot,name);
 
 if(u.id===senderId){
+
 item.title="Vos";
+
 }else{
+
 item.title="Chatear en privado con "+u.nick;
 item.onclick=()=>openPrivateChat(u);
+
 }
 
 list.appendChild(item);
+
 });
+
 }
 
 function renderModerationUsers(){
+
 const s=$("userToModerate");
 const old=s.value;
 
 s.innerHTML='<option value="">Elegí un usuario conectado</option>';
 
 roomUsers.forEach(u=>{
+
 if(u.id===senderId)return;
+
 const o=document.createElement("option");
 o.value=u.id;
 o.textContent=u.nick;
 s.appendChild(o);
+
 });
 
 if(Array.from(s.options).some(o=>o.value===old)){
 s.value=old;
 }
+
 }
 
-// MENSAJES PÚBLICOS.
+// MENSAJES PÚBLICOS
 
 function addMessage(m){
+
 if(!m||receivedIds.has(m.id))return;
+
 receivedIds.add(m.id);
 
 const div=document.createElement("div");
@@ -544,11 +605,15 @@ div.className="message";
 const n=document.createElement("strong");
 n.className="nickname";
 
+// SOLO EL NICK RESERVADO UNIX PUEDE MOSTRAR ESTRELLA
+
 if(String(m.nickname||"").toUpperCase()==="UNIX"){
+
 const star=document.createElement("span");
 star.className="admin-star";
 star.textContent="⭐";
 n.appendChild(star);
+
 }
 
 n.appendChild(document.createTextNode((m.nickname||"Usuario")+":"));
@@ -558,11 +623,14 @@ t.className="msgtext";
 t.textContent=m.message||m.content||"";
 
 div.append(n,t);
+
 $("messages").appendChild(div);
 $("messages").scrollTop=$("messages").scrollHeight;
+
 }
 
 async function sendMessage(){
+
 const input=$("messageInput");
 const btn=$("sendBtn");
 const value=input.value.trim();
@@ -572,6 +640,7 @@ if(!value||!nickname||!currentRoom)return;
 btn.disabled=true;
 
 try{
+
 const {error}=await db.from("messages").insert({
 nickname,
 message:value,
@@ -581,29 +650,30 @@ sender_id:senderId
 });
 
 if(error)throw error;
+
 input.value="";
+
 }catch(e){
+
 alert("No se pudo enviar el mensaje: "+e.message);
+
 }finally{
+
 btn.disabled=false;
 input.focus();
+
 }
+
 }
 
 // =================================
 // CHAT PRIVADO
 // =================================
 
-// CLAVE PARA RECORDAR CUÁNDO SALIÓ CADA USUARIO DE CADA PRIVADO.
-
-function privateCutoffKey(otherId){
-return "wichat_private_cutoff_"+senderId+"_"+otherId;
-}
-
-// NOTIFICACIÓN DE MENSAJES PRIVADOS.
-
 function showPrivateNotification(senderNick){
+
 const notice=$("privateNotice");
+
 notice.textContent="🔔 "+senderNick+" te está hablando por privado";
 notice.style.display="block";
 
@@ -614,11 +684,16 @@ clearTimeout(privateNoticeTimer);
 privateNoticeTimer=setTimeout(()=>{
 notice.style.display="none";
 },5000);
+
 }
 
-// ESCUCHAR TODOS LOS PRIVADOS QUE LLEGAN A ESTE USUARIO.
+// NOTIFICACIONES PRIVADAS: SOLO UNIX
+// UNA SOLA NOTIFICACIÓN POR USUARIO
 
 function subscribePrivateNotifications(){
+
+if(!isAdmin)return;
+
 if(privateNoticeChannel){
 db.removeChannel(privateNoticeChannel);
 privateNoticeChannel=null;
@@ -631,24 +706,47 @@ schema:"public",
 table:"private_messages",
 filter:"recipient_id=eq."+senderId
 },payload=>{
+
 const m=payload.new;
 
 if(!m||m.recipient_id!==senderId)return;
 
-const fromNick=m.sender_nickname||"Un usuario";
-showPrivateNotification(fromNick);
+// CLAVE ÚNICA PARA CADA USUARIO QUE ESCRIBE A UNIX
+// SE GUARDA EN EL DISPOSITIVO Y NO SE BORRA AL SALIR DEL CHAT.
 
-// Si el privado está abierto, mostrar el mensaje también.
+const notificationKey=
+"wichat_private_notified_"+senderId+"_"+m.sender_id;
+
+const alreadyNotified=
+localStorage.getItem(notificationKey)==="1";
+
+// AVISAR SOLAMENTE LA PRIMERA VEZ
+
+if(!alreadyNotified){
+
+localStorage.setItem(notificationKey,"1");
+
+showPrivateNotification(
+m.sender_nickname||"Un usuario"
+);
+
+}
+
+// LOS MENSAJES SIGUEN LLEGANDO NORMALMENTE
+
 if(activePrivateUser&&activePrivateUser.id===m.sender_id){
 addPrivateMessage(m);
 }
+
 })
 .subscribe();
+
 }
 
-// ABRIR PRIVADO.
+// ABRIR PRIVADO
 
 async function openPrivateChat(user){
+
 if(!user||user.id===senderId)return;
 
 activePrivateUser=user;
@@ -657,6 +755,7 @@ privateReceivedIds.clear();
 $("chatView").classList.add("hidden");
 $("usersView").classList.add("hidden");
 $("privateView").classList.remove("hidden");
+
 $("privateTitle").textContent="Privado con "+user.nick;
 $("privateMessages").innerHTML='<p class="muted">Cargando conversación...</p>';
 
@@ -673,23 +772,32 @@ event:"INSERT",
 schema:"public",
 table:"private_messages"
 },payload=>{
+
 const m=payload.new;
 
 if(activePrivateUser&&(
+
 (m.sender_id===senderId&&m.recipient_id===activePrivateUser.id)||
+
 (m.sender_id===activePrivateUser.id&&m.recipient_id===senderId)
+
 )){
+
 addPrivateMessage(m);
+
 }
+
 })
 .subscribe();
 
 $("privateInput").focus();
+
 }
 
-// CARGAR HISTORIAL PRIVADO.
+// CARGAR HISTORIAL PRIVADO
 
 async function loadPrivateMessages(){
+
 if(!activePrivateUser)return;
 
 const other=activePrivateUser.id;
@@ -724,20 +832,27 @@ privateReceivedIds.clear();
 if(!(data||[]).length){
 $("privateMessages").innerHTML='<p class="muted">Todavía no hay mensajes. ¡Saludá!</p>';
 }
+
 }
 
-// MOSTRAR MENSAJE PRIVADO CON ESTRELLA PARA UNIX.
+// MOSTRAR MENSAJES PRIVADOS
+// ESTRELLA EXCLUSIVA DE UNIX
 
 function addPrivateMessage(m){
+
 if(!m||privateReceivedIds.has(m.id))return;
+
 privateReceivedIds.add(m.id);
 
 const box=$("privateMessages");
+
 const empty=box.querySelector(".muted");
 if(empty)box.innerHTML="";
 
 const div=document.createElement("div");
-div.className="private-message"+(m.sender_id===senderId?" mine":"");
+
+div.className="private-message"+
+(m.sender_id===senderId?" mine":"");
 
 const who=document.createElement("strong");
 who.className="nickname";
@@ -746,11 +861,15 @@ const privateNick=m.sender_id===senderId
 ?nickname
 :(m.sender_nickname||"Usuario");
 
+// SOLO EL NICK UNIX MUESTRA ESTRELLA
+
 if(privateNick.toUpperCase()==="UNIX"){
+
 const star=document.createElement("span");
 star.className="admin-star";
 star.textContent="⭐";
 who.appendChild(star);
+
 }
 
 who.appendChild(document.createTextNode(privateNick+": "));
@@ -761,19 +880,23 @@ msg.textContent=m.content||"";
 
 const time=document.createElement("div");
 time.className="private-time";
+
 time.textContent=new Date(m.created_at).toLocaleString("es-AR",{
 dateStyle:"short",
 timeStyle:"short"
 });
 
 div.append(who,msg,time);
+
 box.appendChild(div);
 box.scrollTop=box.scrollHeight;
+
 }
 
-// ENVIAR MENSAJE PRIVADO.
+// ENVIAR PRIVADO
 
 async function sendPrivateMessage(){
+
 if(!activePrivateUser)return;
 
 const input=$("privateInput");
@@ -785,6 +908,7 @@ if(!value)return;
 btn.disabled=true;
 
 try{
+
 const {data,error}=await db
 .from("private_messages")
 .insert({
@@ -802,16 +926,22 @@ addPrivateMessage(data);
 input.value="";
 
 }catch(e){
+
 alert("No se pudo enviar el mensaje privado: "+e.message);
+
 }finally{
+
 btn.disabled=false;
 input.focus();
-}
+
 }
 
-// SALIR DEL PRIVADO: LIMPIAR SOLO PARA ESTE USUARIO.
+}
+
+// VOLVER A USUARIOS
 
 async function backToUsers(){
+
 savePrivateCutoff();
 activePrivateUser=null;
 
@@ -825,11 +955,13 @@ clearPrivateView();
 $("privateView").classList.add("hidden");
 $("usersView").classList.remove("hidden");
 $("privateInput").value="";
+
 }
 
-// ACTUALIZAR SALAS EN TIEMPO REAL.
+// ACTUALIZAR SALAS EN TIEMPO REAL
 
 function subscribeRooms(){
+
 if(roomChannel)db.removeChannel(roomChannel);
 
 roomChannel=db.channel("wichat-rooms")
@@ -838,7 +970,9 @@ event:"*",
 schema:"public",
 table:"rooms"
 },async()=>{
+
 const previous=currentRoom;
+
 await fetchRooms();
 
 if(!rooms.some(r=>String(r.id)===String(previous))){
@@ -850,17 +984,23 @@ renderTabs();
 if(currentRoom){
 await switchRoom(currentRoom);
 }
+
 })
 .subscribe();
+
 }
 
-// ADMINISTRACIÓN.
+// ADMINISTRACIÓN
 
 function openAdmin(){
+
 if(isAdmin){
+
 $("adminPanel").classList.remove("hidden");
 renderRoomDelete();
+
 }
+
 }
 
 function closeAdmin(){
@@ -868,6 +1008,7 @@ $("adminPanel").classList.add("hidden");
 }
 
 async function createRoom(){
+
 const name=$("newRoomName").value.trim();
 if(!name)return;
 
@@ -880,35 +1021,46 @@ $("adminStatus").textContent=error?
 "Error: "+error.message:"Sala creada.";
 
 if(!error){
+
 $("newRoomName").value="";
 await fetchRooms();
 renderTabs();
+
 }
+
 }
 
 function renderRoomDelete(){
+
 const select=$("roomToDelete");
 if(!select)return;
 
 const previous=select.value;
+
 select.innerHTML='<option value="">Elegí una sala</option>';
 
 rooms.forEach(r=>{
+
 const option=document.createElement("option");
 option.value=r.id;
 option.textContent=r.name;
+
 select.appendChild(option);
+
 });
 
 if(rooms.some(r=>String(r.id)===String(previous))){
 select.value=previous;
 }
+
 }
 
 async function deleteRoom(){
+
 if(!isAdmin)return;
 
 const id=$("roomToDelete").value;
+
 if(!id){
 $("adminStatus").textContent="Elegí una sala.";
 return;
@@ -933,23 +1085,32 @@ return;
 $("adminStatus").textContent="Sala eliminada correctamente.";
 
 const wasCurrent=String(currentRoom)===String(id);
+
 await fetchRooms();
 
 if(wasCurrent){
+
 if(rooms.length){
+
 currentRoom=rooms[0].id;
 await switchRoom(currentRoom);
+
 }else{
+
 $("status").textContent="No quedan salas. Creá una nueva desde Administración.";
 $("messages").innerHTML="";
+
 }
+
 }
 
 renderTabs();
 renderRoomDelete();
+
 }
 
 async function moderateUser(action){
+
 const target=$("userToModerate").value;
 
 if(!target){
@@ -967,9 +1128,10 @@ action_name:action
 $("adminStatus").textContent=error?
 "Error: "+error.message:
 (action==="ban"?"Usuario baneado.":"Usuario expulsado de esta sala.");
+
 }
 
-// SALIR DEL CHAT.
+// SALIR DEL CHAT
 
 async function exitChat(){
 
@@ -1038,17 +1200,24 @@ $("error").textContent="";
 
 showMainTab("chat");
 renderUsers();
+
 }
 
-// INICIO.
+// INICIO
 
 (async()=>{
+
 try{
+
 await fetchRooms();
+
 }catch(e){
+
 $("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';
 showError(e.message);
+
 }
+
 })();
 
 </script>

@@ -13,7 +13,7 @@
         android:roundIcon="@mipmap/ic_launcher_round">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.wichat.app.MainActivity"
             android:exported="true">
 
             <intent-filter>
@@ -24,4 +24,5 @@
         </activity>
 
     </application>
+
 </manifest>

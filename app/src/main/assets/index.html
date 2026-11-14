@@ -3,14 +3,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Wi Chat</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#0b1020;color:white;font-family:Arial,sans-serif}
-header{background:#121a30;padding:18px;text-align:center;border-bottom:1px solid #273451}
+body{margin:0;background:#080f1e;color:white;font-family:Arial,sans-serif}
+header{background:#121a30;padding:16px;text-align:center;border-bottom:1px solid #273451}
 header h1{margin:0;color:#55b8ff}
 header p{margin:6px 0 0;color:#9baac5}
 .container{max-width:700px;margin:auto;padding:15px}
@@ -18,18 +18,6 @@ header p{margin:6px 0 0;color:#9baac5}
 input,select{width:100%;padding:14px;border:1px solid #344361;border-radius:10px;background:#0c1427;color:white;font-size:16px;margin:8px 0}
 button{border:0;padding:12px 16px;border-radius:10px;background:#168bea;color:white;font-weight:bold;cursor:pointer}
 button:disabled{opacity:.5}
-#chat{display:none}
-#roomTabs{display:flex;gap:8px;overflow-x:auto;padding:5px 0 12px}
-.room-tab{white-space:nowrap;flex:0 0 auto;background:#253654}
-.room-tab.active{background:#168bea}
-#messages,#privateMessages{height:45vh;min-height:280px;overflow-y:auto;background:#0c1427;border-radius:12px;padding:12px;margin:14px 0}
-.message{background:#1b2945;padding:10px;border-radius:10px;margin-bottom:9px;overflow-wrap:anywhere;display:flex;gap:7px}
-.private-message{display:block;background:#1b2945;padding:10px;border-radius:10px;margin-bottom:9px;overflow-wrap:anywhere}
-.private-message.mine{background:#173b5a}
-.nickname{color:#55b8ff;font-weight:bold;white-space:nowrap}
-.admin-star{color:#ffd34d;margin-right:4px}
-.msgtext{color:#fff;white-space:pre-wrap;min-width:0}
-.private-time{font-size:11px;color:#9baac5;margin-top:5px}
 .row{display:flex;gap:8px;align-items:center}
 .row input{flex:1;min-width:0}
 .status{color:#70dca1;font-size:13px}
@@ -39,39 +27,80 @@ button:disabled{opacity:.5}
 .secondary{background:#344361}
 .admin-box{border:1px solid #d99b35}
 .hidden{display:none!important}
-.main-tabs{display:flex;gap:8px;margin:10px 0}
-.main-tabs button{flex:1;background:#253654}
-.main-tabs button.active{background:#168bea}
-#usersView{min-height:280px;background:#0c1427;border-radius:12px;padding:14px;margin:14px 0}
-.user-item{display:flex;align-items:center;gap:9px;padding:12px;margin-bottom:8px;background:#1b2945;border-radius:10px;cursor:pointer}
+
+/* PANTALLA COMPLETA DEL CHAT */
+body.chat-active{overflow:hidden}
+body.chat-active header{display:none}
+body.chat-active .container{max-width:none;width:100%;height:100dvh;padding:0}
+#chat{display:none;height:100dvh;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+#chat>.panel{height:100%;margin:0;padding:10px 12px 8px;border-radius:0;background:#080f1e;display:flex;flex-direction:column;min-height:0}
+.chat-top{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#102747;border:1px solid #1b5a91;border-radius:12px;padding:10px 12px;flex:0 0 auto}
+.chat-top h2{margin:0;color:#55b8ff;font-size:19px}
+.chat-top p{margin:4px 0 0;color:#b5c8e4;font-size:13px}
+.online-summary{font-size:12px;color:#70dca1;text-align:right;white-space:nowrap}
+#adminOpenBtn{padding:8px 10px}
+
+/* VISTAS */
+#chatView,#usersView,#roomsView,#privateView{flex:1;min-height:0;display:flex;flex-direction:column}
+#chatView.hidden,#usersView.hidden,#roomsView.hidden,#privateView.hidden{display:none!important}
+.chat-welcome{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 2px;flex:0 0 auto}
+.chat-welcome strong{font-size:17px;color:white}
+.chat-welcome span{font-size:13px;color:#55b8ff}
+#messages,#privateMessages{flex:1;min-height:0;height:auto;overflow-y:auto;background:#050c19;border:1px solid #164b7d;border-radius:12px;padding:12px;margin:4px 0 10px;overscroll-behavior:contain}
+.message{background:#172844;padding:10px;border-radius:10px;margin-bottom:9px;overflow-wrap:anywhere;display:flex;gap:7px}
+.private-message{display:block;background:#172844;padding:10px;border-radius:10px;margin-bottom:9px;overflow-wrap:anywhere}
+.private-message.mine{background:#173b5a}
+.nickname{color:#55b8ff;font-weight:bold;white-space:nowrap}
+.admin-star{color:#ffd34d;margin-right:4px}
+.msgtext{color:#fff;white-space:pre-wrap;min-width:0;overflow-wrap:anywhere}
+.private-time{font-size:11px;color:#9baac5;margin-top:5px}
+
+/* ESCRITURA */
+.composer{display:flex;align-items:center;gap:7px;flex:0 0 auto;padding:2px 0 5px}
+.composer input{margin:0;min-width:0;flex:1;padding:13px}
+.send-button{font-size:20px;padding:12px 16px}
+.emoji-wrap{position:relative;flex:0 0 auto}
+.emoji-toggle{font-size:22px;padding:9px 11px;background:#15395e}
+.emoji-picker{display:none;position:absolute;bottom:54px;left:0;width:min(340px,calc(100vw - 30px));max-height:270px;overflow-y:auto;background:#101d33;border:1px solid #278bd2;border-radius:13px;padding:9px;z-index:700;box-shadow:0 8px 24px #000b}
+.emoji-picker.open{display:block}
+.emoji-cats{display:flex;gap:5px;overflow-x:auto;margin-bottom:8px}
+.emoji-cats button{padding:7px 9px;background:#203b5d;font-size:18px}
+.emoji-cats button.active{background:#0878c9}
+.emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.emoji-grid button{background:#192c49;padding:8px 2px;font-size:23px}
+
+/* USUARIOS */
+#usersView,#roomsView{padding:12px 2px}
+#usersView h3,#roomsView h3{margin:8px 0 12px;color:#55b8ff}
+.user-item{display:flex;align-items:center;gap:9px;padding:13px;margin-bottom:8px;background:#172844;border:1px solid #233c5d;border-radius:10px;cursor:pointer}
 .user-item:hover{background:#26395b}
 .online-dot{width:9px;height:9px;background:#39d98a;border-radius:50%;flex:0 0 9px}
 .user-name{font-weight:bold;color:#fff;overflow-wrap:anywhere}
 .user-count{font-size:12px;color:#9baac5;margin-bottom:10px}
-.private-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.private-header h3{overflow-wrap:anywhere}
-#privateNotice{
-display:none;
-position:fixed;
-top:12px;
-left:50%;
-transform:translateX(-50%);
-width:calc(100% - 30px);
-max-width:500px;
-background:#168bea;
-color:white;
-padding:15px;
-border-radius:12px;
-z-index:9999;
-text-align:center;
-font-weight:bold;
-box-shadow:0 5px 20px #0008;
+.room-tab{width:100%;text-align:left;margin:5px 0;background:#172844;border:1px solid #29486b}
+.room-tab.active{background:#07549a;border-color:#168bea}
+.private-header{display:flex;align-items:center;gap:10px;margin:8px 0}
+.private-header h3{overflow-wrap:anywhere;color:#55b8ff}
+
+/* BARRA INFERIOR */
+#bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:500;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;background:#071326;border-top:1px solid #1b5a91;padding:7px 8px calc(7px + env(safe-area-inset-bottom));box-shadow:0 -5px 18px #0008}
+.nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:transparent;color:#a9c9e9;padding:5px 3px;font-size:12px}
+.nav-icon{font-size:22px;line-height:25px}
+.nav-btn.active{background:#12375c;color:#55b8ff;border-radius:10px}
+.nav-btn.exit{color:#ff8796}
+
+/* AVISOS Y ADMINISTRACIÓN */
+#privateNotice{display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 30px);max-width:500px;background:#168bea;color:white;padding:15px;border-radius:12px;z-index:9999;text-align:center;font-weight:bold;box-shadow:0 5px 20px #0008}
+#adminPanel{position:fixed;z-index:800;left:10px;right:10px;top:10px;bottom:90px;overflow-y:auto;max-width:680px;margin:auto;background:#141e35}
+#adminPanel .row input{min-width:0}
+#adminPanel h4{margin-bottom:5px}
+@media(min-width:701px){
+body.chat-active .container{max-width:850px;margin:auto}
 }
 </style>
 </head>
 
 <body>
-
 <div id="privateNotice" role="status" aria-live="polite"></div>
 
 <header>
@@ -84,7 +113,6 @@ box-shadow:0 5px 20px #0008;
 <section id="login" class="panel">
 <h2>Bienvenido a Wi Chat</h2>
 <p>Elegí tu Nick y la sala a la que querés entrar.</p>
-
 <input id="nickname" maxlength="25" placeholder="Escribí tu Nick" autocomplete="nickname">
 
 <div id="adminPinWrap" class="hidden">
@@ -93,44 +121,54 @@ box-shadow:0 5px 20px #0008;
 </div>
 
 <label class="muted" for="initialRoom">Elegí una sala</label>
-<select id="initialRoom">
-<option value="">Cargando salas...</option>
-</select>
+<select id="initialRoom"><option value="">Cargando salas...</option></select>
 
 <button id="enterBtn" onclick="enterChat()">ENTRAR AL CHAT</button>
 <p id="error"></p>
 </section>
 
 <section id="chat">
-
 <div class="panel">
 
-<div class="row" style="justify-content:space-between">
-<h2 style="margin:0">Salas</h2>
-<button id="adminOpenBtn" class="secondary hidden" onclick="openAdmin()">Administrar</button>
+<div class="chat-top">
+<div>
+<h2>Wi Chat</h2>
+<p>Bienvenido al chat</p>
 </div>
-
-<div id="roomTabs"></div>
-
-<div class="main-tabs">
-<button id="chatTab" class="active" onclick="showMainTab('chat')">Chat</button>
-<button id="usersTab" onclick="showMainTab('users')">Usuarios <span id="usersCount">0</span></button>
+<div class="online-summary">
+<div>🟢 <span id="usersCount">0</span> en línea</div>
+<div id="currentRoomLabel">Sala: General</div>
+</div>
+<button id="adminOpenBtn" class="secondary hidden" onclick="openAdmin()">⚙</button>
 </div>
 
 <div id="chatView">
-<p class="status" id="status">Conectando...</p>
+<div class="chat-welcome">
+<strong>Conversación general</strong>
+<span id="status">Conectando...</span>
+</div>
 <div id="messages"></div>
-<div class="row">
+<div class="composer">
+<div class="emoji-wrap">
+<button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button>
+<div id="emojiPickerPublic" class="emoji-picker"></div>
+</div>
 <input id="messageInput" maxlength="1000" placeholder="Escribí un mensaje..." onkeydown="if(event.key==='Enter')sendMessage()">
-<button id="sendBtn" onclick="sendMessage()">Enviar</button>
+<button id="sendBtn" class="send-button" onclick="sendMessage()">➤</button>
 </div>
 </div>
 
 <div id="usersView" class="hidden">
-<h3 style="margin-top:0">Usuarios conectados</h3>
+<h3>👥 Usuarios en línea</h3>
 <div id="usersCountText" class="user-count">0 usuarios conectados</div>
-<p class="muted">Tocá el Nick de un usuario para hablar en privado.</p>
+<p class="muted">Tocá un Nick para iniciar una conversación privada.</p>
 <div id="usersList"><p class="muted">Esperando usuarios...</p></div>
+</div>
+
+<div id="roomsView" class="hidden">
+<h3>💬 Salas disponibles</h3>
+<p class="muted">Elegí la sala a la que querés entrar.</p>
+<div id="roomTabs"></div>
 </div>
 
 <div id="privateView" class="hidden">
@@ -138,58 +176,54 @@ box-shadow:0 5px 20px #0008;
 <button class="secondary" onclick="backToUsers()">← Volver</button>
 <h3 id="privateTitle" style="margin:0">Chat privado</h3>
 </div>
-<p class="muted">Esta conversación solo la pueden ver sus participantes.</p>
 <div id="privateMessages"></div>
-<div class="row">
+<div class="composer">
+<div class="emoji-wrap">
+<button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button>
+<div id="emojiPickerPrivate" class="emoji-picker"></div>
+</div>
 <input id="privateInput" maxlength="1000" placeholder="Escribí un mensaje privado..." onkeydown="if(event.key==='Enter')sendPrivateMessage()">
-<button id="privateSendBtn" onclick="sendPrivateMessage()">Enviar</button>
+<button id="privateSendBtn" class="send-button" onclick="sendPrivateMessage()">➤</button>
 </div>
 </div>
 
-<br>
-<button class="danger" onclick="exitChat()">Salir del chat</button>
-
 </div>
+
+<nav id="bottomNav">
+<button id="navUsers" class="nav-btn" onclick="showMainTab('users')"><span class="nav-icon">👥</span>Usuarios</button>
+<button id="navRooms" class="nav-btn active" onclick="showMainTab('rooms')"><span class="nav-icon">💬</span>Salas</button>
+<button id="navExit" class="nav-btn exit" onclick="exitChat()"><span class="nav-icon">🚪</span>Salir</button>
+</nav>
 
 <div id="adminPanel" class="panel admin-box hidden">
-
 <div class="row" style="justify-content:space-between">
 <h3 style="margin:0">Administración UNIX</h3>
 <button class="secondary" onclick="closeAdmin()">Cerrar</button>
 </div>
-
 <h4>Crear una sala</h4>
 <div class="row">
 <input id="newRoomName" maxlength="30" placeholder="Nombre de la sala">
 <button onclick="createRoom()">Crear</button>
 </div>
-
 <h4>Eliminar una sala</h4>
-<select id="roomToDelete">
-<option value="">Elegí una sala</option>
-</select>
+<select id="roomToDelete"><option value="">Elegí una sala</option></select>
 <button class="danger" onclick="deleteRoom()">Eliminar sala</button>
-
 <h4>Expulsar o banear usuarios</h4>
 <p class="muted">Elegí un usuario conectado en esta sala.</p>
-<select id="userToModerate">
-<option value="">Usuarios de esta sala</option>
-</select>
+<select id="userToModerate"><option value="">Usuarios de esta sala</option></select>
 <div class="row">
 <button class="secondary" onclick="moderateUser('kick')">Expulsar de esta sala</button>
 <button class="danger" onclick="moderateUser('ban')">Banear</button>
 </div>
 <p id="adminStatus" class="muted"></p>
-
 </div>
+
 </section>
 </div>
 
 <script>
-
 const SUPABASE_URL="https://pqnnzkqxkndzelsbtxvv.supabase.co";
 const SUPABASE_KEY="sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
-
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 
@@ -197,77 +231,69 @@ let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null;
 let privateChannel=null,privateNoticeChannel=null;
 let receivedIds=new Set(),privateReceivedIds=new Set();
-let roomUsers=new Map();
-let activePrivateUser=null;
+let roomUsers=new Map(),activePrivateUser=null;
 let isAdmin=false,adminPin="";
 let privateNoticeTimer=null;
 
 // AUTENTICACIÓN
-
 async function ensureAuthUser(){
-
 let {data:{session},error}=await db.auth.getSession();
 if(error)throw error;
-
 if(!session){
 const result=await db.auth.signInAnonymously();
 if(result.error)throw result.error;
 session=result.data.session;
 }
-
-if(!session?.user?.id){
-throw new Error("No se pudo identificar al usuario.");
-}
-
+if(!session?.user?.id)throw new Error("No se pudo identificar al usuario.");
 return session.user.id;
 }
 
-function showError(s){
-$("error").textContent=s;
-}
+function showError(s){$("error").textContent=s}
 
 $("nickname").addEventListener("input",()=>{
 const admin=$("nickname").value.trim().toUpperCase()==="UNIX";
 $("adminPinWrap").classList.toggle("hidden",!admin);
 });
 
-// CARGAR SALAS
-
+// SALAS: GENERAL PRIMERO Y PRESELECCIONADA
 async function fetchRooms(){
-
-const {data,error}=await db.from("rooms").select("id,name").order("name");
+const {data,error}=await db.from("rooms").select("id,name");
 if(error)throw error;
 
-rooms=data||[];
-$("initialRoom").innerHTML="";
+rooms=(data||[]).slice().sort((a,b)=>{
+const ag=String(a.name).trim().toLowerCase()==="general";
+const bg=String(b.name).trim().toLowerCase()==="general";
+if(ag&&!bg)return -1;
+if(bg&&!ag)return 1;
+return String(a.name).localeCompare(String(b.name),"es");
+});
+
+const select=$("initialRoom");
+const previous=select.value;
+select.innerHTML="";
 
 rooms.forEach(r=>{
 const o=document.createElement("option");
 o.value=r.id;
 o.textContent=r.name;
-$("initialRoom").appendChild(o);
+select.appendChild(o);
 });
 
-if(isAdmin)renderRoomDelete();
+const general=rooms.find(r=>String(r.name).trim().toLowerCase()==="general");
+if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
+else if(general)select.value=general.id;
+else if(rooms.length)select.value=rooms[0].id;
 
-if(!rooms.length){
-throw new Error("No hay salas. Creá una desde Administración.");
-}
+if(isAdmin)renderRoomDelete();
+if(!rooms.length)throw new Error("No hay salas. Creá una desde Administración.");
 }
 
 // INGRESAR
-
 async function enterChat(){
-
 showError("");
-
 const name=$("nickname").value.trim();
 const btn=$("enterBtn");
-
-if(!name){
-showError("Escribí tu Nick.");
-return;
-}
+if(!name){showError("Escribí tu Nick.");return}
 
 nickname=name;
 isAdmin=false;
@@ -275,39 +301,31 @@ adminPin="";
 btn.disabled=true;
 
 try{
-
 senderId=await ensureAuthUser();
 
 if(name.toUpperCase()==="UNIX"){
-
 const pin=$("adminPin").value;
-if(!pin)throw new Error("Ingresá el PIN de administrador.");
-
+if(!pin)throw new Error("Ingresá el PIN de administrador UNIX.");
 const {data,error}=await db.rpc("verify_admin_pin",{pin_input:pin});
-
-if(error||data!==true){
-throw new Error("PIN incorrecto o falta ejecutar el SQL de configuración.");
-}
-
+if(error||data!==true)throw new Error("PIN incorrecto o falta ejecutar el SQL de configuración.");
 isAdmin=true;
 adminPin=pin;
 }
 
 await fetchRooms();
 
-currentRoom=$("initialRoom").value;
-if(!currentRoom)throw new Error("Elegí una sala.");
+currentRoom=$("initialRoom").value||rooms[0]?.id;
+if(!currentRoom)throw new Error("No hay salas disponibles.");
 
 const {data:allowed,error}=await db.rpc("check_chat_access",{
-sender_id_input:senderId,
-room_id_input:currentRoom
+sender_id_input:senderId,room_id_input:currentRoom
 });
-
 if(error)throw error;
 if(!allowed)throw new Error("Tu usuario está baneado o fue expulsado de esta sala.");
 
 $("login").style.display="none";
 $("chat").style.display="block";
+document.body.classList.add("chat-active");
 $("adminOpenBtn").classList.toggle("hidden",!isAdmin);
 
 renderTabs();
@@ -321,20 +339,40 @@ btn.disabled=false;
 }
 }
 
-// PESTAÑAS DE SALAS
+// NAVEGACIÓN
+function closeEmojiPickers(){
+$("emojiPickerPublic").classList.remove("open");
+$("emojiPickerPrivate").classList.remove("open");
+}
 
+function showMainTab(which){
+if(activePrivateUser){
+savePrivateCutoff();
+activePrivateUser=null;
+clearPrivateView();
+}
+if(privateChannel){db.removeChannel(privateChannel);privateChannel=null}
+
+$("privateView").classList.add("hidden");
+$("chatView").classList.toggle("hidden",which!=="chat");
+$("usersView").classList.toggle("hidden",which!=="users");
+$("roomsView").classList.toggle("hidden",which!=="rooms");
+
+$("navUsers").classList.toggle("active",which==="users");
+$("navRooms").classList.toggle("active",which==="rooms"||which==="chat");
+closeEmojiPickers();
+}
+
+// LISTA DE SALAS
 function renderTabs(){
-
 $("roomTabs").innerHTML="";
-
 rooms.forEach(r=>{
 const b=document.createElement("button");
 b.className="room-tab"+(String(r.id)===String(currentRoom)?" active":"");
-b.textContent=r.name;
+b.textContent=(String(r.name).trim().toLowerCase()==="general"?"🌐 ":"💬 ")+r.name;
 b.onclick=()=>switchRoom(r.id);
 $("roomTabs").appendChild(b);
 });
-
 }
 
 function privateCutoffKey(otherId){
@@ -342,14 +380,8 @@ return "wichat_private_cutoff_"+senderId+"_"+otherId;
 }
 
 function savePrivateCutoff(){
-
 if(!activePrivateUser||!senderId)return;
-
-localStorage.setItem(
-privateCutoffKey(activePrivateUser.id),
-new Date().toISOString()
-);
-
+localStorage.setItem(privateCutoffKey(activePrivateUser.id),new Date().toISOString());
 }
 
 function clearPrivateView(){
@@ -357,166 +389,85 @@ $("privateMessages").innerHTML="";
 privateReceivedIds.clear();
 }
 
-function showMainTab(which){
-
-const users=which==="users";
-
-if(activePrivateUser){
-savePrivateCutoff();
-activePrivateUser=null;
-clearPrivateView();
-}
-
-if(privateChannel){
-db.removeChannel(privateChannel);
-privateChannel=null;
-}
-
-$("privateView").classList.add("hidden");
-$("chatView").classList.toggle("hidden",users);
-$("usersView").classList.toggle("hidden",!users);
-$("chatTab").classList.toggle("active",!users);
-$("usersTab").classList.toggle("active",users);
-
-}
-
 // CAMBIAR DE SALA
-
 async function switchRoom(id){
-
 const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{
-sender_id_input:senderId,
-room_id_input:id
+sender_id_input:senderId,room_id_input:id
 });
+if(accessError){$("status").textContent="Error de acceso: "+accessError.message;return}
+if(!allowed){$("status").textContent="No tenés acceso a esta sala.";return}
 
-if(accessError){
-$("status").textContent="Error de acceso: "+accessError.message;
-return;
-}
-
-if(!allowed){
-$("status").textContent="No tenés acceso a esta sala.";
-return;
-}
-
-if(messageChannel){
-await db.removeChannel(messageChannel);
-messageChannel=null;
-}
-
-if(presenceChannel){
-await db.removeChannel(presenceChannel);
-presenceChannel=null;
-}
+if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null}
+if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null}
 
 currentRoom=id;
+showMainTab("chat");
 receivedIds.clear();
 roomUsers.clear();
-
 $("messages").innerHTML="";
 renderTabs();
 renderUsers();
 
 const room=rooms.find(r=>String(r.id)===String(id));
+$("currentRoomLabel").textContent="Sala: "+(room?.name||"");
 $("status").textContent="Cargando "+(room?.name||"sala")+"...";
 
 messageChannel=db.channel("wichat-messages-"+id)
 .on("postgres_changes",{
-event:"INSERT",
-schema:"public",
-table:"messages",
-filter:"room_id=eq."+id
+event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id
 },p=>addMessage(p.new))
 .subscribe(s=>{
-if(s==="SUBSCRIBED"){
-$("status").textContent="● Conectado a "+(room?.name||"sala");
-}
+if(s==="SUBSCRIBED")$("status").textContent="● Conectado";
 });
-
-// USUARIOS CONECTADOS
 
 presenceChannel=db.channel("wichat-presence-"+id,{
 config:{presence:{key:senderId}}
 });
-
 presenceChannel
 .on("presence",{event:"sync"},updatePresenceList)
 .on("presence",{event:"join"},updatePresenceList)
 .on("presence",{event:"leave"},updatePresenceList)
 .subscribe(async state=>{
-
 if(state==="SUBSCRIBED"){
-
 await presenceChannel.track({
-nickname,
-sender_id:senderId,
-is_admin:isAdmin,
-online_at:new Date().toISOString()
+nickname,sender_id:senderId,is_admin:isAdmin,online_at:new Date().toISOString()
 });
-
 updatePresenceList();
-
 }
-
 });
-
 }
 
-// ACTUALIZAR USUARIOS
-
+// USUARIOS CONECTADOS
 function updatePresenceList(){
-
 if(!presenceChannel)return;
-
 const state=presenceChannel.presenceState();
 const next=new Map();
 
 Object.keys(state).forEach(key=>{
-
 const entries=state[key]||[];
-
 if(entries.length){
-
 const p=entries[entries.length-1];
 const id=p.sender_id||key;
-
-next.set(id,{
-id,
-nick:p.nickname||"Usuario",
-admin:p.is_admin===true
-});
-
+next.set(id,{id,nick:p.nickname||"Usuario",admin:p.is_admin===true});
 }
-
 });
-
 roomUsers=next;
 renderUsers();
 renderModerationUsers();
-
 }
 
-// LISTA DE USUARIOS
-
 function renderUsers(){
-
 const list=$("usersList");
 if(!list)return;
 
 const users=Array.from(roomUsers.values()).sort((a,b)=>{
-
-if(a.admin && a.nick.toUpperCase()==="UNIX")return -1;
-if(b.admin && b.nick.toUpperCase()==="UNIX")return 1;
-
+if(a.admin&&a.nick.toUpperCase()==="UNIX")return -1;
+if(b.admin&&b.nick.toUpperCase()==="UNIX")return 1;
 return a.nick.localeCompare(b.nick);
-
 });
 
 $("usersCount").textContent=String(users.length);
-
-$("usersCountText").textContent=users.length+" "+
-(users.length===1?"usuario conectado":"usuarios conectados");
-
+$("usersCountText").textContent=users.length+" "+(users.length===1?"usuario conectado":"usuarios conectados");
 list.innerHTML="";
 
 if(!users.length){
@@ -525,300 +476,237 @@ return;
 }
 
 users.forEach(u=>{
-
 const item=document.createElement("div");
 item.className="user-item";
-
 const dot=document.createElement("span");
 dot.className="online-dot";
-
 const name=document.createElement("span");
 name.className="user-name";
 
-// ESTRELLA EXCLUSIVA DE UNIX VERIFICADO
-
-if(u.admin && u.nick.toUpperCase()==="UNIX"){
-
+if(u.admin&&u.nick.toUpperCase()==="UNIX"){
 const star=document.createElement("span");
 star.className="admin-star";
 star.textContent="⭐";
 name.appendChild(star);
-
 }
-
 name.appendChild(document.createTextNode(u.nick));
-
 item.append(dot,name);
 
-if(u.id===senderId){
-
-item.title="Vos";
-
-}else{
-
+if(u.id!==senderId){
 item.title="Chatear en privado con "+u.nick;
 item.onclick=()=>openPrivateChat(u);
-
+}else{
+item.title="Vos";
 }
-
 list.appendChild(item);
-
 });
-
 }
 
 function renderModerationUsers(){
-
 const s=$("userToModerate");
 const old=s.value;
-
 s.innerHTML='<option value="">Elegí un usuario conectado</option>';
-
 roomUsers.forEach(u=>{
-
 if(u.id===senderId)return;
-
 const o=document.createElement("option");
 o.value=u.id;
 o.textContent=u.nick;
 s.appendChild(o);
-
 });
-
-if(Array.from(s.options).some(o=>o.value===old)){
-s.value=old;
-}
-
+if(Array.from(s.options).some(o=>o.value===old))s.value=old;
 }
 
 // MENSAJES PÚBLICOS
-
 function addMessage(m){
-
 if(!m||receivedIds.has(m.id))return;
-
 receivedIds.add(m.id);
 
 const div=document.createElement("div");
 div.className="message";
-
 const n=document.createElement("strong");
 n.className="nickname";
 
-// SOLO EL NICK RESERVADO UNIX PUEDE MOSTRAR ESTRELLA
-
 if(String(m.nickname||"").toUpperCase()==="UNIX"){
-
 const star=document.createElement("span");
 star.className="admin-star";
 star.textContent="⭐";
 n.appendChild(star);
-
 }
-
 n.appendChild(document.createTextNode((m.nickname||"Usuario")+":"));
 
 const t=document.createElement("span");
 t.className="msgtext";
 t.textContent=m.message||m.content||"";
-
 div.append(n,t);
-
 $("messages").appendChild(div);
 $("messages").scrollTop=$("messages").scrollHeight;
-
 }
 
 async function sendMessage(){
-
 const input=$("messageInput");
 const btn=$("sendBtn");
 const value=input.value.trim();
-
 if(!value||!nickname||!currentRoom)return;
-
 btn.disabled=true;
-
 try{
-
 const {error}=await db.from("messages").insert({
-nickname,
-message:value,
-content:value,
-room_id:currentRoom,
-sender_id:senderId
+nickname,message:value,content:value,room_id:currentRoom,sender_id:senderId
 });
-
 if(error)throw error;
-
 input.value="";
-
 }catch(e){
-
 alert("No se pudo enviar el mensaje: "+e.message);
-
 }finally{
-
 btn.disabled=false;
 input.focus();
-
+}
 }
 
+// SELECTOR DE EMOTICONES
+const emojiGroups={
+"😊":["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😍","🥰","😘","😗","😚","😋","😜","🤪","😎","😭","😢","😡","😱","🥺","🤔","😴","🤗","🤩","😏","😬","🤯"],
+"❤️":["❤️","🧡","💛","💚","💙","💜","🖤","🤍","💔","💕","💞","💖","💘","💝","💗","💓","💟","❣️","♥️"],
+"👍":["👍","👎","👏","🙌","🤝","🙏","💪","👌","✌️","🤞","👋","🤟","🤘","🫶","☝️","👊","✋"],
+"⚽":["⚽","🏀","🏈","⚾","🎾","🏐","🏉","🥊","🏆","🥇","🥈","🚴","🏎️","🏁"],
+"🍕":["🍕","🍔","🍟","🌭","🍿","🍩","🍪","🎂","🍰","🍎","🍓","🍉","🍌","🍇","☕","🧉","🍻"],
+"🎉":["🎉","🎊","🎈","🎁","🎂","🥳","🎆","🎇","✨","🔥","💯","⭐","🌟","💥","🎵","🎶"]
+};
+
+let emojiTarget="messageInput";
+
+function toggleEmoji(target){
+emojiTarget=target;
+const picker=$(target==="privateInput"?"emojiPickerPrivate":"emojiPickerPublic");
+const wasOpen=picker.classList.contains("open");
+closeEmojiPickers();
+if(!wasOpen)renderEmojiPicker(picker);
 }
 
-// =================================
-// CHAT PRIVADO
-// =================================
+function renderEmojiPicker(picker){
+picker.innerHTML="";
+const cats=document.createElement("div");
+cats.className="emoji-cats";
+const grid=document.createElement("div");
+grid.className="emoji-grid";
 
+function draw(cat){
+grid.innerHTML="";
+emojiGroups[cat].forEach(emoji=>{
+const b=document.createElement("button");
+b.type="button";
+b.textContent=emoji;
+b.onclick=()=>insertEmoji(emoji);
+grid.appendChild(b);
+});
+}
+
+Object.keys(emojiGroups).forEach((cat,index)=>{
+const b=document.createElement("button");
+b.type="button";
+b.textContent=cat;
+if(index===0)b.classList.add("active");
+b.onclick=()=>{
+cats.querySelectorAll("button").forEach(x=>x.classList.remove("active"));
+b.classList.add("active");
+draw(cat);
+};
+cats.appendChild(b);
+});
+picker.append(cats,grid);
+draw(Object.keys(emojiGroups)[0]);
+picker.classList.add("open");
+}
+
+function insertEmoji(emoji){
+const input=$(emojiTarget);
+if(!input)return;
+const start=input.selectionStart??input.value.length;
+const end=input.selectionEnd??input.value.length;
+input.value=input.value.slice(0,start)+emoji+input.value.slice(end);
+input.focus();
+const pos=start+emoji.length;
+input.setSelectionRange(pos,pos);
+}
+
+// AVISO DE PRIVADO
 function showPrivateNotification(senderNick){
-
 const notice=$("privateNotice");
-
 notice.textContent="🔔 "+senderNick+" te está hablando por privado";
 notice.style.display="block";
-
-if(privateNoticeTimer){
-clearTimeout(privateNoticeTimer);
+if(privateNoticeTimer)clearTimeout(privateNoticeTimer);
+privateNoticeTimer=setTimeout(()=>{notice.style.display="none"},5000);
 }
 
-privateNoticeTimer=setTimeout(()=>{
-notice.style.display="none";
-},5000);
-
-}
-
-// NOTIFICACIONES PRIVADAS: SOLO UNIX
-// UNA SOLA NOTIFICACIÓN POR USUARIO
-
+// NOTIFICACIONES PRIVADAS: SOLO UNIX, UNA VEZ POR USUARIO
 function subscribePrivateNotifications(){
-
 if(!isAdmin)return;
-
-if(privateNoticeChannel){
-db.removeChannel(privateNoticeChannel);
-privateNoticeChannel=null;
-}
+if(privateNoticeChannel){db.removeChannel(privateNoticeChannel);privateNoticeChannel=null}
 
 privateNoticeChannel=db.channel("wichat-private-notifications-"+senderId)
 .on("postgres_changes",{
-event:"INSERT",
-schema:"public",
-table:"private_messages",
-filter:"recipient_id=eq."+senderId
+event:"INSERT",schema:"public",table:"private_messages",filter:"recipient_id=eq."+senderId
 },payload=>{
-
 const m=payload.new;
-
 if(!m||m.recipient_id!==senderId)return;
 
-// CLAVE ÚNICA PARA CADA USUARIO QUE ESCRIBE A UNIX
-// SE GUARDA EN EL DISPOSITIVO Y NO SE BORRA AL SALIR DEL CHAT.
-
-const notificationKey=
-"wichat_private_notified_"+senderId+"_"+m.sender_id;
-
-const alreadyNotified=
-localStorage.getItem(notificationKey)==="1";
-
-// AVISAR SOLAMENTE LA PRIMERA VEZ
+const notificationKey="wichat_private_notified_"+senderId+"_"+m.sender_id;
+const alreadyNotified=localStorage.getItem(notificationKey)==="1";
 
 if(!alreadyNotified){
-
 localStorage.setItem(notificationKey,"1");
-
-showPrivateNotification(
-m.sender_nickname||"Un usuario"
-);
-
+showPrivateNotification(m.sender_nickname||"Un usuario");
 }
-
-// LOS MENSAJES SIGUEN LLEGANDO NORMALMENTE
-
-if(activePrivateUser&&activePrivateUser.id===m.sender_id){
-addPrivateMessage(m);
-}
-
+if(activePrivateUser&&activePrivateUser.id===m.sender_id)addPrivateMessage(m);
 })
 .subscribe();
-
 }
 
 // ABRIR PRIVADO
-
 async function openPrivateChat(user){
-
 if(!user||user.id===senderId)return;
-
 activePrivateUser=user;
 privateReceivedIds.clear();
 
 $("chatView").classList.add("hidden");
 $("usersView").classList.add("hidden");
+$("roomsView").classList.add("hidden");
 $("privateView").classList.remove("hidden");
+$("navUsers").classList.add("active");
+$("navRooms").classList.remove("active");
+closeEmojiPickers();
 
 $("privateTitle").textContent="Privado con "+user.nick;
 $("privateMessages").innerHTML='<p class="muted">Cargando conversación...</p>';
 
-if(privateChannel){
-await db.removeChannel(privateChannel);
-privateChannel=null;
-}
-
+if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null}
 await loadPrivateMessages();
 
 privateChannel=db.channel("wichat-private-"+senderId)
-.on("postgres_changes",{
-event:"INSERT",
-schema:"public",
-table:"private_messages"
-},payload=>{
-
+.on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages"},payload=>{
 const m=payload.new;
-
 if(activePrivateUser&&(
-
 (m.sender_id===senderId&&m.recipient_id===activePrivateUser.id)||
-
 (m.sender_id===activePrivateUser.id&&m.recipient_id===senderId)
-
 )){
-
 addPrivateMessage(m);
-
 }
-
 })
 .subscribe();
 
 $("privateInput").focus();
-
 }
 
-// CARGAR HISTORIAL PRIVADO
-
+// HISTORIAL PRIVADO
 async function loadPrivateMessages(){
-
 if(!activePrivateUser)return;
-
 const other=activePrivateUser.id;
-
-const filter=
-"and(sender_id.eq."+senderId+",recipient_id.eq."+other+"),"+
-"and(sender_id.eq."+other+",recipient_id.eq."+senderId+")";
-
+const filter="and(sender_id.eq."+senderId+",recipient_id.eq."+other+"),and(sender_id.eq."+other+",recipient_id.eq."+senderId+")";
 const cutoff=localStorage.getItem(privateCutoffKey(other));
 
-let query=db
-.from("private_messages")
-.select("*")
-.or(filter);
-
-if(cutoff){
-query=query.gt("created_at",cutoff);
-}
+let query=db.from("private_messages").select("*").or(filter);
+if(cutoff)query=query.gt("created_at",cutoff);
 
 const {data,error}=await query.order("created_at",{ascending:true});
-
 if(error){
 $("privateMessages").textContent="No se pudo cargar la conversación: "+error.message;
 return;
@@ -826,52 +714,34 @@ return;
 
 $("privateMessages").innerHTML="";
 privateReceivedIds.clear();
-
 (data||[]).forEach(addPrivateMessage);
-
 if(!(data||[]).length){
 $("privateMessages").innerHTML='<p class="muted">Todavía no hay mensajes. ¡Saludá!</p>';
 }
-
 }
 
-// MOSTRAR MENSAJES PRIVADOS
-// ESTRELLA EXCLUSIVA DE UNIX
-
+// MOSTRAR PRIVADOS
 function addPrivateMessage(m){
-
 if(!m||privateReceivedIds.has(m.id))return;
-
 privateReceivedIds.add(m.id);
 
 const box=$("privateMessages");
-
 const empty=box.querySelector(".muted");
 if(empty)box.innerHTML="";
 
 const div=document.createElement("div");
-
-div.className="private-message"+
-(m.sender_id===senderId?" mine":"");
+div.className="private-message"+(m.sender_id===senderId?" mine":"");
 
 const who=document.createElement("strong");
 who.className="nickname";
-
-const privateNick=m.sender_id===senderId
-?nickname
-:(m.sender_nickname||"Usuario");
-
-// SOLO EL NICK UNIX MUESTRA ESTRELLA
+const privateNick=m.sender_id===senderId?nickname:(m.sender_nickname||"Usuario");
 
 if(privateNick.toUpperCase()==="UNIX"){
-
 const star=document.createElement("span");
 star.className="admin-star";
 star.textContent="⭐";
 who.appendChild(star);
-
 }
-
 who.appendChild(document.createTextNode(privateNick+": "));
 
 const msg=document.createElement("span");
@@ -880,302 +750,165 @@ msg.textContent=m.content||"";
 
 const time=document.createElement("div");
 time.className="private-time";
-
-time.textContent=new Date(m.created_at).toLocaleString("es-AR",{
-dateStyle:"short",
-timeStyle:"short"
-});
+time.textContent=new Date(m.created_at).toLocaleString("es-AR",{dateStyle:"short",timeStyle:"short"});
 
 div.append(who,msg,time);
-
 box.appendChild(div);
 box.scrollTop=box.scrollHeight;
-
 }
 
 // ENVIAR PRIVADO
-
 async function sendPrivateMessage(){
-
 if(!activePrivateUser)return;
-
 const input=$("privateInput");
 const btn=$("privateSendBtn");
 const value=input.value.trim();
-
 if(!value)return;
-
 btn.disabled=true;
 
 try{
-
-const {data,error}=await db
-.from("private_messages")
-.insert({
+const {data,error}=await db.from("private_messages").insert({
 sender_id:senderId,
 recipient_id:activePrivateUser.id,
 sender_nickname:nickname,
 content:value
-})
-.select()
-.single();
-
+}).select().single();
 if(error)throw error;
-
 addPrivateMessage(data);
 input.value="";
-
 }catch(e){
-
 alert("No se pudo enviar el mensaje privado: "+e.message);
-
 }finally{
-
 btn.disabled=false;
 input.focus();
-
 }
-
 }
 
 // VOLVER A USUARIOS
-
 async function backToUsers(){
-
 savePrivateCutoff();
 activePrivateUser=null;
-
-if(privateChannel){
-await db.removeChannel(privateChannel);
-privateChannel=null;
-}
-
+if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null}
 clearPrivateView();
-
 $("privateView").classList.add("hidden");
 $("usersView").classList.remove("hidden");
+$("roomsView").classList.add("hidden");
+$("navUsers").classList.add("active");
+$("navRooms").classList.remove("active");
 $("privateInput").value="";
-
+closeEmojiPickers();
 }
 
 // ACTUALIZAR SALAS EN TIEMPO REAL
-
 function subscribeRooms(){
-
 if(roomChannel)db.removeChannel(roomChannel);
-
 roomChannel=db.channel("wichat-rooms")
-.on("postgres_changes",{
-event:"*",
-schema:"public",
-table:"rooms"
-},async()=>{
-
+.on("postgres_changes",{event:"*",schema:"public",table:"rooms"},async()=>{
 const previous=currentRoom;
-
 await fetchRooms();
-
 if(!rooms.some(r=>String(r.id)===String(previous))){
-currentRoom=rooms[0]?.id||null;
+currentRoom=rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||rooms[0]?.id||null;
 }
-
 renderTabs();
-
-if(currentRoom){
-await switchRoom(currentRoom);
-}
-
+if(currentRoom)await switchRoom(currentRoom);
 })
 .subscribe();
-
 }
 
 // ADMINISTRACIÓN
-
 function openAdmin(){
-
 if(isAdmin){
-
 $("adminPanel").classList.remove("hidden");
 renderRoomDelete();
-
 }
-
 }
-
-function closeAdmin(){
-$("adminPanel").classList.add("hidden");
-}
+function closeAdmin(){$("adminPanel").classList.add("hidden")}
 
 async function createRoom(){
-
 const name=$("newRoomName").value.trim();
 if(!name)return;
-
-const {error}=await db.rpc("admin_create_room",{
-pin_input:adminPin,
-room_name:name
-});
-
-$("adminStatus").textContent=error?
-"Error: "+error.message:"Sala creada.";
-
+const {error}=await db.rpc("admin_create_room",{pin_input:adminPin,room_name:name});
+$("adminStatus").textContent=error?"Error: "+error.message:"Sala creada.";
 if(!error){
-
 $("newRoomName").value="";
 await fetchRooms();
 renderTabs();
-
 }
-
 }
 
 function renderRoomDelete(){
-
 const select=$("roomToDelete");
 if(!select)return;
-
 const previous=select.value;
-
 select.innerHTML='<option value="">Elegí una sala</option>';
-
 rooms.forEach(r=>{
-
 const option=document.createElement("option");
 option.value=r.id;
 option.textContent=r.name;
-
 select.appendChild(option);
-
 });
-
-if(rooms.some(r=>String(r.id)===String(previous))){
-select.value=previous;
-}
-
+if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
 }
 
 async function deleteRoom(){
-
 if(!isAdmin)return;
-
 const id=$("roomToDelete").value;
-
-if(!id){
-$("adminStatus").textContent="Elegí una sala.";
-return;
-}
-
+if(!id){$("adminStatus").textContent="Elegí una sala.";return}
 const room=rooms.find(r=>String(r.id)===String(id));
+if(!confirm('¿Seguro que querés eliminar la sala "'+(room?.name||"")+'"?'))return;
 
-if(!confirm('¿Seguro que querés eliminar la sala "'+(room?.name||"")+'"?')){
-return;
-}
-
-const {error}=await db.rpc("admin_delete_room",{
-pin_input:adminPin,
-room_id_input:Number(id)
-});
-
-if(error){
-$("adminStatus").textContent="Error al eliminar: "+error.message;
-return;
-}
+const {error}=await db.rpc("admin_delete_room",{pin_input:adminPin,room_id_input:Number(id)});
+if(error){$("adminStatus").textContent="Error al eliminar: "+error.message;return}
 
 $("adminStatus").textContent="Sala eliminada correctamente.";
-
 const wasCurrent=String(currentRoom)===String(id);
-
 await fetchRooms();
 
 if(wasCurrent){
-
 if(rooms.length){
-
-currentRoom=rooms[0].id;
+currentRoom=rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||rooms[0].id;
 await switchRoom(currentRoom);
-
 }else{
-
 $("status").textContent="No quedan salas. Creá una nueva desde Administración.";
 $("messages").innerHTML="";
-
 }
-
 }
-
 renderTabs();
 renderRoomDelete();
-
 }
 
 async function moderateUser(action){
-
 const target=$("userToModerate").value;
-
-if(!target){
-$("adminStatus").textContent="Elegí un usuario conectado.";
-return;
-}
-
+if(!target){$("adminStatus").textContent="Elegí un usuario conectado.";return}
 const {error}=await db.rpc("admin_moderate_user",{
 pin_input:adminPin,
 target_sender_id:target,
 room_id_input:currentRoom,
 action_name:action
 });
-
-$("adminStatus").textContent=error?
-"Error: "+error.message:
-(action==="ban"?"Usuario baneado.":"Usuario expulsado de esta sala.");
-
+$("adminStatus").textContent=error?"Error: "+error.message:(action==="ban"?"Usuario baneado.":"Usuario expulsado de esta sala.");
 }
 
-// SALIR DEL CHAT
-
+// SALIR
 async function exitChat(){
+if(activePrivateUser)savePrivateCutoff();
 
-if(activePrivateUser){
-savePrivateCutoff();
-}
-
-if(privateChannel){
-await db.removeChannel(privateChannel);
-privateChannel=null;
-}
-
-if(privateNoticeChannel){
-await db.removeChannel(privateNoticeChannel);
-privateNoticeChannel=null;
-}
-
-if(messageChannel){
-await db.removeChannel(messageChannel);
-messageChannel=null;
-}
-
+if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null}
+if(privateNoticeChannel){await db.removeChannel(privateNoticeChannel);privateNoticeChannel=null}
+if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null}
 if(presenceChannel){
 await presenceChannel.untrack();
 await db.removeChannel(presenceChannel);
 presenceChannel=null;
 }
+if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null}
 
-if(roomChannel){
-await db.removeChannel(roomChannel);
-roomChannel=null;
-}
-
-if(privateNoticeTimer){
-clearTimeout(privateNoticeTimer);
-privateNoticeTimer=null;
-}
-
+if(privateNoticeTimer){clearTimeout(privateNoticeTimer);privateNoticeTimer=null}
 $("privateNotice").style.display="none";
 
 receivedIds.clear();
 privateReceivedIds.clear();
 roomUsers.clear();
-
 activePrivateUser=null;
 adminPin="";
 isAdmin=false;
@@ -1185,13 +918,13 @@ senderId="";
 
 $("chat").style.display="none";
 $("login").style.display="block";
+document.body.classList.remove("chat-active");
 $("enterBtn").disabled=false;
 
 $("messages").innerHTML="";
 $("privateMessages").innerHTML="";
 $("privateInput").value="";
 $("messageInput").value="";
-
 $("adminPanel").classList.add("hidden");
 $("adminOpenBtn").classList.add("hidden");
 $("adminPin").value="";
@@ -1200,26 +933,17 @@ $("error").textContent="";
 
 showMainTab("chat");
 renderUsers();
-
 }
 
 // INICIO
-
 (async()=>{
-
 try{
-
 await fetchRooms();
-
 }catch(e){
-
 $("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';
 showError(e.message);
-
 }
-
 })();
-
 </script>
 </body>
 </html>

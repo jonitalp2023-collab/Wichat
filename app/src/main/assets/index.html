@@ -183,7 +183,7 @@ async function loadMessages(){
 
  const {data,error} = await db
   .from("messages")
-  .select("id,nickname,content,mensaje,created_at")
+  .select("id,nickname,message,content,created_at")
   .order("created_at",{ascending:true})
   .limit(100);
 
@@ -212,7 +212,7 @@ function addMessage(msg){
  name.textContent = msg.nickname || "Usuario";
 
  const content = document.createElement("div");
- content.textContent = msg.content || msg.mensaje || "";
+ content.textContent = msg.message || msg.content || "";
 
  const time = document.createElement("div");
  time.className = "time";
@@ -248,8 +248,8 @@ async function sendMessage(){
    .from("messages")
    .insert({
     nickname: nickname,
-    content: content,
-    mensaje: content
+    message: content,
+    content: content
    });
 
   if(error) throw error;

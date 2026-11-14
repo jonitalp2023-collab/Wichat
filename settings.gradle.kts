@@ -16,4 +16,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "WiChat"
 include(":app")
-project(":app").projectDir = file("App")

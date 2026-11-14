@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>Wi Chat</title>
+<title>CHAT ARGENTINA</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -28,34 +28,32 @@ button:disabled{opacity:.5}
 .admin-box{border:1px solid #d99b35}
 .hidden{display:none!important}
 
-/* PANTALLA COMPLETA DEL CHAT */
 body.chat-active{overflow:hidden}
 body.chat-active header{display:none}
 body.chat-active .container{max-width:none;width:100%;height:100dvh;padding:0}
 #chat{display:none;height:100dvh;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
 #chat>.panel{height:100%;margin:0;padding:10px 12px 8px;border-radius:0;background:#080f1e;display:flex;flex-direction:column;min-height:0}
+
 .chat-top{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#102747;border:1px solid #1b5a91;border-radius:12px;padding:10px 12px;flex:0 0 auto}
 .chat-top h2{margin:0;color:#55b8ff;font-size:19px}
 .chat-top p{margin:4px 0 0;color:#b5c8e4;font-size:13px}
 .online-summary{font-size:12px;color:#70dca1;text-align:right;white-space:nowrap}
 #adminOpenBtn{padding:8px 10px}
 
-/* VISTAS */
 #chatView,#usersView,#roomsView,#privateView{flex:1;min-height:0;display:flex;flex-direction:column}
 #chatView.hidden,#usersView.hidden,#roomsView.hidden,#privateView.hidden{display:none!important}
 .chat-welcome{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 2px;flex:0 0 auto}
 .chat-welcome strong{font-size:17px;color:white}
 .chat-welcome span{font-size:13px;color:#55b8ff}
-#messages,#privateMessages{flex:1;min-height:0;height:auto;overflow-y:auto;background:#050c19;border:1px solid #164b7d;border-radius:12px;padding:12px;margin:4px 0 10px;overscroll-behavior:contain}
+
+#messages,#privateMessages{flex:1;min-height:0;overflow-y:auto;background:#050c19;border:1px solid #164b7d;border-radius:12px;padding:12px;margin:4px 0 10px;overscroll-behavior:contain}
 .message{background:#172844;padding:10px;border-radius:10px;margin-bottom:9px;overflow-wrap:anywhere;display:flex;gap:7px}
 .private-message{display:block;background:#172844;padding:10px;border-radius:10px;margin-bottom:9px;overflow-wrap:anywhere}
 .private-message.mine{background:#173b5a}
 .nickname{color:#55b8ff;font-weight:bold;white-space:nowrap}
 .admin-star{color:#ffd34d;margin-right:4px}
-.msgtext{color:#fff;white-space:pre-wrap;min-width:0;overflow-wrap:anywhere}
-.private-time{font-size:11px;color:#9baac5;margin-top:5px}
+.msgtext{color:white;white-space:pre-wrap;min-width:0;overflow-wrap:anywhere}
 
-/* ESCRITURA */
 .composer{display:flex;align-items:center;gap:7px;flex:0 0 auto;padding:2px 0 5px}
 .composer input{margin:0;min-width:0;flex:1;padding:13px}
 .send-button{font-size:20px;padding:12px 16px}
@@ -69,31 +67,29 @@ body.chat-active .container{max-width:none;width:100%;height:100dvh;padding:0}
 .emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .emoji-grid button{background:#192c49;padding:8px 2px;font-size:23px}
 
-/* USUARIOS */
 #usersView,#roomsView{padding:12px 2px}
 #usersView h3,#roomsView h3{margin:8px 0 12px;color:#55b8ff}
 .user-item{display:flex;align-items:center;gap:9px;padding:13px;margin-bottom:8px;background:#172844;border:1px solid #233c5d;border-radius:10px;cursor:pointer}
 .user-item:hover{background:#26395b}
 .online-dot{width:9px;height:9px;background:#39d98a;border-radius:50%;flex:0 0 9px}
-.user-name{font-weight:bold;color:#fff;overflow-wrap:anywhere}
+.user-name{font-weight:bold;color:white;overflow-wrap:anywhere}
 .user-count{font-size:12px;color:#9baac5;margin-bottom:10px}
 .room-tab{width:100%;text-align:left;margin:5px 0;background:#172844;border:1px solid #29486b}
 .room-tab.active{background:#07549a;border-color:#168bea}
 .private-header{display:flex;align-items:center;gap:10px;margin:8px 0}
 .private-header h3{overflow-wrap:anywhere;color:#55b8ff}
 
-/* BARRA INFERIOR */
 #bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:500;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;background:#071326;border-top:1px solid #1b5a91;padding:7px 8px calc(7px + env(safe-area-inset-bottom));box-shadow:0 -5px 18px #0008}
 .nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:transparent;color:#a9c9e9;padding:5px 3px;font-size:12px}
 .nav-icon{font-size:22px;line-height:25px}
 .nav-btn.active{background:#12375c;color:#55b8ff;border-radius:10px}
 .nav-btn.exit{color:#ff8796}
 
-/* AVISOS Y ADMINISTRACIÓN */
 #privateNotice{display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 30px);max-width:500px;background:#168bea;color:white;padding:15px;border-radius:12px;z-index:9999;text-align:center;font-weight:bold;box-shadow:0 5px 20px #0008}
 #adminPanel{position:fixed;z-index:800;left:10px;right:10px;top:10px;bottom:90px;overflow-y:auto;max-width:680px;margin:auto;background:#141e35}
 #adminPanel .row input{min-width:0}
 #adminPanel h4{margin-bottom:5px}
+
 @media(min-width:701px){
 body.chat-active .container{max-width:850px;margin:auto}
 }
@@ -104,15 +100,16 @@ body.chat-active .container{max-width:850px;margin:auto}
 <div id="privateNotice" role="status" aria-live="polite"></div>
 
 <header>
-<h1>Wi Chat</h1>
-<p>La comunidad donde todos pueden hablar</p>
+<h1>🇦🇷 CHAT ARGENTINA</h1>
+<p>La comunidad argentina donde todos pueden hablar</p>
 </header>
 
 <div class="container">
 
 <section id="login" class="panel">
-<h2>Bienvenido a Wi Chat</h2>
+<h2>🇦🇷 Bienvenido a CHAT ARGENTINA</h2>
 <p>Elegí tu Nick y la sala a la que querés entrar.</p>
+
 <input id="nickname" maxlength="25" placeholder="Escribí tu Nick" autocomplete="nickname">
 
 <div id="adminPinWrap" class="hidden">
@@ -132,8 +129,8 @@ body.chat-active .container{max-width:850px;margin:auto}
 
 <div class="chat-top">
 <div>
-<h2>Wi Chat</h2>
-<p>Bienvenido al chat</p>
+<h2>🇦🇷 CHAT ARGENTINA</h2>
+<p>Bienvenido a nuestra comunidad</p>
 </div>
 <div class="online-summary">
 <div>🟢 <span id="usersCount">0</span> en línea</div>
@@ -197,17 +194,20 @@ body.chat-active .container{max-width:850px;margin:auto}
 
 <div id="adminPanel" class="panel admin-box hidden">
 <div class="row" style="justify-content:space-between">
-<h3 style="margin:0">Administración UNIX</h3>
+<h3 style="margin:0">Administración UNIX ⭐</h3>
 <button class="secondary" onclick="closeAdmin()">Cerrar</button>
 </div>
+
 <h4>Crear una sala</h4>
 <div class="row">
 <input id="newRoomName" maxlength="30" placeholder="Nombre de la sala">
 <button onclick="createRoom()">Crear</button>
 </div>
+
 <h4>Eliminar una sala</h4>
 <select id="roomToDelete"><option value="">Elegí una sala</option></select>
 <button class="danger" onclick="deleteRoom()">Eliminar sala</button>
+
 <h4>Expulsar o banear usuarios</h4>
 <p class="muted">Elegí un usuario conectado en esta sala.</p>
 <select id="userToModerate"><option value="">Usuarios de esta sala</option></select>
@@ -235,7 +235,6 @@ let roomUsers=new Map(),activePrivateUser=null;
 let isAdmin=false,adminPin="";
 let privateNoticeTimer=null;
 
-// AUTENTICACIÓN
 async function ensureAuthUser(){
 let {data:{session},error}=await db.auth.getSession();
 if(error)throw error;
@@ -255,7 +254,6 @@ const admin=$("nickname").value.trim().toUpperCase()==="UNIX";
 $("adminPinWrap").classList.toggle("hidden",!admin);
 });
 
-// SALAS: GENERAL PRIMERO Y PRESELECCIONADA
 async function fetchRooms(){
 const {data,error}=await db.from("rooms").select("id,name");
 if(error)throw error;
@@ -288,7 +286,6 @@ if(isAdmin)renderRoomDelete();
 if(!rooms.length)throw new Error("No hay salas. Creá una desde Administración.");
 }
 
-// INGRESAR
 async function enterChat(){
 showError("");
 const name=$("nickname").value.trim();
@@ -339,7 +336,6 @@ btn.disabled=false;
 }
 }
 
-// NAVEGACIÓN
 function closeEmojiPickers(){
 $("emojiPickerPublic").classList.remove("open");
 $("emojiPickerPrivate").classList.remove("open");
@@ -363,7 +359,6 @@ $("navRooms").classList.toggle("active",which==="rooms"||which==="chat");
 closeEmojiPickers();
 }
 
-// LISTA DE SALAS
 function renderTabs(){
 $("roomTabs").innerHTML="";
 rooms.forEach(r=>{
@@ -389,7 +384,6 @@ $("privateMessages").innerHTML="";
 privateReceivedIds.clear();
 }
 
-// CAMBIAR DE SALA
 async function switchRoom(id){
 const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{
 sender_id_input:senderId,room_id_input:id
@@ -437,7 +431,6 @@ updatePresenceList();
 });
 }
 
-// USUARIOS CONECTADOS
 function updatePresenceList(){
 if(!presenceChannel)return;
 const state=presenceChannel.presenceState();
@@ -516,7 +509,6 @@ s.appendChild(o);
 if(Array.from(s.options).some(o=>o.value===old))s.value=old;
 }
 
-// MENSAJES PÚBLICOS
 function addMessage(m){
 if(!m||receivedIds.has(m.id))return;
 receivedIds.add(m.id);
@@ -562,7 +554,6 @@ input.focus();
 }
 }
 
-// SELECTOR DE EMOTICONES
 const emojiGroups={
 "😊":["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😍","🥰","😘","😗","😚","😋","😜","🤪","😎","😭","😢","😡","😱","🥺","🤔","😴","🤗","🤩","😏","😬","🤯"],
 "❤️":["❤️","🧡","💛","💚","💙","💜","🖤","🤍","💔","💕","💞","💖","💘","💝","💗","💓","💟","❣️","♥️"],
@@ -628,7 +619,6 @@ const pos=start+emoji.length;
 input.setSelectionRange(pos,pos);
 }
 
-// AVISO DE PRIVADO
 function showPrivateNotification(senderNick){
 const notice=$("privateNotice");
 notice.textContent="🔔 "+senderNick+" te está hablando por privado";
@@ -637,7 +627,6 @@ if(privateNoticeTimer)clearTimeout(privateNoticeTimer);
 privateNoticeTimer=setTimeout(()=>{notice.style.display="none"},5000);
 }
 
-// NOTIFICACIONES PRIVADAS: SOLO UNIX, UNA VEZ POR USUARIO
 function subscribePrivateNotifications(){
 if(!isAdmin)return;
 if(privateNoticeChannel){db.removeChannel(privateNoticeChannel);privateNoticeChannel=null}
@@ -661,7 +650,6 @@ if(activePrivateUser&&activePrivateUser.id===m.sender_id)addPrivateMessage(m);
 .subscribe();
 }
 
-// ABRIR PRIVADO
 async function openPrivateChat(user){
 if(!user||user.id===senderId)return;
 activePrivateUser=user;
@@ -696,7 +684,6 @@ addPrivateMessage(m);
 $("privateInput").focus();
 }
 
-// HISTORIAL PRIVADO
 async function loadPrivateMessages(){
 if(!activePrivateUser)return;
 const other=activePrivateUser.id;
@@ -720,7 +707,6 @@ $("privateMessages").innerHTML='<p class="muted">Todavía no hay mensajes. ¡Sal
 }
 }
 
-// MOSTRAR PRIVADOS
 function addPrivateMessage(m){
 if(!m||privateReceivedIds.has(m.id))return;
 privateReceivedIds.add(m.id);
@@ -748,16 +734,11 @@ const msg=document.createElement("span");
 msg.className="msgtext";
 msg.textContent=m.content||"";
 
-const time=document.createElement("div");
-time.className="private-time";
-time.textContent=new Date(m.created_at).toLocaleString("es-AR",{dateStyle:"short",timeStyle:"short"});
-
-div.append(who,msg,time);
+div.append(who,msg);
 box.appendChild(div);
 box.scrollTop=box.scrollHeight;
 }
 
-// ENVIAR PRIVADO
 async function sendPrivateMessage(){
 if(!activePrivateUser)return;
 const input=$("privateInput");
@@ -784,7 +765,6 @@ input.focus();
 }
 }
 
-// VOLVER A USUARIOS
 async function backToUsers(){
 savePrivateCutoff();
 activePrivateUser=null;
@@ -799,7 +779,6 @@ $("privateInput").value="";
 closeEmojiPickers();
 }
 
-// ACTUALIZAR SALAS EN TIEMPO REAL
 function subscribeRooms(){
 if(roomChannel)db.removeChannel(roomChannel);
 roomChannel=db.channel("wichat-rooms")
@@ -815,7 +794,6 @@ if(currentRoom)await switchRoom(currentRoom);
 .subscribe();
 }
 
-// ADMINISTRACIÓN
 function openAdmin(){
 if(isAdmin){
 $("adminPanel").classList.remove("hidden");
@@ -825,6 +803,7 @@ renderRoomDelete();
 function closeAdmin(){$("adminPanel").classList.add("hidden")}
 
 async function createRoom(){
+if(!isAdmin)return;
 const name=$("newRoomName").value.trim();
 if(!name)return;
 const {error}=await db.rpc("admin_create_room",{pin_input:adminPin,room_name:name});
@@ -878,6 +857,7 @@ renderRoomDelete();
 }
 
 async function moderateUser(action){
+if(!isAdmin)return;
 const target=$("userToModerate").value;
 if(!target){$("adminStatus").textContent="Elegí un usuario conectado.";return}
 const {error}=await db.rpc("admin_moderate_user",{
@@ -889,7 +869,6 @@ action_name:action
 $("adminStatus").textContent=error?"Error: "+error.message:(action==="ban"?"Usuario baneado.":"Usuario expulsado de esta sala.");
 }
 
-// SALIR
 async function exitChat(){
 if(activePrivateUser)savePrivateCutoff();
 
@@ -935,7 +914,6 @@ showMainTab("chat");
 renderUsers();
 }
 
-// INICIO
 (async()=>{
 try{
 await fetchRooms();

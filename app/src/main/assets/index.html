@@ -130,6 +130,39 @@ box-shadow:0 10px 35px #000b;
 #adminPanel .row input{min-width:0}
 #adminPanel h4{margin-bottom:5px}
 
+.banned-card{
+background:#172844;
+border:1px solid #344361;
+border-radius:10px;
+padding:12px;
+margin-bottom:10px;
+overflow-wrap:anywhere;
+}
+.banned-name{
+display:block;
+color:#ff8796;
+font-weight:bold;
+margin-bottom:7px;
+}
+.banned-details{
+color:#9baac5;
+font-size:13px;
+line-height:1.6;
+margin:5px 0 10px;
+}
+.unban-button{
+width:100%;
+background:#168b65;
+margin-top:5px;
+}
+.unban-button:disabled{opacity:.5}
+
+@media(max-width:420px){
+#adminPanel{left:6px;right:6px;padding:13px}
+#adminPanel .row{flex-wrap:wrap}
+#adminPanel .row button{flex:1}
+}
+
 @media(min-width:701px){
 body.chat-active .container{max-width:850px;margin:auto}
 }
@@ -263,7 +296,20 @@ body.chat-active .container{max-width:850px;margin:auto}
 <button class="secondary" onclick="moderateUser('kick')">Expulsar de esta sala</button>
 <button class="danger" onclick="moderateUser('ban')">Banear</button>
 </div>
+
 <p id="adminStatus" class="muted"></p>
+
+<hr style="border-color:#344361;margin:20px 0">
+
+<h4>🚫 Usuarios baneados</h4>
+<p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
+
+<button class="secondary" onclick="loadBannedUsers()">🔄 Actualizar lista</button>
+
+<div id="bannedUsersList" style="margin-top:12px">
+<p class="muted">Presioná actualizar para ver los baneados.</p>
+</div>
+
 </div>
 
 </section>
@@ -1010,6 +1056,7 @@ function openAdmin(){
 if(isAdmin){
 $("adminPanel").classList.remove("hidden");
 renderRoomDelete();
+loadBannedUsers();
 }
 }
 
@@ -1124,6 +1171,100 @@ $("adminStatus").textContent=
 action==="ban"
 ?"Usuario baneado por cinco minutos en esta sala."
 :"Usuario expulsado de esta sala.";
+
+if(action==="ban"){
+await loadBannedUsers();
+}
+}
+
+/* LISTAR USUARIOS BANEADOS */
+
+async function loadBannedUsers(){
+if(!isAdmin)return;
+
+const list=$("bannedUsersList");
+list.innerHTML='<p class="muted">Cargando baneos...</p>';
+
+const {data,error}=await db.rpc("admin_list_bans",{
+pin_input:adminPin
+});
+
+if(error){
+list.textContent="Error al cargar baneos: "+error.message;
+return;
+}
+
+list.innerHTML="";
+
+if(!data||!data.length){
+list.innerHTML='<p class="muted">No hay usuarios baneados actualmente.</p>';
+return;
+}
+
+data.forEach(ban=>{
+const card=document.createElement("div");
+card.className="banned-card";
+
+const name=document.createElement("strong");
+name.className="banned-name";
+name.textContent="🚫 "+(ban.nickname||"Usuario");
+
+const details=document.createElement("p");
+details.className="banned-details";
+
+let roomText=ban.ban_type||"Baneo";
+
+if(ban.room_id){
+const room=rooms.find(r=>String(r.id)===String(ban.room_id));
+roomText+=": "+(room?.name||"Sala "+ban.room_id);
+}
+
+const expiration=ban.expires_at
+?new Date(ban.expires_at).toLocaleString("es-AR")
+:"Sin vencimiento";
+
+details.textContent=
+roomText+
+" | IP: "+(ban.client_ip||"No disponible")+
+" | Vence: "+expiration;
+
+const button=document.createElement("button");
+button.className="unban-button";
+button.textContent="DESBANEAR";
+
+if(!ban.sender_id){
+button.disabled=true;
+button.textContent="No se puede identificar al usuario";
+}else{
+button.onclick=()=>unbanUser(ban.sender_id,ban.nickname);
+}
+
+card.append(name,details,button);
+list.appendChild(card);
+});
+}
+
+/* DESBANEAR USUARIO */
+
+async function unbanUser(target,nick){
+if(!isAdmin)return;
+
+if(!confirm("¿Querés desbanear a "+(nick||"este usuario")+"?"))return;
+
+const {data,error}=await db.rpc("admin_unban_user",{
+pin_input:adminPin,
+target_sender_id:target
+});
+
+if(error){
+$("adminStatus").textContent="Error al desbanear: "+error.message;
+return;
+}
+
+$("adminStatus").textContent=
+data?.message||"Usuario desbloqueado correctamente.";
+
+await loadBannedUsers();
 }
 
 async function exitChat(){
@@ -1191,6 +1332,7 @@ $("adminOpenBtn").classList.add("hidden");
 $("adminPin").value="";
 $("adminPinWrap").classList.add("hidden");
 $("error").textContent="";
+$("bannedUsersList").innerHTML='<p class="muted">Presioná actualizar para ver los baneados.</p>';
 
 showMainTab("chat");
 renderUsers();

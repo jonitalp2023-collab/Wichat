@@ -30,10 +30,4 @@ android {
             isMinifyEnabled = false
         }
     }
-
-    applicationVariants.all {
-        outputs.all {
-            outputFileName = "ChatArgentina.apk"
-        }
-    }
 }

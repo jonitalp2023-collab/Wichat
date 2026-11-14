@@ -3,124 +3,273 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wi Chat</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 *{box-sizing:border-box}
 body{
- margin:0;background:#10111b;color:white;
+ margin:0;
+ background:#0b1020;
+ color:white;
  font-family:Arial,sans-serif;
 }
 header{
- background:#191b2b;padding:20px;
- text-align:center;border-bottom:1px solid #303249;
+ background:#121a30;
+ padding:18px;
+ text-align:center;
+ border-bottom:1px solid #273451;
 }
-header h1{margin:0;color:#8b7cff}
-header p{margin:6px 0 0;color:#aaa;font-size:13px}
-#login{padding:25px;text-align:center;margin-top:80px}
+header h1{margin:0;color:#55b8ff}
+header p{margin:6px 0 0;color:#9baac5}
+.container{max-width:650px;margin:auto;padding:15px}
+.panel{
+ background:#141e35;
+ padding:20px;
+ border-radius:15px;
+ margin-top:25px;
+}
 input{
- width:100%;padding:15px;border-radius:12px;
- border:1px solid #393b50;background:#202235;
- color:white;font-size:16px;margin:10px 0;
+ width:100%;
+ padding:15px;
+ border:1px solid #344361;
+ border-radius:10px;
+ background:#0c1427;
+ color:white;
+ font-size:16px;
+ margin:8px 0;
 }
 button{
- background:#7965ff;color:white;border:0;
- padding:14px;border-radius:12px;
- font-weight:bold;font-size:15px;cursor:pointer;
+ border:0;
+ padding:13px 18px;
+ border-radius:10px;
+ background:#168bea;
+ color:white;
+ font-weight:bold;
+ cursor:pointer;
 }
-#login button{width:100%}
+button:disabled{opacity:.5}
 #chat{display:none}
-#status{padding:12px;color:#a99cff;text-align:center}
 #messages{
- height:calc(100dvh - 220px);
- overflow-y:auto;padding:15px;
+ height:55vh;
+ overflow-y:auto;
+ background:#0c1427;
+ border-radius:12px;
+ padding:12px;
+ margin:15px 0;
 }
-.msg{
- background:#202235;padding:12px;
- border-radius:12px;margin-bottom:10px;
+.message{
+ background:#1b2945;
+ padding:10px;
+ border-radius:10px;
+ margin-bottom:10px;
  overflow-wrap:anywhere;
 }
-.name{color:#a99cff;font-weight:bold}
-.time{font-size:10px;color:#888;float:right}
-#sendbox{
- display:flex;gap:8px;padding:10px;
- background:#191b2b;
- position:sticky;bottom:0;
-}
-#sendbox input{margin:0;min-width:0}
-#sendbox button{padding:12px}
-#admin{padding:10px;text-align:center}
-.small{font-size:12px;color:#888}
+.nickname{color:#55b8ff;font-weight:bold}
+.time{font-size:11px;color:#8293b1}
+.row{display:flex;gap:8px}
+.row input{flex:1;min-width:0}
+.status{color:#70dca1;font-size:13px}
 </style>
 </head>
+
 <body>
 
 <header>
 <h1>Wi Chat</h1>
-<p>Conectate y conocé gente</p>
+<p>La comunidad donde todos pueden hablar</p>
 </header>
 
-<div id="login">
-<h2>¡Bienvenido!</h2>
+<div class="container">
+
+<div id="login" class="panel">
+<h2>Bienvenido a Wi Chat</h2>
 <p>Elegí tu apodo para entrar a la sala general.</p>
-<input id="nickname" maxlength="20" placeholder="Tu apodo">
-<button onclick="enterChat()">ENTRAR AL CHAT</button>
-<p class="small">Sin registro. Entrá y conversá.</p>
+<input id="nickname" maxlength="25"
+placeholder="Escribí tu apodo">
+<button id="enterBtn" onclick="enterChat()">ENTRAR AL CHAT</button>
+<p id="error" style="color:#ff7777"></p>
 </div>
 
 <div id="chat">
-<div id="status">🟢 Sala general</div>
-<div id="messages">
-<div class="msg">¡Bienvenido a Wi Chat! 👋</div>
+<div class="panel">
+<h3>🌎 Sala general</h3>
+<p class="status" id="status">Conectando...</p>
+<div id="messages"></div>
+
+<div class="row">
+<input id="messageInput" maxlength="1000"
+placeholder="Escribí un mensaje..."
+onkeydown="if(event.key==='Enter')sendMessage()">
+<button id="sendBtn" onclick="sendMessage()">Enviar</button>
 </div>
-<div id="sendbox">
-<input id="message" maxlength="500" placeholder="Escribí un mensaje...">
-<button onclick="sendMessage()">ENVIAR</button>
+
+<br>
+<button onclick="exitChat()" style="background:#bd394d">
+Salir del chat
+</button>
 </div>
-<div id="admin"></div>
+</div>
+
 </div>
 
 <script>
-let nickname="";
+const SUPABASE_URL =
+"https://pqnnzkqxkndzelsbtxvv.supabase.co";
 
-function enterChat(){
- const n=document.getElementById("nickname").value.trim();
- if(!n){alert("Escribí un apodo");return}
- nickname=n;
- document.getElementById("login").style.display="none";
- document.getElementById("chat").style.display="block";
- document.getElementById("status").textContent="🟢 Sala general · "+nickname;
+// PEGÁ AQUÍ TU CLAVE PUBLICABLE (anon)
+// Nunca uses la clave secret o service_role.
+const SUPABASE_KEY = "PEGAR_AQUI_TU_CLAVE_PUBLICABLE";
+
+const db = window.supabase.createClient(
+ SUPABASE_URL,
+ SUPABASE_KEY
+);
+
+let nickname = "";
+let channel = null;
+
+async function enterChat(){
+ const name = document.getElementById("nickname").value.trim();
+ const error = document.getElementById("error");
+
+ if(!name){
+  error.textContent = "Escribí un apodo.";
+  return;
+ }
+
+ if(SUPABASE_KEY === "PEGAR_AQUI_TU_CLAVE_PUBLICABLE"){
+  error.textContent = "Falta configurar la clave pública de Supabase.";
+  return;
+ }
+
+ nickname = name;
+ document.getElementById("enterBtn").disabled = true;
+
+ const {error: testError} = await db
+  .from("messages")
+  .select("id")
+  .limit(1);
+
+ if(testError){
+  error.textContent = "Error de conexión: " + testError.message;
+  document.getElementById("enterBtn").disabled = false;
+  return;
+ }
+
+ document.getElementById("login").style.display = "none";
+ document.getElementById("chat").style.display = "block";
+
+ await loadMessages();
+ subscribeMessages();
 }
 
-function sendMessage(){
- const input=document.getElementById("message");
- const value=input.value.trim();
- if(!value)return;
+async function loadMessages(){
+ const box = document.getElementById("messages");
 
- const box=document.getElementById("messages");
- const msg=document.createElement("div");
- msg.className="msg";
+ const {data,error} = await db
+  .from("messages")
+  .select("id,nickname,content,created_at")
+  .order("created_at",{ascending:true})
+  .limit(100);
 
- const name=document.createElement("span");
- name.className="name";
- name.textContent=nickname;
+ if(error){
+  document.getElementById("status").textContent =
+   "Error cargando mensajes";
+  return;
+ }
 
- const time=document.createElement("span");
- time.className="time";
- time.textContent=new Date().toLocaleTimeString();
+ box.innerHTML = "";
 
- const content=document.createElement("div");
- content.textContent=value;
+ data.forEach(addMessage);
+ box.scrollTop = box.scrollHeight;
 
- msg.append(name,time,content);
- box.appendChild(msg);
- box.scrollTop=box.scrollHeight;
- input.value="";
+ document.getElementById("status").textContent =
+  "● Conectado a la sala general";
 }
 
-document.getElementById("message").addEventListener("keydown",e=>{
- if(e.key==="Enter")sendMessage();
-});
+function addMessage(msg){
+ const box = document.getElementById("messages");
+ const div = document.createElement("div");
+ div.className = "message";
+
+ const name = document.createElement("div");
+ name.className = "nickname";
+ name.textContent = msg.nickname;
+
+ const content = document.createElement("div");
+ content.textContent = msg.content;
+
+ const time = document.createElement("div");
+ time.className = "time";
+ time.textContent = msg.created_at
+  ? new Date(msg.created_at).toLocaleTimeString("es-AR",
+    {hour:"2-digit",minute:"2-digit"})
+  : "";
+
+ div.append(name,content,time);
+ box.appendChild(div);
+ box.scrollTop = box.scrollHeight;
+}
+
+async function sendMessage(){
+ const input = document.getElementById("messageInput");
+ const btn = document.getElementById("sendBtn");
+ const content = input.value.trim();
+
+ if(!content) return;
+
+ btn.disabled = true;
+
+ const {error} = await db
+  .from("messages")
+  .insert({
+   nickname:nickname,
+   content:content
+  });
+
+ if(error){
+  alert("No se pudo enviar: " + error.message);
+ }else{
+  input.value = "";
+ }
+
+ btn.disabled = false;
+ input.focus();
+}
+
+function subscribeMessages(){
+ channel = db
+  .channel("wi-chat-messages")
+  .on(
+   "postgres_changes",
+   {
+    event:"INSERT",
+    schema:"public",
+    table:"messages"
+   },
+   payload=>{
+    addMessage(payload.new);
+   }
+  )
+  .subscribe();
+}
+
+async function exitChat(){
+ if(channel){
+  await db.removeChannel(channel);
+  channel = null;
+ }
+
+ document.getElementById("chat").style.display = "none";
+ document.getElementById("login").style.display = "block";
+ document.getElementById("nickname").value = nickname;
+ document.getElementById("enterBtn").disabled = false;
+ document.getElementById("messages").innerHTML = "";
+}
+
 </script>
 </body>
 </html>

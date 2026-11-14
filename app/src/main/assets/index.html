@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -98,6 +99,33 @@ overscroll-behavior:contain
 .nav-btn.exit{color:#ff8796}
 
 #privateNotice{display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 30px);max-width:500px;background:#168bea;color:white;padding:15px;border-radius:12px;z-index:9999;text-align:center;font-weight:bold;box-shadow:0 5px 20px #0008}
+
+/* Avisos de moderación */
+#moderationModal{
+display:none;
+position:fixed;
+inset:0;
+z-index:20000;
+background:rgba(0,0,0,.85);
+align-items:center;
+justify-content:center;
+padding:20px;
+}
+#moderationModal.show{display:flex}
+.moderation-card{
+width:100%;
+max-width:400px;
+padding:25px;
+background:#141e35;
+border:1px solid #278bd2;
+border-radius:16px;
+text-align:center;
+box-shadow:0 10px 35px #000b;
+}
+.moderation-card h2{color:#55b8ff;margin-top:0}
+.moderation-card p{color:#d5e3f5;line-height:1.5}
+.moderation-card button{width:100%;margin-top:12px}
+
 #adminPanel{position:fixed;z-index:800;left:10px;right:10px;top:10px;bottom:90px;overflow-y:auto;max-width:680px;margin:auto;background:#141e35}
 #adminPanel .row input{min-width:0}
 #adminPanel h4{margin-bottom:5px}
@@ -110,6 +138,14 @@ body.chat-active .container{max-width:850px;margin:auto}
 
 <body>
 <div id="privateNotice" role="status" aria-live="polite"></div>
+
+<div id="moderationModal" role="alertdialog" aria-modal="true">
+<div class="moderation-card">
+<h2 id="moderationTitle">Aviso de moderación</h2>
+<p id="moderationMessage"></p>
+<button onclick="closeModerationModal()">ENTENDIDO</button>
+</div>
+</div>
 
 <header>
 <h1>🇦🇷 CHAT ARGENTINA</h1>
@@ -241,7 +277,7 @@ const $=id=>document.getElementById(id);
 
 let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null;
-let privateChannel=null,privateNoticeChannel=null;
+let privateChannel=null,privateNoticeChannel=null,moderationChannel=null;
 let receivedIds=new Set(),privateReceivedIds=new Set();
 let roomUsers=new Map(),activePrivateUser=null;
 let isAdmin=false,adminPin="";
@@ -260,6 +296,60 @@ return session.user.id;
 }
 
 function showError(s){$("error").textContent=s}
+
+/* SISTEMA DE AVISOS DE MODERACIÓN */
+
+function showModerationModal(action,roomName,blocked=false){
+const title=$("moderationTitle");
+const message=$("moderationMessage");
+
+if(blocked){
+title.textContent="⛔ Acceso restringido";
+message.textContent="No podés entrar a la sala "+roomName+". Puede ser porque fuiste expulsado o porque todavía está vigente un baneo.";
+}else if(action==="ban"){
+title.textContent="🚫 Fuiste baneado";
+message.textContent="UNIX te baneó de la sala "+roomName+" por cinco minutos. Podrás volver a entrar cuando termine ese plazo. Mientras tanto, podés participar en las demás salas.";
+}else{
+title.textContent="🚪 Fuiste expulsado";
+message.textContent="UNIX te expulsó de la sala "+roomName+". No podés volver a entrar a esta sala, pero podés participar en las demás.";
+}
+
+$("moderationModal").classList.add("show");
+}
+
+function closeModerationModal(){
+$("moderationModal").classList.remove("show");
+}
+
+function subscribeModerationEvents(){
+if(moderationChannel){
+db.removeChannel(moderationChannel);
+moderationChannel=null;
+}
+if(!senderId)return;
+
+moderationChannel=db.channel("wichat-moderation-"+senderId)
+.on("postgres_changes",{
+event:"INSERT",
+schema:"public",
+table:"wichat_moderation_events",
+filter:"sender_id=eq."+senderId
+},async payload=>{
+const event=payload.new;
+
+if(!event)return;
+if(String(event.sender_id)!==String(senderId))return;
+if(String(event.room_id)!==String(currentRoom))return;
+
+const room=rooms.find(r=>String(r.id)===String(event.room_id));
+const roomName=room?.name||"esta sala";
+const action=event.action;
+
+await exitChat();
+showModerationModal(action,roomName);
+})
+.subscribe();
+}
 
 $("nickname").addEventListener("input",()=>{
 const admin=$("nickname").value.trim().toUpperCase()==="UNIX";
@@ -326,11 +416,21 @@ await fetchRooms();
 currentRoom=$("initialRoom").value||rooms[0]?.id;
 if(!currentRoom)throw new Error("No hay salas disponibles.");
 
+const selectedRoom=rooms.find(r=>String(r.id)===String(currentRoom));
+
 const {data:allowed,error}=await db.rpc("check_chat_access",{
-sender_id_input:senderId,room_id_input:currentRoom
+sender_id_input:senderId,
+room_id_input:currentRoom
 });
+
 if(error)throw error;
-if(!allowed)throw new Error("Tu usuario está baneado o fue expulsado de esta sala.");
+
+if(!allowed){
+showModerationModal("blocked",selectedRoom?.name||"esta sala",true);
+currentRoom=null;
+btn.disabled=false;
+return;
+}
 
 $("login").style.display="none";
 $("chat").style.display="block";
@@ -341,6 +441,7 @@ renderTabs();
 await switchRoom(currentRoom);
 subscribeRooms();
 subscribePrivateNotifications();
+subscribeModerationEvents();
 
 }catch(e){
 showError("No se pudo ingresar: "+e.message);
@@ -398,10 +499,20 @@ privateReceivedIds.clear();
 
 async function switchRoom(id){
 const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{
-sender_id_input:senderId,room_id_input:id
+sender_id_input:senderId,
+room_id_input:id
 });
-if(accessError){$("status").textContent="Error de acceso: "+accessError.message;return}
-if(!allowed){$("status").textContent="No tenés acceso a esta sala.";return}
+
+if(accessError){
+$("status").textContent="Error de acceso: "+accessError.message;
+return;
+}
+
+if(!allowed){
+const room=rooms.find(r=>String(r.id)===String(id));
+$("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";
+return;
+}
 
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null}
 if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null}
@@ -420,7 +531,10 @@ $("status").textContent="Cargando "+(room?.name||"sala")+"...";
 
 messageChannel=db.channel("wichat-messages-"+id)
 .on("postgres_changes",{
-event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id
+event:"INSERT",
+schema:"public",
+table:"messages",
+filter:"room_id=eq."+id
 },p=>addMessage(p.new))
 .subscribe(s=>{
 if(s==="SUBSCRIBED")$("status").textContent="● Conectado";
@@ -429,6 +543,7 @@ if(s==="SUBSCRIBED")$("status").textContent="● Conectado";
 presenceChannel=db.channel("wichat-presence-"+id,{
 config:{presence:{key:senderId}}
 });
+
 presenceChannel
 .on("presence",{event:"sync"},updatePresenceList)
 .on("presence",{event:"join"},updatePresenceList)
@@ -436,7 +551,10 @@ presenceChannel
 .subscribe(async state=>{
 if(state==="SUBSCRIBED"){
 await presenceChannel.track({
-nickname,sender_id:senderId,is_admin:isAdmin,online_at:new Date().toISOString()
+nickname,
+sender_id:senderId,
+is_admin:isAdmin,
+online_at:new Date().toISOString()
 });
 updatePresenceList();
 }
@@ -453,9 +571,14 @@ const entries=state[key]||[];
 if(entries.length){
 const p=entries[entries.length-1];
 const id=p.sender_id||key;
-next.set(id,{id,nick:p.nickname||"Usuario",admin:p.is_admin===true});
+next.set(id,{
+id,
+nick:p.nickname||"Usuario",
+admin:p.is_admin===true
+});
 }
 });
+
 roomUsers=next;
 renderUsers();
 renderModerationUsers();
@@ -483,8 +606,10 @@ return;
 users.forEach(u=>{
 const item=document.createElement("div");
 item.className="user-item";
+
 const dot=document.createElement("span");
 dot.className="online-dot";
+
 const name=document.createElement("span");
 name.className="user-name";
 
@@ -494,6 +619,7 @@ star.className="admin-star";
 star.textContent="⭐";
 name.appendChild(star);
 }
+
 name.appendChild(document.createTextNode(u.nick));
 item.append(dot,name);
 
@@ -503,6 +629,7 @@ item.onclick=()=>openPrivateChat(u);
 }else{
 item.title="Vos";
 }
+
 list.appendChild(item);
 });
 }
@@ -511,6 +638,7 @@ function renderModerationUsers(){
 const s=$("userToModerate");
 const old=s.value;
 s.innerHTML='<option value="">Elegí un usuario conectado</option>';
+
 roomUsers.forEach(u=>{
 if(u.id===senderId)return;
 const o=document.createElement("option");
@@ -518,6 +646,7 @@ o.value=u.id;
 o.textContent=u.nick;
 s.appendChild(o);
 });
+
 if(Array.from(s.options).some(o=>o.value===old))s.value=old;
 }
 
@@ -527,6 +656,7 @@ receivedIds.add(m.id);
 
 const div=document.createElement("div");
 div.className="message";
+
 const n=document.createElement("strong");
 n.className="nickname";
 
@@ -536,11 +666,13 @@ star.className="admin-star";
 star.textContent="⭐";
 n.appendChild(star);
 }
+
 n.appendChild(document.createTextNode((m.nickname||"Usuario")+":"));
 
 const t=document.createElement("span");
 t.className="msgtext";
 t.textContent=m.message||m.content||"";
+
 div.append(n,t);
 $("messages").appendChild(div);
 $("messages").scrollTop=$("messages").scrollHeight;
@@ -550,13 +682,22 @@ async function sendMessage(){
 const input=$("messageInput");
 const btn=$("sendBtn");
 const value=input.value.trim();
+
 if(!value||!nickname||!currentRoom)return;
+
 btn.disabled=true;
+
 try{
 const {error}=await db.from("messages").insert({
-nickname,message:value,content:value,room_id:currentRoom,sender_id:senderId
+nickname,
+message:value,
+content:value,
+room_id:currentRoom,
+sender_id:senderId
 });
+
 if(error)throw error;
+
 input.value="";
 }catch(e){
 alert("No se pudo enviar el mensaje: "+e.message);
@@ -587,8 +728,10 @@ if(!wasOpen)renderEmojiPicker(picker);
 
 function renderEmojiPicker(picker){
 picker.innerHTML="";
+
 const cats=document.createElement("div");
 cats.className="emoji-cats";
+
 const grid=document.createElement("div");
 grid.className="emoji-grid";
 
@@ -607,14 +750,18 @@ Object.keys(emojiGroups).forEach((cat,index)=>{
 const b=document.createElement("button");
 b.type="button";
 b.textContent=cat;
+
 if(index===0)b.classList.add("active");
+
 b.onclick=()=>{
 cats.querySelectorAll("button").forEach(x=>x.classList.remove("active"));
 b.classList.add("active");
 draw(cat);
 };
+
 cats.appendChild(b);
 });
+
 picker.append(cats,grid);
 draw(Object.keys(emojiGroups)[0]);
 picker.classList.add("open");
@@ -623,10 +770,13 @@ picker.classList.add("open");
 function insertEmoji(emoji){
 const input=$(emojiTarget);
 if(!input)return;
+
 const start=input.selectionStart??input.value.length;
 const end=input.selectionEnd??input.value.length;
+
 input.value=input.value.slice(0,start)+emoji+input.value.slice(end);
 input.focus();
+
 const pos=start+emoji.length;
 input.setSelectionRange(pos,pos);
 }
@@ -635,19 +785,31 @@ function showPrivateNotification(senderNick){
 const notice=$("privateNotice");
 notice.textContent="🔔 "+senderNick+" te está hablando por privado";
 notice.style.display="block";
+
 if(privateNoticeTimer)clearTimeout(privateNoticeTimer);
-privateNoticeTimer=setTimeout(()=>{notice.style.display="none"},5000);
+
+privateNoticeTimer=setTimeout(()=>{
+notice.style.display="none";
+},5000);
 }
 
 function subscribePrivateNotifications(){
 if(!isAdmin)return;
-if(privateNoticeChannel){db.removeChannel(privateNoticeChannel);privateNoticeChannel=null}
+
+if(privateNoticeChannel){
+db.removeChannel(privateNoticeChannel);
+privateNoticeChannel=null;
+}
 
 privateNoticeChannel=db.channel("wichat-private-notifications-"+senderId)
 .on("postgres_changes",{
-event:"INSERT",schema:"public",table:"private_messages",filter:"recipient_id=eq."+senderId
+event:"INSERT",
+schema:"public",
+table:"private_messages",
+filter:"recipient_id=eq."+senderId
 },payload=>{
 const m=payload.new;
+
 if(!m||m.recipient_id!==senderId)return;
 
 const notificationKey="wichat_private_notified_"+senderId+"_"+m.sender_id;
@@ -657,6 +819,7 @@ if(!alreadyNotified){
 localStorage.setItem(notificationKey,"1");
 showPrivateNotification(m.sender_nickname||"Un usuario");
 }
+
 if(activePrivateUser&&activePrivateUser.id===m.sender_id)addPrivateMessage(m);
 })
 .subscribe();
@@ -664,6 +827,7 @@ if(activePrivateUser&&activePrivateUser.id===m.sender_id)addPrivateMessage(m);
 
 async function openPrivateChat(user){
 if(!user||user.id===senderId)return;
+
 activePrivateUser=user;
 privateReceivedIds.clear();
 
@@ -673,17 +837,27 @@ $("roomsView").classList.add("hidden");
 $("privateView").classList.remove("hidden");
 $("navUsers").classList.add("active");
 $("navRooms").classList.remove("active");
+
 closeEmojiPickers();
 
 $("privateTitle").textContent="Privado con "+user.nick;
 $("privateMessages").innerHTML='<p class="muted">Cargando conversación...</p>';
 
-if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null}
+if(privateChannel){
+await db.removeChannel(privateChannel);
+privateChannel=null;
+}
+
 await loadPrivateMessages();
 
 privateChannel=db.channel("wichat-private-"+senderId)
-.on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages"},payload=>{
+.on("postgres_changes",{
+event:"INSERT",
+schema:"public",
+table:"private_messages"
+},payload=>{
 const m=payload.new;
+
 if(activePrivateUser&&(
 (m.sender_id===senderId&&m.recipient_id===activePrivateUser.id)||
 (m.sender_id===activePrivateUser.id&&m.recipient_id===senderId)
@@ -698,6 +872,7 @@ $("privateInput").focus();
 
 async function loadPrivateMessages(){
 if(!activePrivateUser)return;
+
 const other=activePrivateUser.id;
 const filter="and(sender_id.eq."+senderId+",recipient_id.eq."+other+"),and(sender_id.eq."+other+",recipient_id.eq."+senderId+")";
 const cutoff=localStorage.getItem(privateCutoffKey(other));
@@ -706,6 +881,7 @@ let query=db.from("private_messages").select("*").or(filter);
 if(cutoff)query=query.gt("created_at",cutoff);
 
 const {data,error}=await query.order("created_at",{ascending:true});
+
 if(error){
 $("privateMessages").textContent="No se pudo cargar la conversación: "+error.message;
 return;
@@ -713,7 +889,9 @@ return;
 
 $("privateMessages").innerHTML="";
 privateReceivedIds.clear();
+
 (data||[]).forEach(addPrivateMessage);
+
 if(!(data||[]).length){
 $("privateMessages").innerHTML='<p class="muted">Todavía no hay mensajes. ¡Saludá!</p>';
 }
@@ -732,6 +910,7 @@ div.className="private-message"+(m.sender_id===senderId?" mine":"");
 
 const who=document.createElement("strong");
 who.className="nickname";
+
 const privateNick=m.sender_id===senderId?nickname:(m.sender_nickname||"Usuario");
 
 if(privateNick.toUpperCase()==="UNIX"){
@@ -740,6 +919,7 @@ star.className="admin-star";
 star.textContent="⭐";
 who.appendChild(star);
 }
+
 who.appendChild(document.createTextNode(privateNick+": "));
 
 const msg=document.createElement("span");
@@ -753,10 +933,13 @@ box.scrollTop=box.scrollHeight;
 
 async function sendPrivateMessage(){
 if(!activePrivateUser)return;
+
 const input=$("privateInput");
 const btn=$("privateSendBtn");
 const value=input.value.trim();
+
 if(!value)return;
+
 btn.disabled=true;
 
 try{
@@ -766,7 +949,9 @@ recipient_id:activePrivateUser.id,
 sender_nickname:nickname,
 content:value
 }).select().single();
+
 if(error)throw error;
+
 addPrivateMessage(data);
 input.value="";
 }catch(e){
@@ -780,27 +965,42 @@ input.focus();
 async function backToUsers(){
 savePrivateCutoff();
 activePrivateUser=null;
-if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null}
+
+if(privateChannel){
+await db.removeChannel(privateChannel);
+privateChannel=null;
+}
+
 clearPrivateView();
+
 $("privateView").classList.add("hidden");
 $("usersView").classList.remove("hidden");
 $("roomsView").classList.add("hidden");
 $("navUsers").classList.add("active");
 $("navRooms").classList.remove("active");
 $("privateInput").value="";
+
 closeEmojiPickers();
 }
 
 function subscribeRooms(){
 if(roomChannel)db.removeChannel(roomChannel);
+
 roomChannel=db.channel("wichat-rooms")
-.on("postgres_changes",{event:"*",schema:"public",table:"rooms"},async()=>{
+.on("postgres_changes",{
+event:"*",
+schema:"public",
+table:"rooms"
+},async()=>{
 const previous=currentRoom;
 await fetchRooms();
+
 if(!rooms.some(r=>String(r.id)===String(previous))){
 currentRoom=rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||rooms[0]?.id||null;
 }
+
 renderTabs();
+
 if(currentRoom)await switchRoom(currentRoom);
 })
 .subscribe();
@@ -812,14 +1012,24 @@ $("adminPanel").classList.remove("hidden");
 renderRoomDelete();
 }
 }
-function closeAdmin(){$("adminPanel").classList.add("hidden")}
+
+function closeAdmin(){
+$("adminPanel").classList.add("hidden");
+}
 
 async function createRoom(){
 if(!isAdmin)return;
+
 const name=$("newRoomName").value.trim();
 if(!name)return;
-const {error}=await db.rpc("admin_create_room",{pin_input:adminPin,room_name:name});
+
+const {error}=await db.rpc("admin_create_room",{
+pin_input:adminPin,
+room_name:name
+});
+
 $("adminStatus").textContent=error?"Error: "+error.message:"Sala creada.";
+
 if(!error){
 $("newRoomName").value="";
 await fetchRooms();
@@ -830,28 +1040,45 @@ renderTabs();
 function renderRoomDelete(){
 const select=$("roomToDelete");
 if(!select)return;
+
 const previous=select.value;
 select.innerHTML='<option value="">Elegí una sala</option>';
+
 rooms.forEach(r=>{
 const option=document.createElement("option");
 option.value=r.id;
 option.textContent=r.name;
 select.appendChild(option);
 });
+
 if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
 }
 
 async function deleteRoom(){
 if(!isAdmin)return;
+
 const id=$("roomToDelete").value;
-if(!id){$("adminStatus").textContent="Elegí una sala.";return}
+if(!id){
+$("adminStatus").textContent="Elegí una sala.";
+return;
+}
+
 const room=rooms.find(r=>String(r.id)===String(id));
+
 if(!confirm('¿Seguro que querés eliminar la sala "'+(room?.name||"")+'"?'))return;
 
-const {error}=await db.rpc("admin_delete_room",{pin_input:adminPin,room_id_input:Number(id)});
-if(error){$("adminStatus").textContent="Error al eliminar: "+error.message;return}
+const {error}=await db.rpc("admin_delete_room",{
+pin_input:adminPin,
+room_id_input:Number(id)
+});
+
+if(error){
+$("adminStatus").textContent="Error al eliminar: "+error.message;
+return;
+}
 
 $("adminStatus").textContent="Sala eliminada correctamente.";
+
 const wasCurrent=String(currentRoom)===String(id);
 await fetchRooms();
 
@@ -864,37 +1091,80 @@ $("status").textContent="No quedan salas. Creá una nueva desde Administración.
 $("messages").innerHTML="";
 }
 }
+
 renderTabs();
 renderRoomDelete();
 }
 
+/* MODERACIÓN: BANEO Y EXPULSIÓN */
+
 async function moderateUser(action){
 if(!isAdmin)return;
+
 const target=$("userToModerate").value;
-if(!target){$("adminStatus").textContent="Elegí un usuario conectado.";return}
-const {error}=await db.rpc("admin_moderate_user",{
+
+if(!target){
+$("adminStatus").textContent="Elegí un usuario conectado.";
+return;
+}
+
+const {data,error}=await db.rpc("admin_moderate_user",{
 pin_input:adminPin,
 target_sender_id:target,
 room_id_input:currentRoom,
 action_name:action
 });
-$("adminStatus").textContent=error?"Error: "+error.message:(action==="ban"?"Usuario baneado.":"Usuario expulsado de esta sala.");
+
+if(error){
+$("adminStatus").textContent="Error: "+error.message;
+return;
+}
+
+$("adminStatus").textContent=
+action==="ban"
+?"Usuario baneado por cinco minutos en esta sala."
+:"Usuario expulsado de esta sala.";
 }
 
 async function exitChat(){
 if(activePrivateUser)savePrivateCutoff();
 
-if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null}
-if(privateNoticeChannel){await db.removeChannel(privateNoticeChannel);privateNoticeChannel=null}
-if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null}
+if(privateChannel){
+await db.removeChannel(privateChannel);
+privateChannel=null;
+}
+
+if(privateNoticeChannel){
+await db.removeChannel(privateNoticeChannel);
+privateNoticeChannel=null;
+}
+
+if(moderationChannel){
+await db.removeChannel(moderationChannel);
+moderationChannel=null;
+}
+
+if(messageChannel){
+await db.removeChannel(messageChannel);
+messageChannel=null;
+}
+
 if(presenceChannel){
 await presenceChannel.untrack();
 await db.removeChannel(presenceChannel);
 presenceChannel=null;
 }
-if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null}
 
-if(privateNoticeTimer){clearTimeout(privateNoticeTimer);privateNoticeTimer=null}
+if(roomChannel){
+await db.removeChannel(roomChannel);
+roomChannel=null;
+}
+
+if(privateNoticeTimer){
+clearTimeout(privateNoticeTimer);
+privateNoticeTimer=null;
+}
+
 $("privateNotice").style.display="none";
 
 receivedIds.clear();

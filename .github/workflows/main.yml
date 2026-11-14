@@ -26,8 +26,16 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Verificar proyecto
+      - name: Mostrar archivos del proyecto
+        run: |
+          pwd
+          find . -maxdepth 3 -type f | sort
+
+      - name: Verificar módulos
         run: gradle projects
+
+      - name: Ver tareas de Android
+        run: gradle :app:tasks --all
 
       - name: Compilar Wi Chat
         run: gradle --no-daemon :app:assembleDebug

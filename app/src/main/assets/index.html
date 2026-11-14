@@ -22,6 +22,7 @@ button:disabled{opacity:.5}
 #messages{height:52vh;min-height:280px;overflow-y:auto;background:#0c1427;border-radius:12px;padding:12px;margin:14px 0}
 .message{background:#1b2945;padding:10px;border-radius:10px;margin-bottom:9px;overflow-wrap:anywhere;display:flex;gap:7px}
 .nickname{color:#55b8ff;font-weight:bold;white-space:nowrap}
+.admin-star{color:#ffd34d;margin-right:4px}
 .msgtext{color:#fff;white-space:pre-wrap;min-width:0}
 .row{display:flex;gap:8px;align-items:center}
 .row input{flex:1;min-width:0}
@@ -31,6 +32,14 @@ button:disabled{opacity:.5}
 .danger{background:#bd394d}.secondary{background:#344361}
 .admin-box{border:1px solid #d99b35}
 .hidden{display:none!important}
+.main-tabs{display:flex;gap:8px;margin:10px 0}
+.main-tabs button{flex:1;background:#253654}
+.main-tabs button.active{background:#168bea}
+#usersView{min-height:280px;background:#0c1427;border-radius:12px;padding:14px;margin:14px 0}
+.user-item{display:flex;align-items:center;gap:9px;padding:12px;margin-bottom:8px;background:#1b2945;border-radius:10px}
+.online-dot{width:9px;height:9px;background:#39d98a;border-radius:50%;flex:0 0 9px}
+.user-name{font-weight:bold;color:#fff;overflow-wrap:anywhere}
+.user-count{font-size:12px;color:#9baac5;margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -57,12 +66,27 @@ button:disabled{opacity:.5}
         <button id="adminOpenBtn" class="secondary hidden" onclick="openAdmin()">Administrar</button>
       </div>
       <div id="roomTabs"></div>
-      <p class="status" id="status">Conectando...</p>
-      <div id="messages"></div>
-      <div class="row">
-        <input id="messageInput" maxlength="1000" placeholder="Escribí un mensaje..." onkeydown="if(event.key==='Enter')sendMessage()">
-        <button id="sendBtn" onclick="sendMessage()">Enviar</button>
+
+      <div class="main-tabs">
+        <button id="chatTab" class="active" onclick="showMainTab('chat')">Chat</button>
+        <button id="usersTab" onclick="showMainTab('users')">Usuarios <span id="usersCount">0</span></button>
       </div>
+
+      <div id="chatView">
+        <p class="status" id="status">Conectando...</p>
+        <div id="messages"></div>
+        <div class="row">
+          <input id="messageInput" maxlength="1000" placeholder="Escribí un mensaje..." onkeydown="if(event.key==='Enter')sendMessage()">
+          <button id="sendBtn" onclick="sendMessage()">Enviar</button>
+        </div>
+      </div>
+
+      <div id="usersView" class="hidden">
+        <h3 style="margin-top:0">Usuarios conectados</h3>
+        <div id="usersCountText" class="user-count">0 usuarios conectados</div>
+        <div id="usersList"><p class="muted">Esperando usuarios...</p></div>
+      </div>
+
       <br><button class="danger" onclick="exitChat()">Salir del chat</button>
     </div>
 
@@ -93,7 +117,7 @@ const SUPABASE_URL="https://pqnnzkqxkndzelsbtxvv.supabase.co";
 const SUPABASE_KEY="sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
-let nickname="", senderId="", currentRoom=null, rooms=[], messageChannel=null, roomChannel=null;
+let nickname="", senderId="", currentRoom=null, rooms=[], messageChannel=null, roomChannel=null, presenceChannel=null;
 let receivedIds=new Set(), roomUsers=new Map(), isAdmin=false, adminPin="";
 
 function getSenderId(){
@@ -143,41 +167,100 @@ function renderTabs(){
   $("roomTabs").innerHTML="";
   rooms.forEach(r=>{
     const b=document.createElement("button");
-    b.className="room-tab"+(r.id===currentRoom?" active":"");
+    b.className="room-tab"+(String(r.id)===String(currentRoom)?" active":"");
     b.textContent=r.name;b.onclick=()=>switchRoom(r.id);
     $("roomTabs").appendChild(b);
   });
+}
+function showMainTab(which){
+  const users=which==="users";
+  $("chatView").classList.toggle("hidden",users);
+  $("usersView").classList.toggle("hidden",!users);
+  $("chatTab").classList.toggle("active",!users);
+  $("usersTab").classList.toggle("active",users);
 }
 async function switchRoom(id){
   const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:id});
   if(accessError){$("status").textContent="Error de acceso: "+accessError.message;return}
   if(!allowed){$("status").textContent="No tenés acceso a esta sala.";return}
   if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null}
-  currentRoom=id;receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();
-  const room=rooms.find(r=>r.id===id);
+  if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null}
+  currentRoom=id;receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();renderUsers();
+  const room=rooms.find(r=>String(r.id)===String(id));
   $("status").textContent="Cargando "+(room?.name||"sala")+"...";
-  const {data,error}=await db.from("messages")
-    .select("id,nickname,message,content,created_at,room_id,sender_id")
-    .eq("room_id",id).order("created_at",{ascending:true}).limit(150);
-  if(error){$("status").textContent="Error cargando mensajes: "+error.message;return}
-  (data||[]).forEach(addMessage);
+  // No cargar el historial: al entrar solo se muestran los mensajes nuevos.
   messageChannel=db.channel("wichat-messages-"+id)
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new))
     .subscribe(s=>{if(s==="SUBSCRIBED")$("status").textContent="● Conectado a "+(room?.name||"la sala")});
+
+  // Presencia en tiempo real: cada dispositivo anuncia su Nick mientras permanece en esta sala.
+  presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
+  presenceChannel
+    .on("presence",{event:"sync"},updatePresenceList)
+    .on("presence",{event:"join"},updatePresenceList)
+    .on("presence",{event:"leave"},updatePresenceList)
+    .subscribe(async state=>{
+      if(state==="SUBSCRIBED"){
+        await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,online_at:new Date().toISOString()});
+        updatePresenceList();
+      }
+    });
+}
+function updatePresenceList(){
+  if(!presenceChannel)return;
+  const state=presenceChannel.presenceState(),next=new Map();
+  Object.keys(state).forEach(key=>{
+    const entries=state[key]||[];
+    if(entries.length){
+      const p=entries[entries.length-1];
+      const id=p.sender_id||key;
+      next.set(id,{id,nick:p.nickname||"Usuario",admin:p.is_admin===true});
+    }
+  });
+  roomUsers=next;
+  renderUsers();
+  renderModerationUsers();
+}
+function renderUsers(){
+  const list=$("usersList");
+  if(!list)return;
+  const users=Array.from(roomUsers.values()).sort((a,b)=>{
+    if(a.admin!==b.admin)return a.admin?-1:1;
+    return a.nick.localeCompare(b.nick);
+  });
+  $("usersCount").textContent=String(users.length);
+  $("usersCountText").textContent=users.length+" "+(users.length===1?"usuario conectado":"usuarios conectados");
+  list.innerHTML="";
+  if(!users.length){list.innerHTML='<p class="muted">Todavía no hay usuarios conectados.</p>';return}
+  users.forEach(u=>{
+    const item=document.createElement("div");item.className="user-item";
+    const dot=document.createElement("span");dot.className="online-dot";
+    const name=document.createElement("span");name.className="user-name";
+    if(u.admin){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";name.appendChild(star)}
+    name.appendChild(document.createTextNode(u.nick));
+    item.append(dot,name);list.appendChild(item);
+  });
+}
+function renderModerationUsers(){
+  const s=$("userToModerate"),old=s.value;
+  s.innerHTML='<option value="">Elegí un usuario conectado</option>';
+  roomUsers.forEach(u=>{
+    if(u.id===senderId)return;
+    const o=document.createElement("option");o.value=u.id;o.textContent=u.nick;s.appendChild(o);
+  });
+  if(Array.from(s.options).some(o=>o.value===old))s.value=old;
 }
 function addMessage(m){
   if(!m||receivedIds.has(m.id))return;
   receivedIds.add(m.id);
   const div=document.createElement("div");div.className="message";
-  const n=document.createElement("strong");n.className="nickname";n.textContent=(m.nickname||"Usuario")+":";
+  const n=document.createElement("strong");n.className="nickname";
+  if(String(m.nickname||"").toUpperCase()==="UNIX"){
+    const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";n.appendChild(star);
+  }
+  n.appendChild(document.createTextNode((m.nickname||"Usuario")+":"));
   const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";
   div.append(n,t);$("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
-  if(m.sender_id){roomUsers.set(m.sender_id,{id:m.sender_id,nick:m.nickname||"Usuario"});renderUsers()}
-}
-function renderUsers(){
-  const s=$("userToModerate"),old=s.value;s.innerHTML='<option value="">Elegí un usuario</option>';
-  roomUsers.forEach(u=>{if(u.id===senderId)return;const o=document.createElement("option");o.value=u.id;o.textContent=u.nick;s.appendChild(o)});
-  s.value=old;
 }
 async function sendMessage(){
   const input=$("messageInput"),btn=$("sendBtn"),value=input.value.trim();
@@ -197,7 +280,7 @@ function subscribeRooms(){
   roomChannel=db.channel("wichat-rooms")
     .on("postgres_changes",{event:"*",schema:"public",table:"rooms"},async()=>{
       const previous=currentRoom;await fetchRooms();
-      if(!rooms.some(r=>r.id===previous))currentRoom=rooms[0]?.id||null;
+      if(!rooms.some(r=>String(r.id)===String(previous)))currentRoom=rooms[0]?.id||null;
       renderTabs();if(currentRoom)await switchRoom(currentRoom);
     }).subscribe();
 }
@@ -211,7 +294,7 @@ async function createRoom(){
 }
 async function moderateUser(action){
   const target=$("userToModerate").value;
-  if(!target){$("adminStatus").textContent="Elegí un usuario.";return}
+  if(!target){$("adminStatus").textContent="Elegí un usuario conectado.";return}
   const {error}=await db.rpc("admin_moderate_user",{
     pin_input:adminPin,target_sender_id:target,room_id_input:currentRoom,action_name:action
   });
@@ -219,11 +302,13 @@ async function moderateUser(action){
 }
 async function exitChat(){
   if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null}
+  if(presenceChannel){await presenceChannel.untrack();await db.removeChannel(presenceChannel);presenceChannel=null}
   if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null}
-  receivedIds.clear();roomUsers.clear();adminPin="";isAdmin=false;currentRoom=null;
+  receivedIds.clear();roomUsers.clear();renderUsers();adminPin="";isAdmin=false;currentRoom=null;nickname="";
   $("chat").style.display="none";$("login").style.display="block";$("enterBtn").disabled=false;
   $("messages").innerHTML="";$("adminPanel").classList.add("hidden");$("adminOpenBtn").classList.add("hidden");
   $("adminPin").value="";$("adminPinWrap").classList.add("hidden");$("error").textContent="";
+  $("messageInput").value="";showMainTab("chat");
 }
 (async()=>{try{await fetchRooms()}catch(e){$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';showError(e.message)}})();
 </script>

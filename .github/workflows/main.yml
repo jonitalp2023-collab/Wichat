@@ -21,17 +21,19 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Instalar Gradle
+      - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
+      - name: Verificar proyecto
+        run: gradle projects
+
       - name: Compilar Wi Chat
-        run: gradle --no-daemon assembleDebug
+        run: gradle --no-daemon :app:assembleDebug
 
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
           name: Wi-Chat-APK
           path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error

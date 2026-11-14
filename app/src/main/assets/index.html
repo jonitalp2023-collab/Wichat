@@ -1,329 +1,231 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Wi Chat</title>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 *{box-sizing:border-box}
-body{
- margin:0;
- background:#0b1020;
- color:white;
- font-family:Arial,sans-serif;
-}
-header{
- background:#121a30;
- padding:18px;
- text-align:center;
- border-bottom:1px solid #273451;
-}
-header h1{margin:0;color:#55b8ff}
-header p{margin:6px 0 0;color:#9baac5}
-.container{max-width:650px;margin:auto;padding:15px}
-.panel{
- background:#141e35;
- padding:20px;
- border-radius:15px;
- margin-top:25px;
-}
-input{
- width:100%;
- padding:15px;
- border:1px solid #344361;
- border-radius:10px;
- background:#0c1427;
- color:white;
- font-size:16px;
- margin:8px 0;
-}
-button{
- border:0;
- padding:13px 18px;
- border-radius:10px;
- background:#168bea;
- color:white;
- font-weight:bold;
- cursor:pointer;
-}
+body{margin:0;background:#0b1020;color:white;font-family:Arial,sans-serif}
+header{background:#121a30;padding:18px;text-align:center;border-bottom:1px solid #273451}
+header h1{margin:0;color:#55b8ff}header p{margin:6px 0 0;color:#9baac5}
+.container{max-width:700px;margin:auto;padding:15px}
+.panel{background:#141e35;padding:18px;border-radius:15px;margin-top:18px}
+input,select{width:100%;padding:14px;border:1px solid #344361;border-radius:10px;background:#0c1427;color:white;font-size:16px;margin:8px 0}
+button{border:0;padding:12px 16px;border-radius:10px;background:#168bea;color:white;font-weight:bold;cursor:pointer}
 button:disabled{opacity:.5}
 #chat{display:none}
-#messages{
- height:55vh;
- overflow-y:auto;
- background:#0c1427;
- border-radius:12px;
- padding:12px;
- margin:15px 0;
-}
-.message{
- background:#1b2945;
- padding:10px;
- border-radius:10px;
- margin-bottom:10px;
- overflow-wrap:anywhere;
-}
-.nickname{color:#55b8ff;font-weight:bold}
-.time{font-size:11px;color:#8293b1;margin-top:5px}
-.row{display:flex;gap:8px}
+#roomTabs{display:flex;gap:8px;overflow-x:auto;padding:5px 0 12px}
+.room-tab{white-space:nowrap;flex:0 0 auto;background:#253654}
+.room-tab.active{background:#168bea}
+#messages{height:52vh;min-height:280px;overflow-y:auto;background:#0c1427;border-radius:12px;padding:12px;margin:14px 0}
+.message{background:#1b2945;padding:10px;border-radius:10px;margin-bottom:9px;overflow-wrap:anywhere;display:flex;gap:7px}
+.nickname{color:#55b8ff;font-weight:bold;white-space:nowrap}
+.msgtext{color:#fff;white-space:pre-wrap;min-width:0}
+.row{display:flex;gap:8px;align-items:center}
 .row input{flex:1;min-width:0}
 .status{color:#70dca1;font-size:13px}
+.muted{color:#9baac5;font-size:13px}
 #error{color:#ff7777}
+.danger{background:#bd394d}.secondary{background:#344361}
+.admin-box{border:1px solid #d99b35}
+.hidden{display:none!important}
 </style>
 </head>
-
 <body>
-
-<header>
-<h1>Wi Chat</h1>
-<p>La comunidad donde todos pueden hablar</p>
-</header>
-
+<header><h1>Wi Chat</h1><p>La comunidad donde todos pueden hablar</p></header>
 <div class="container">
+  <section id="login" class="panel">
+    <h2>Bienvenido a Wi Chat</h2>
+    <p>Elegí tu Nick y la sala a la que querés entrar.</p>
+    <input id="nickname" maxlength="25" placeholder="Escribí tu Nick" autocomplete="nickname">
+    <div id="adminPinWrap" class="hidden">
+      <input id="adminPin" type="password" placeholder="PIN de administrador UNIX">
+      <p class="muted">El Nick UNIX está reservado para el administrador.</p>
+    </div>
+    <label class="muted" for="initialRoom">Elegí una sala</label>
+    <select id="initialRoom"><option value="">Cargando salas...</option></select>
+    <button id="enterBtn" onclick="enterChat()">ENTRAR AL CHAT</button>
+    <p id="error"></p>
+  </section>
 
-<div id="login" class="panel">
-<h2>Bienvenido a Wi Chat</h2>
-<p>Elegí tu apodo para entrar a la sala general.</p>
-<input id="nickname" maxlength="25" placeholder="Escribí tu apodo">
-<button id="enterBtn" onclick="enterChat()">ENTRAR AL CHAT</button>
-<p id="error"></p>
-</div>
+  <section id="chat">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">Salas</h2>
+        <button id="adminOpenBtn" class="secondary hidden" onclick="openAdmin()">Administrar</button>
+      </div>
+      <div id="roomTabs"></div>
+      <p class="status" id="status">Conectando...</p>
+      <div id="messages"></div>
+      <div class="row">
+        <input id="messageInput" maxlength="1000" placeholder="Escribí un mensaje..." onkeydown="if(event.key==='Enter')sendMessage()">
+        <button id="sendBtn" onclick="sendMessage()">Enviar</button>
+      </div>
+      <br><button class="danger" onclick="exitChat()">Salir del chat</button>
+    </div>
 
-<div id="chat">
-<div class="panel">
-<h3>🌎 Sala general</h3>
-<p class="status" id="status">Conectando...</p>
-
-<div id="messages"></div>
-
-<div class="row">
-<input id="messageInput" maxlength="1000"
-placeholder="Escribí un mensaje..."
-onkeydown="if(event.key==='Enter')sendMessage()">
-<button id="sendBtn" onclick="sendMessage()">Enviar</button>
-</div>
-
-<br>
-<button onclick="exitChat()" style="background:#bd394d">
-Salir del chat
-</button>
-
-</div>
-</div>
+    <div id="adminPanel" class="panel admin-box hidden">
+      <div class="row" style="justify-content:space-between">
+        <h3 style="margin:0">Administración UNIX</h3>
+        <button class="secondary" onclick="closeAdmin()">Cerrar</button>
+      </div>
+      <h4>Crear una sala</h4>
+      <div class="row">
+        <input id="newRoomName" maxlength="30" placeholder="Nombre de la sala">
+        <button onclick="createRoom()">Crear</button>
+      </div>
+      <h4>Expulsar o banear usuarios</h4>
+      <p class="muted">Elegí un usuario que haya participado en esta sala.</p>
+      <select id="userToModerate"><option value="">Usuarios de esta sala</option></select>
+      <div class="row">
+        <button class="secondary" onclick="moderateUser('kick')">Expulsar de esta sala</button>
+        <button class="danger" onclick="moderateUser('ban')">Banear</button>
+      </div>
+      <p id="adminStatus" class="muted"></p>
+    </div>
+  </section>
 </div>
 
 <script>
+const SUPABASE_URL="https://pqnnzkqxkndzelsbtxvv.supabase.co";
+const SUPABASE_KEY="sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+let nickname="", senderId="", currentRoom=null, rooms=[], messageChannel=null, roomChannel=null;
+let receivedIds=new Set(), roomUsers=new Map(), isAdmin=false, adminPin="";
 
-const SUPABASE_URL =
-"https://pqnnzkqxkndzelsbtxvv.supabase.co";
-
-const SUPABASE_KEY =
-"sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
-
-const db = window.supabase.createClient(
- SUPABASE_URL,
- SUPABASE_KEY
-);
-
-let nickname = "";
-let channel = null;
-let receivedIds = new Set();
-
+function getSenderId(){
+  let id=localStorage.getItem("wichat_sender_id");
+  if(!id){id=crypto.randomUUID();localStorage.setItem("wichat_sender_id",id)}
+  return id;
+}
+function showError(s){$("error").textContent=s}
+$("nickname").addEventListener("input",()=>{
+  const admin=$("nickname").value.trim().toUpperCase()==="UNIX";
+  $("adminPinWrap").classList.toggle("hidden",!admin);
+});
+async function fetchRooms(){
+  const {data,error}=await db.from("rooms").select("id,name").order("name");
+  if(error)throw error;
+  rooms=data||[];
+  $("initialRoom").innerHTML="";
+  rooms.forEach(r=>{const o=document.createElement("option");o.value=r.id;o.textContent=r.name;$("initialRoom").appendChild(o)});
+  if(!rooms.length)throw new Error("No hay salas. Ejecutá primero el archivo supabase/wi-chat-setup.sql en Supabase.");
+}
 async function enterChat(){
-
- const name = document.getElementById("nickname").value.trim();
- const errorBox = document.getElementById("error");
- const btn = document.getElementById("enterBtn");
-
- errorBox.textContent = "";
-
- if(!name){
-  errorBox.textContent = "Escribí un apodo.";
-  return;
- }
-
- if(!window.supabase){
-  errorBox.textContent = "No se pudo cargar Supabase.";
-  return;
- }
-
- nickname = name;
- btn.disabled = true;
-
- try{
-
-  const {error} = await db
-   .from("messages")
-   .select("id")
-   .limit(1);
-
-  if(error) throw error;
-
-  document.getElementById("login").style.display = "none";
-  document.getElementById("chat").style.display = "block";
-
-  receivedIds.clear();
-
-  await subscribeMessages();
-  await loadMessages();
-
- }catch(err){
-
-  errorBox.textContent = "Error: " + err.message;
-  btn.disabled = false;
-
- }
+  showError("");
+  const name=$("nickname").value.trim(),btn=$("enterBtn");
+  if(!name){showError("Escribí tu Nick.");return}
+  nickname=name;senderId=getSenderId();isAdmin=false;adminPin="";
+  if(name.toUpperCase()==="UNIX"){
+    const pin=$("adminPin").value;
+    if(!pin){showError("Ingresá el PIN de administrador.");return}
+    const {data,error}=await db.rpc("verify_admin_pin",{pin_input:pin});
+    if(error||data!==true){showError("PIN incorrecto o falta ejecutar el SQL de configuración.");return}
+    isAdmin=true;adminPin=pin;
+  }
+  btn.disabled=true;
+  try{
+    await fetchRooms();
+    currentRoom=$("initialRoom").value;
+    if(!currentRoom)throw new Error("Elegí una sala.");
+    const {data:allowed,error}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:currentRoom});
+    if(error)throw error;
+    if(!allowed)throw new Error("Tu usuario está baneado o fue expulsado de esta sala.");
+    $("login").style.display="none";$("chat").style.display="block";
+    $("adminOpenBtn").classList.toggle("hidden",!isAdmin);
+    renderTabs();await switchRoom(currentRoom);subscribeRooms();
+  }catch(e){showError("No se pudo ingresar: "+e.message);btn.disabled=false}
 }
-
-async function loadMessages(){
-
- const {data,error} = await db
-  .from("messages")
-  .select("id,nickname,message,content,created_at")
-  .order("created_at",{ascending:true})
-  .limit(100);
-
- if(error){
-  document.getElementById("status").textContent =
-   "Error cargando mensajes: " + error.message;
-  return;
- }
-
- data.forEach(addMessage);
-
-}
-
-function addMessage(msg){
-
- if(receivedIds.has(msg.id)) return;
-
- receivedIds.add(msg.id);
-
- const box = document.getElementById("messages");
- const div = document.createElement("div");
- div.className = "message";
-
- const name = document.createElement("div");
- name.className = "nickname";
- name.textContent = msg.nickname || "Usuario";
-
- const content = document.createElement("div");
- content.textContent = msg.message || msg.content || "";
-
- const time = document.createElement("div");
- time.className = "time";
-
- time.textContent = msg.created_at
-  ? new Date(msg.created_at).toLocaleTimeString(
-    "es-AR",
-    {hour:"2-digit",minute:"2-digit"}
-   )
-  : "";
-
- div.append(name,content,time);
- box.appendChild(div);
-
- box.scrollTop = box.scrollHeight;
-
-}
-
-async function sendMessage(){
-
- const input = document.getElementById("messageInput");
- const btn = document.getElementById("sendBtn");
-
- const content = input.value.trim();
-
- if(!content || !nickname) return;
-
- btn.disabled = true;
-
- try{
-
-  const {error} = await db
-   .from("messages")
-   .insert({
-    nickname: nickname,
-    message: content,
-    content: content
-   });
-
-  if(error) throw error;
-
-  input.value = "";
-
- }catch(err){
-
-  alert("No se pudo enviar el mensaje: " + err.message);
-
- }finally{
-
-  btn.disabled = false;
-  input.focus();
-
- }
-
-}
-
-async function subscribeMessages(){
-
- document.getElementById("status").textContent =
-  "Conectando a la sala...";
-
- channel = db
-  .channel("wi-chat-messages")
-  .on(
-   "postgres_changes",
-   {
-    event:"INSERT",
-    schema:"public",
-    table:"messages"
-   },
-   payload=>{
-    addMessage(payload.new);
-   }
-  )
-  .subscribe(status=>{
-
-   const statusBox = document.getElementById("status");
-
-   if(status === "SUBSCRIBED"){
-    statusBox.textContent = "● Conectado a la sala general";
-   }else if(status === "CHANNEL_ERROR"){
-    statusBox.textContent = "Error de conexión en tiempo real";
-   }else if(status === "TIMED_OUT"){
-    statusBox.textContent = "Tiempo de conexión agotado";
-   }else if(status === "CLOSED"){
-    statusBox.textContent = "Conexión cerrada";
-   }
-
+function renderTabs(){
+  $("roomTabs").innerHTML="";
+  rooms.forEach(r=>{
+    const b=document.createElement("button");
+    b.className="room-tab"+(r.id===currentRoom?" active":"");
+    b.textContent=r.name;b.onclick=()=>switchRoom(r.id);
+    $("roomTabs").appendChild(b);
   });
-
 }
-
+async function switchRoom(id){
+  const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:id});
+  if(accessError){$("status").textContent="Error de acceso: "+accessError.message;return}
+  if(!allowed){$("status").textContent="No tenés acceso a esta sala.";return}
+  if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null}
+  currentRoom=id;receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();
+  const room=rooms.find(r=>r.id===id);
+  $("status").textContent="Cargando "+(room?.name||"sala")+"...";
+  const {data,error}=await db.from("messages")
+    .select("id,nickname,message,content,created_at,room_id,sender_id")
+    .eq("room_id",id).order("created_at",{ascending:true}).limit(150);
+  if(error){$("status").textContent="Error cargando mensajes: "+error.message;return}
+  (data||[]).forEach(addMessage);
+  messageChannel=db.channel("wichat-messages-"+id)
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new))
+    .subscribe(s=>{if(s==="SUBSCRIBED")$("status").textContent="● Conectado a "+(room?.name||"la sala")});
+}
+function addMessage(m){
+  if(!m||receivedIds.has(m.id))return;
+  receivedIds.add(m.id);
+  const div=document.createElement("div");div.className="message";
+  const n=document.createElement("strong");n.className="nickname";n.textContent=(m.nickname||"Usuario")+":";
+  const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";
+  div.append(n,t);$("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
+  if(m.sender_id){roomUsers.set(m.sender_id,{id:m.sender_id,nick:m.nickname||"Usuario"});renderUsers()}
+}
+function renderUsers(){
+  const s=$("userToModerate"),old=s.value;s.innerHTML='<option value="">Elegí un usuario</option>';
+  roomUsers.forEach(u=>{if(u.id===senderId)return;const o=document.createElement("option");o.value=u.id;o.textContent=u.nick;s.appendChild(o)});
+  s.value=old;
+}
+async function sendMessage(){
+  const input=$("messageInput"),btn=$("sendBtn"),value=input.value.trim();
+  if(!value||!nickname||!currentRoom)return;
+  btn.disabled=true;
+  try{
+    const {error}=await db.from("messages").insert({
+      nickname,message:value,content:value,room_id:currentRoom,sender_id:senderId
+    });
+    if(error)throw error;
+    input.value="";
+  }catch(e){alert("No se pudo enviar el mensaje: "+e.message)}
+  finally{btn.disabled=false;input.focus()}
+}
+function subscribeRooms(){
+  if(roomChannel)db.removeChannel(roomChannel);
+  roomChannel=db.channel("wichat-rooms")
+    .on("postgres_changes",{event:"*",schema:"public",table:"rooms"},async()=>{
+      const previous=currentRoom;await fetchRooms();
+      if(!rooms.some(r=>r.id===previous))currentRoom=rooms[0]?.id||null;
+      renderTabs();if(currentRoom)await switchRoom(currentRoom);
+    }).subscribe();
+}
+function openAdmin(){if(isAdmin)$("adminPanel").classList.remove("hidden")}
+function closeAdmin(){$("adminPanel").classList.add("hidden")}
+async function createRoom(){
+  const name=$("newRoomName").value.trim();if(!name)return;
+  const {error}=await db.rpc("admin_create_room",{pin_input:adminPin,room_name:name});
+  $("adminStatus").textContent=error?"Error: "+error.message:"Sala creada.";
+  if(!error){$("newRoomName").value="";await fetchRooms();renderTabs()}
+}
+async function moderateUser(action){
+  const target=$("userToModerate").value;
+  if(!target){$("adminStatus").textContent="Elegí un usuario.";return}
+  const {error}=await db.rpc("admin_moderate_user",{
+    pin_input:adminPin,target_sender_id:target,room_id_input:currentRoom,action_name:action
+  });
+  $("adminStatus").textContent=error?"Error: "+error.message:(action==="ban"?"Usuario baneado.":"Usuario expulsado de esta sala.");
+}
 async function exitChat(){
-
- if(channel){
-  await db.removeChannel(channel);
-  channel = null;
- }
-
- receivedIds.clear();
-
- document.getElementById("chat").style.display = "none";
- document.getElementById("login").style.display = "block";
- document.getElementById("nickname").value = nickname;
- document.getElementById("enterBtn").disabled = false;
- document.getElementById("messages").innerHTML = "";
- document.getElementById("error").textContent = "";
-
+  if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null}
+  if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null}
+  receivedIds.clear();roomUsers.clear();adminPin="";isAdmin=false;currentRoom=null;
+  $("chat").style.display="none";$("login").style.display="block";$("enterBtn").disabled=false;
+  $("messages").innerHTML="";$("adminPanel").classList.add("hidden");$("adminOpenBtn").classList.add("hidden");
+  $("adminPin").value="";$("adminPinWrap").classList.add("hidden");$("error").textContent="";
 }
-
+(async()=>{try{await fetchRooms()}catch(e){$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';showError(e.message)}})();
 </script>
-
 </body>
 </html>

@@ -8,7 +8,8 @@
 
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#111;color:white;font-family:Arial,sans-serif}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+body{background:#111;color:white;font-family:Arial,sans-serif}
 header{display:none!important}
 .container{max-width:700px;margin:auto;padding:15px}
 .panel{background:#141e35;padding:18px;border-radius:15px;margin-top:18px}
@@ -34,40 +35,53 @@ object-fit:contain;margin:0 auto 18px;
 
 body.chat-active{overflow:hidden}
 body.chat-active .container{
-max-width:none;width:100%;height:100dvh;padding:0;
+position:fixed;inset:0;
+max-width:850px;width:100%;
+height:var(--app-height,100dvh);
+padding:0;margin:auto;
 }
+
 #chat{
-display:none;height:100dvh;
+display:none;
+height:100dvh;
 padding-bottom:calc(76px + env(safe-area-inset-bottom));
 }
+
 #chat>.panel{
 height:100%;margin:0;padding:0;
 border-radius:0;background:#222;
 display:flex;flex-direction:column;min-height:0;
 }
 
-/* PESTAÑAS SUPERIORES FIJAS AL ABRIR EL TECLADO */
+/* PESTAÑAS SUPERIORES */
+
 body.chat-active #chat{
+display:block;
 position:fixed;
-inset:0;
+top:0;left:0;right:0;
 width:100%;
-height:100dvh;
+height:var(--app-height,100dvh);
+padding:0;
 overflow:hidden;
 z-index:10;
 }
 
 body.chat-active #chat>.panel{
+position:absolute;
+inset:0;
 height:100%;
 min-height:0;
 overflow:hidden;
 padding-top:calc(62px + env(safe-area-inset-top));
+padding-bottom:calc(76px + env(safe-area-inset-bottom));
 }
+
+/* BARRA DE SALAS Y PRIVADOS FIJA */
 
 body.chat-active #roomPills{
 position:fixed;
 top:env(safe-area-inset-top);
-left:0;
-right:0;
+left:0;right:0;
 z-index:1000;
 height:62px;
 min-height:62px;
@@ -79,12 +93,12 @@ flex:0 0 62px;
 overscroll-behavior-x:contain;
 }
 
-/* En pantallas grandes, mantener la barra alineada con el chat */
+/* En pantallas grandes */
+
 @media(min-width:701px){
 body.chat-active #roomPills{
 max-width:850px;
-left:50%;
-right:auto;
+left:50%;right:auto;
 width:100%;
 transform:translateX(-50%);
 }
@@ -97,6 +111,7 @@ overflow-x:auto;flex:0 0 auto;
 scrollbar-width:none;
 }
 .room-pills::-webkit-scrollbar{display:none}
+
 .room-pill{
 flex:0 0 auto;border-radius:25px;
 padding:10px 17px;background:#292929;
@@ -105,7 +120,8 @@ white-space:nowrap;
 }
 .room-pill.active{background:#08a9ed;color:white}
 
-/* PESTAÑAS PRIVADAS EN LA MISMA FILA QUE LAS SALAS */
+/* PESTAÑAS PRIVADAS */
+
 .private-tab{
 display:flex;align-items:center;gap:9px;
 flex:0 0 auto;background:#292929;
@@ -126,6 +142,8 @@ border-radius:50%;display:flex;align-items:center;
 justify-content:center;padding:2px 5px;
 }
 
+/* VISTAS */
+
 #chatView,#usersView,#roomsView,#privateView{
 flex:1;min-height:0;display:flex;flex-direction:column;
 }
@@ -140,6 +158,7 @@ background:#222;border:0;border-radius:0;
 padding:10px 11px;margin:0 0 5px;
 overscroll-behavior:contain;
 }
+
 .message{
 display:flex;align-items:baseline;gap:8px;
 background:transparent;padding:0;
@@ -163,6 +182,8 @@ min-width:0;overflow-wrap:anywhere;
 font-size:15px;line-height:1.35;
 }
 
+/* CAJA DE ESCRITURA */
+
 .composer{
 display:flex;align-items:center;gap:8px;
 flex:0 0 auto;padding:9px 14px;
@@ -173,7 +194,7 @@ margin:0;min-width:0;flex:1;
 padding:15px 17px;
 background:#303030;border:0;
 border-radius:30px;color:white;
-font-size:15px;
+font-size:16px;
 }
 .send-button{
 width:53px;height:53px;min-width:53px;
@@ -200,6 +221,8 @@ box-shadow:0 8px 24px #000b;
 .emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .emoji-grid button{background:#192c49;padding:8px 2px;font-size:23px}
 
+/* USUARIOS Y SALAS */
+
 #usersView,#roomsView{padding:15px;background:#222}
 #usersView h3,#roomsView h3{margin:8px 0 12px;color:#55b8ff}
 .user-item{
@@ -221,13 +244,26 @@ background:#292929;border:1px solid #383838;
 }
 .room-tab.active{background:#07549a;border-color:#168bea}
 
+/* BARRA INFERIOR FIJA */
+
 #bottomNav{
-position:fixed;left:0;right:0;bottom:0;z-index:500;
+position:fixed;
+left:0;right:0;bottom:0;
+z-index:2000;
 display:grid;grid-template-columns:repeat(5,1fr);
 gap:5px;background:#111;border-top:0;
 padding:7px 10px calc(7px + env(safe-area-inset-bottom));
 box-shadow:none;
 }
+
+body.chat-active #bottomNav{
+position:fixed;
+left:0;right:0;bottom:0;
+transform:none!important;
+transition:none!important;
+z-index:2000;
+}
+
 .nav-btn{
 display:flex;flex-direction:column;
 align-items:center;justify-content:center;
@@ -239,6 +275,8 @@ padding:7px 3px;font-size:12px;
 .nav-btn.exit{color:white}
 #adminOpenBtn{color:#ffd34d}
 #adminOpenBtn:active{background:#292929}
+
+/* AVISOS Y MODALES */
 
 #privateNotice{
 display:none;position:fixed;top:12px;left:50%;
@@ -286,6 +324,8 @@ text-align:center;overflow-wrap:anywhere;
 .user-menu-card .kick-action{background:#344361}
 .user-menu-card .ban-action{background:#bd394d}
 
+/* ADMINISTRACIÓN */
+
 #adminPanel{
 position:fixed;z-index:800;left:10px;right:10px;
 top:10px;bottom:90px;overflow-y:auto;
@@ -308,102 +348,51 @@ overflow-wrap:anywhere;
 #adminPanel .row{flex-wrap:wrap}
 #adminPanel .row button{flex:1}
 }
+
 @media(min-width:701px){
 body.chat-active .container{max-width:850px;margin:auto}
 }
-  
-/* ===== AJUSTE DEL TECLADO ANDROID ===== */
 
-body.chat-active .container {
-  height: var(--app-height, 100dvh);
-}
-
-body.chat-active #chat {
-  position: fixed;
-  inset: 0 auto auto 0;
-  width: 100%;
-  height: var(--app-height, 100dvh);
-  padding-bottom: 0;
-  overflow: hidden;
-}
-
-body.chat-active #chat > .panel {
-  height: var(--app-height, 100dvh);
-  min-height: 0;
-  overflow: hidden;
-}
-
-body.chat-active #roomPills {
-  position: fixed;
-  top: env(safe-area-inset-top);
-  left: 0;
-  right: 0;
-  z-index: 1000;
-}
-
-/* Barra inferior: conserva su posición original */
-body.chat-active #bottomNav {
-  transform: translateY(var(--keyboard-height, 0px));
-  transition: none !important;
-}
-
-/* La conversación ocupa el espacio disponible */
-#chatView,
-#privateView {
-  min-height: 0;
-  overflow: hidden;
-}
-
-#messages,
-#privateMessages {
-  min-height: 0;
-  overscroll-behavior: contain;
-}
-
-/* Evitar desplazamientos automáticos de toda la página */
-html, body {
-  overflow: hidden;
-  overscroll-behavior: none;
-}
-
-/* CORREGIR CAJA DE ESCRITURA */
+/* AJUSTE DE LAS VISTAS Y LA CAJA AL ABRIR EL TECLADO */
 
 body.chat-active #chatView,
-body.chat-active #privateView {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-  overflow: hidden;
+body.chat-active #privateView{
+display:flex;
+flex-direction:column;
+flex:1 1 0;
+min-height:0;
+overflow:hidden;
 }
 
 body.chat-active #messages,
-body.chat-active #privateMessages {
-  flex: 1 1 0;
-  min-height: 0;
-  overflow-y: auto;
+body.chat-active #privateMessages{
+flex:1 1 0;
+min-height:0;
+overflow-y:auto;
 }
 
-body.chat-active .composer {
-  position: relative;
-  display: flex;
-  flex: 0 0 auto;
-  width: 100%;
-  min-height: 70px;
-  background: #222;
-  z-index: 20;
-  padding-bottom: 9px;
+body.chat-active .composer{
+display:flex;
+position:relative;
+flex:0 0 auto;
+width:100%;
+min-height:70px;
+background:#222;
+z-index:100;
+padding:9px 14px;
 }
 
-body.chat-active .composer input {
-  display: block;
-  min-width: 0;
-  flex: 1 1 auto;
+body.chat-active .composer input{
+display:block;
+min-width:0;
+flex:1 1 auto;
 }
 
-body.chat-active .send-button {
-  display: block;
-  flex: 0 0 53px;
+body.chat-active .send-button{
+display:flex;
+align-items:center;
+justify-content:center;
+flex:0 0 53px;
 }
 
 </style>
@@ -491,7 +480,6 @@ alt="WiChat">
 <div id="roomTabs"></div>
 </div>
 
-<!-- PRIVADOS: SIN BOTÓN "USUARIOS" NI ENCABEZADO -->
 <div id="privateView" class="hidden">
 <div id="privateMessages"></div>
 <div class="composer">
@@ -997,7 +985,6 @@ b.onclick=()=>switchRoom(r.id);
 list.appendChild(b);
 });
 
-/* Agregar las pestañas privadas después de las salas */
 renderPrivateTabs();
 }
 
@@ -1557,7 +1544,7 @@ addPrivateMessage(m);
 
 }
 
-/* PESTAÑAS PRIVADAS: SE AGREGAN A ROOM PILLS */
+/* PESTAÑAS PRIVADAS */
 
 function renderPrivateTabs(){
 
@@ -1565,7 +1552,6 @@ const container=$("roomPills");
 
 if(!container)return;
 
-/* Elimina las pestañas privadas anteriores, sin borrar las salas */
 container.querySelectorAll(".private-tab").forEach(tab=>tab.remove());
 
 privateChats.forEach(user=>{
@@ -1654,8 +1640,6 @@ $("navUsers").classList.remove("active");
 $("navRooms").classList.remove("active");
 $("navChat").classList.remove("active");
 
-/* Ya no se muestra el título "Privado con..." */
-
 $("privateMessages").innerHTML=
 '<p class="muted">Cargando conversación...</p>';
 
@@ -1692,8 +1676,6 @@ addPrivateMessage(m);
 }
 
 }).subscribe();
-
-$("privateInput").focus();
 
 }
 
@@ -2307,7 +2289,6 @@ currentRoom=null;
 nickname="";
 senderId="";
 
-/* Reconstruir las pestañas sin privados */
 renderTabs();
 
 $("chat").style.display="none";
@@ -2358,68 +2339,61 @@ showError(e.message);
 
 })();
 
-/* ===== CONTROL DEL TECLADO EN ANDROID ===== */
+/* CONTROL DEL TECLADO ANDROID */
 
-(function () {
+(function(){
 
-  const viewport = window.visualViewport;
+const root=document.documentElement;
+const viewport=window.visualViewport;
 
-  let baseHeight = window.innerHeight;
+function updateScreen(){
 
-  function updateKeyboard() {
+if(!document.body.classList.contains("chat-active"))return;
 
-    if (!viewport) return;
+if(viewport){
 
-    const active = document.activeElement;
+const height=Math.round(viewport.height);
 
-    const isTyping =
-      active &&
-      (
-        active.tagName === "INPUT" ||
-        active.tagName === "TEXTAREA"
-      );
+root.style.setProperty(
+"--app-height",
+height+"px"
+);
 
-    if (!isTyping) {
-      document.documentElement.style.setProperty(
-        "--keyboard-height", "0px"
-      );
-      document.documentElement.style.setProperty(
-        "--app-height", window.innerHeight + "px"
-      );
-      baseHeight = window.innerHeight;
-      return;
-    }
+}else{
 
-    const visibleHeight = viewport.height;
+root.style.setProperty(
+"--app-height",
+window.innerHeight+"px"
+);
 
-    const keyboardHeight = Math.max(
-      0,
-      baseHeight - visibleHeight - viewport.offsetTop
-    );
+}
 
-    document.documentElement.style.setProperty(
-      "--app-height", visibleHeight + "px"
-    );
+}
 
-    document.documentElement.style.setProperty(
-      "--keyboard-height", keyboardHeight + "px"
-    );
-  }
+if(viewport){
 
-  document.addEventListener("focusin", function () {
-    updateKeyboard();
-  });
+viewport.addEventListener("resize",updateScreen);
+viewport.addEventListener("scroll",updateScreen);
 
-  document.addEventListener("focusout", function () {
-    setTimeout(updateKeyboard, 300);
-  });
+}
 
-  if (viewport) {
-    viewport.addEventListener("resize", updateKeyboard);
-    viewport.addEventListener("scroll", updateKeyboard);
-  }
+window.addEventListener("resize",updateScreen);
 
-  window.addEventListener("resize", updateKeyboard);
+document.addEventListener("focusin",function(event){
+
+if(event.target.matches("input,textarea")){
+setTimeout(updateScreen,50);
+}
+
+});
+
+document.addEventListener("focusout",function(){
+
+setTimeout(updateScreen,300);
+
+});
+
+updateScreen();
 
 })();
 

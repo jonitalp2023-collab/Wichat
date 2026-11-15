@@ -46,6 +46,50 @@ border-radius:0;background:#222;
 display:flex;flex-direction:column;min-height:0;
 }
 
+/* PESTAÑAS SUPERIORES FIJAS AL ABRIR EL TECLADO */
+body.chat-active #chat{
+position:fixed;
+inset:0;
+width:100%;
+height:100dvh;
+overflow:hidden;
+z-index:10;
+}
+
+body.chat-active #chat>.panel{
+height:100%;
+min-height:0;
+overflow:hidden;
+padding-top:calc(62px + env(safe-area-inset-top));
+}
+
+body.chat-active #roomPills{
+position:fixed;
+top:env(safe-area-inset-top);
+left:0;
+right:0;
+z-index:1000;
+height:62px;
+min-height:62px;
+padding:12px 8px;
+background:#111;
+overflow-x:auto;
+overflow-y:hidden;
+flex:0 0 62px;
+overscroll-behavior-x:contain;
+}
+
+/* En pantallas grandes, mantener la barra alineada con el chat */
+@media(min-width:701px){
+body.chat-active #roomPills{
+max-width:850px;
+left:50%;
+right:auto;
+width:100%;
+transform:translateX(-50%);
+}
+}
+
 .room-pills{
 display:flex;align-items:center;gap:7px;
 padding:12px 8px;background:#111;

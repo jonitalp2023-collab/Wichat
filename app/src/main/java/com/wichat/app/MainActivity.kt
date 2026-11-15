@@ -1,3 +1,4 @@
+
 package com.wichat.app
 
 import android.annotation.SuppressLint
@@ -20,6 +21,6 @@ class MainActivity : Activity() {
         web.webChromeClient = WebChromeClient()
 
         setContentView(web)
-        web.loadUrl("file:///android_asset/index.html")
+        web.loadUrl("https://jonitalp2023-collab.github.io/Wichat/")
     }
 }

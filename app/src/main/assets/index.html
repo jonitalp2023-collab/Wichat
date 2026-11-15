@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -61,6 +60,27 @@ color:white;font-weight:bold;font-size:14px;
 white-space:nowrap;
 }
 .room-pill.active{background:#08a9ed;color:white}
+
+/* PESTAÑAS PRIVADAS EN LA MISMA FILA QUE LAS SALAS */
+.private-tab{
+display:flex;align-items:center;gap:9px;
+flex:0 0 auto;background:#292929;
+border:1px solid #383838;color:#b5c8e4;
+padding:10px 12px;border-radius:25px;
+max-width:190px;white-space:nowrap;
+font-weight:bold;font-size:14px;
+}
+.private-tab.active{
+background:#07549a;border-color:#55b8ff;color:white;
+}
+.private-tab-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.private-tab-close{background:#344361;padding:3px 7px;border-radius:6px;color:white}
+.private-unread{
+background:#ed334f;color:white;font-size:11px;
+font-weight:bold;min-width:19px;height:19px;
+border-radius:50%;display:flex;align-items:center;
+justify-content:center;padding:2px 5px;
+}
 
 #chatView,#usersView,#roomsView,#privateView{
 flex:1;min-height:0;display:flex;flex-direction:column;
@@ -156,29 +176,6 @@ width:100%;text-align:left;margin:5px 0;
 background:#292929;border:1px solid #383838;
 }
 .room-tab.active{background:#07549a;border-color:#168bea}
-
-.private-header{display:flex;align-items:center;gap:10px;margin:8px 0;padding:5px}
-.private-header h3{overflow-wrap:anywhere;color:#55b8ff}
-.private-tabs{
-display:flex;gap:7px;overflow-x:auto;
-padding:9px 2px;flex:0 0 auto;
-}
-.private-tab{
-display:flex;align-items:center;gap:9px;
-flex:0 0 auto;background:#292929;
-border:1px solid #383838;color:#b5c8e4;
-padding:10px 12px;border-radius:10px;
-max-width:190px;
-}
-.private-tab.active{background:#07549a;border-color:#55b8ff;color:white}
-.private-tab-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.private-tab-close{background:#344361;padding:3px 7px;border-radius:6px;color:white}
-.private-unread{
-background:#ed334f;color:white;font-size:11px;
-font-weight:bold;min-width:19px;height:19px;
-border-radius:50%;display:flex;align-items:center;
-justify-content:center;padding:2px 5px;
-}
 
 #bottomNav{
 position:fixed;left:0;right:0;bottom:0;z-index:500;
@@ -355,12 +352,8 @@ alt="WiChat">
 <div id="roomTabs"></div>
 </div>
 
+<!-- PRIVADOS: SIN BOTÓN "USUARIOS" NI ENCABEZADO -->
 <div id="privateView" class="hidden">
-<div id="privateTabs" class="private-tabs"></div>
-<div class="private-header">
-<button class="secondary" onclick="backToUsers()">← Usuarios</button>
-<h3 id="privateTitle" style="margin:0">Chat privado</h3>
-</div>
 <div id="privateMessages"></div>
 <div class="composer">
 <div class="emoji-wrap">
@@ -475,9 +468,7 @@ if(!session?.user?.id)throw new Error("No se pudo identificar al usuario.");
 return session.user.id;
 }
 
-/* =====================================
-   SISTEMA DE NICKS ÚNICOS EN LÍNEA
-===================================== */
+/* SISTEMA DE NICKS ÚNICOS EN LÍNEA */
 
 function normalizeNickname(name){
 return String(name||"").trim().toLowerCase();
@@ -520,7 +511,6 @@ if(status==="SUBSCRIBED"&&!finished){
 
 try{
 
-/* Publicar el Nick en la presencia global */
 const {error}=await channel.track({
 sender_id:senderId,
 nickname:name,
@@ -529,7 +519,6 @@ nickname_key:nicknameKey
 
 if(error)throw error;
 
-/* Esperar a que los demás usuarios reciban la presencia */
 await wait(1200);
 
 if(finished)return;
@@ -549,12 +538,6 @@ duplicates.push(String(user.sender_id||""));
 });
 });
 
-/*
-Si dos usuarios intentan entrar a la vez,
-el identificador menor gana.
-Así ambos realizan la misma comprobación.
-*/
-
 const uniqueIds=[...new Set(duplicates)].sort();
 
 if(uniqueIds.length>1&&uniqueIds[0]!==String(senderId)){
@@ -571,7 +554,6 @@ return;
 
 }
 
-/* Nick disponible */
 finished=true;
 clearTimeout(timeout);
 resolve(true);
@@ -764,7 +746,6 @@ isAdmin=true;
 adminPin=pin;
 }
 
-/* Comprobar las salas */
 await fetchRooms();
 
 currentRoom=$("initialRoom").value||rooms[0]?.id;
@@ -788,10 +769,6 @@ btn.disabled=false;
 return;
 }
 
-/* =====================================
-   VERIFICAR NICK ANTES DE ENTRAR
-===================================== */
-
 const available=await claimNickname(nickname);
 
 if(!available){
@@ -799,7 +776,6 @@ currentRoom=null;
 throw new Error("Este Nick ya está en uso. Elegí otro.");
 }
 
-/* Entrar al chat */
 $("login").style.display="none";
 $("chat").style.display="block";
 document.body.classList.add("chat-active");
@@ -815,7 +791,6 @@ subscribeModerationEvents();
 
 }catch(e){
 
-/* Liberar el Nick si ocurrió un error */
 await releaseNickname();
 
 currentRoom=null;
@@ -845,10 +820,17 @@ $("navUsers").classList.toggle("active",which==="users");
 $("navRooms").classList.toggle("active",which==="rooms");
 $("navChat").classList.toggle("active",which==="chat");
 
+activePrivateUser=null;
+
+if(privateChannel){
+db.removeChannel(privateChannel);
+privateChannel=null;
+}
+
 closeEmojiPickers();
 }
 
-/* PESTAÑAS DE SALAS */
+/* PESTAÑAS DE SALAS Y PRIVADOS */
 
 function renderTabs(){
 const list=$("roomTabs");
@@ -861,7 +843,7 @@ rooms.forEach(r=>{
 const active=String(r.id)===String(currentRoom);
 
 const roomName=String(r.name).trim().toLowerCase()==="general"
-?"Status":"#"+String(r.name).replace(/^#/,"");
+?"General":"#"+String(r.name).replace(/^#/,"");
 
 const pill=document.createElement("button");
 pill.className="room-pill"+(active?" active":"");
@@ -875,6 +857,9 @@ b.textContent=roomName;
 b.onclick=()=>switchRoom(r.id);
 list.appendChild(b);
 });
+
+/* Agregar las pestañas privadas después de las salas */
+renderPrivateTabs();
 }
 
 async function switchRoom(id){
@@ -1433,13 +1418,16 @@ addPrivateMessage(m);
 
 }
 
-/* CONVERSACIONES PRIVADAS */
+/* PESTAÑAS PRIVADAS: SE AGREGAN A ROOM PILLS */
 
 function renderPrivateTabs(){
 
-const container=$("privateTabs");
+const container=$("roomPills");
 
-container.innerHTML="";
+if(!container)return;
+
+/* Elimina las pestañas privadas anteriores, sin borrar las salas */
+container.querySelectorAll(".private-tab").forEach(tab=>tab.remove());
 
 privateChats.forEach(user=>{
 
@@ -1527,7 +1515,7 @@ $("navUsers").classList.remove("active");
 $("navRooms").classList.remove("active");
 $("navChat").classList.remove("active");
 
-$("privateTitle").textContent="Privado con "+user.nick;
+/* Ya no se muestra el título "Privado con..." */
 
 $("privateMessages").innerHTML=
 '<p class="muted">Cargando conversación...</p>';
@@ -1769,6 +1757,7 @@ privateReceivedIds.clear();
 $("privateView").classList.add("hidden");
 $("usersView").classList.remove("hidden");
 $("roomsView").classList.add("hidden");
+$("chatView").classList.add("hidden");
 
 $("navUsers").classList.add("active");
 $("navRooms").classList.remove("active");
@@ -2121,7 +2110,6 @@ closeUserMenu();
 
 selectedMenuUser=null;
 
-/* LIBERAR EL NICK AL SALIR */
 await releaseNickname();
 
 if(privateChannel){
@@ -2174,13 +2162,14 @@ activePrivateUser=null;
 privateChats=[];
 privateUnread.clear();
 
-$("privateTabs").innerHTML="";
-
 adminPin="";
 isAdmin=false;
 currentRoom=null;
 nickname="";
 senderId="";
+
+/* Reconstruir las pestañas sin privados */
+renderTabs();
 
 $("chat").style.display="none";
 $("login").style.display="block";

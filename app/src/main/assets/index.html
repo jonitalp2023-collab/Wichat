@@ -189,7 +189,7 @@ justify-content:center;padding:2px 5px;
 /* NAVEGACIÓN INFERIOR */
 #bottomNav{
 position:fixed;left:0;right:0;bottom:0;z-index:500;
-display:grid;grid-template-columns:repeat(4,1fr);
+display:grid;grid-template-columns:repeat(5,1fr);
 gap:5px;background:#111;border-top:0;
 padding:7px 10px calc(7px + env(safe-area-inset-bottom));
 box-shadow:none;
@@ -203,6 +203,8 @@ padding:7px 3px;font-size:12px;
 .nav-icon{font-size:23px;line-height:25px}
 .nav-btn.active{background:transparent;color:#08a9ed}
 .nav-btn.exit{color:white}
+#adminOpenBtn{color:#ffd34d}
+#adminOpenBtn:active{background:#292929}
 
 /* AVISOS */
 #privateNotice{
@@ -384,21 +386,37 @@ alt="WiChat">
 </div>
 
 <nav id="bottomNav">
+
 <button id="navRooms" class="nav-btn active" onclick="showMainTab('rooms')">
 <span class="nav-icon">☰</span>
+<span>Salas</span>
 </button>
+
 <button id="navUsers" class="nav-btn" onclick="showMainTab('users')">
 <span class="nav-icon">♧</span>
+<span>Usuarios</span>
 </button>
+
 <button id="navChat" class="nav-btn" onclick="showMainTab('chat')">
 <span class="nav-icon">●</span>
+<span>Chat</span>
 </button>
+
+<!-- BOTÓN NUEVO DE ADMINISTRACIÓN -->
+<button id="adminOpenBtn" class="nav-btn hidden" onclick="openAdmin()">
+<span class="nav-icon">⭐</span>
+<span>ADMIN</span>
+</button>
+
 <button id="navExit" class="nav-btn exit" onclick="exitChat()">
 <span class="nav-icon">✕</span>
+<span>Salir</span>
 </button>
+
 </nav>
 
 <div id="adminPanel" class="panel admin-box hidden">
+
 <div class="row" style="justify-content:space-between">
 <h3 style="margin:0">Administración UNIX ⭐</h3>
 <button class="secondary" onclick="closeAdmin()">Cerrar</button>
@@ -423,13 +441,17 @@ alt="WiChat">
 </div>
 
 <p id="adminStatus" class="muted"></p>
+
 <hr style="border-color:#344361;margin:20px 0">
+
 <h4>🚫 Usuarios baneados</h4>
 <p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
 <button class="secondary" onclick="loadBannedUsers()">🔄 Actualizar lista</button>
+
 <div id="bannedUsersList" style="margin-top:12px">
 <p class="muted">Presioná actualizar para ver los baneados.</p>
 </div>
+
 </div>
 
 </section>
@@ -605,7 +627,9 @@ btn.disabled=false;return;
 $("login").style.display="none";
 $("chat").style.display="block";
 document.body.classList.add("chat-active");
-$("adminOpenBtn")?.classList.toggle("hidden",!isAdmin);
+
+/* MOSTRAR ADMIN SOLAMENTE AL ADMINISTRADOR */
+$("adminOpenBtn").classList.toggle("hidden",!isAdmin);
 
 renderTabs();
 await switchRoom(currentRoom);
@@ -1191,18 +1215,27 @@ if(currentRoom)await switchRoom(currentRoom);
 /* ADMINISTRACIÓN */
 
 function openAdmin(){
-if(isAdmin){
+if(!isAdmin){
+alert("No tenés permisos de administrador.");
+return;
+}
 $("adminPanel").classList.remove("hidden");
 renderRoomDelete();
+renderModerationUsers();
 loadBannedUsers();
 }
+
+function closeAdmin(){
+$("adminPanel").classList.add("hidden");
 }
-function closeAdmin(){$("adminPanel").classList.add("hidden")}
 
 async function createRoom(){
 if(!isAdmin)return;
 const name=$("newRoomName").value.trim();
-if(!name)return;
+if(!name){
+$("adminStatus").textContent="Escribí el nombre de la sala.";
+return;
+}
 const {error}=await db.rpc("admin_create_room",{pin_input:adminPin,room_name:name});
 $("adminStatus").textContent=error?"Error: "+error.message:"Sala creada.";
 if(!error){
@@ -1366,6 +1399,7 @@ $("privateMessages").innerHTML="";
 $("privateInput").value="";
 $("messageInput").value="";
 $("adminPanel").classList.add("hidden");
+$("adminOpenBtn").classList.add("hidden");
 $("adminPin").value="";
 $("adminPinWrap").classList.add("hidden");
 $("error").textContent="";

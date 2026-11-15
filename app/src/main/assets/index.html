@@ -366,6 +366,46 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* CORREGIR CAJA DE ESCRITURA */
+
+body.chat-active #chatView,
+body.chat-active #privateView {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.chat-active #messages,
+body.chat-active #privateMessages {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+body.chat-active .composer {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 70px;
+  background: #222;
+  z-index: 20;
+  padding-bottom: 9px;
+}
+
+body.chat-active .composer input {
+  display: block;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+body.chat-active .send-button {
+  display: block;
+  flex: 0 0 53px;
+}
+
 </style>
 </head>
 

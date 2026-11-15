@@ -311,6 +311,61 @@ overflow-wrap:anywhere;
 @media(min-width:701px){
 body.chat-active .container{max-width:850px;margin:auto}
 }
+  
+/* ===== AJUSTE DEL TECLADO ANDROID ===== */
+
+body.chat-active .container {
+  height: var(--app-height, 100dvh);
+}
+
+body.chat-active #chat {
+  position: fixed;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: var(--app-height, 100dvh);
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
+body.chat-active #chat > .panel {
+  height: var(--app-height, 100dvh);
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.chat-active #roomPills {
+  position: fixed;
+  top: env(safe-area-inset-top);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+/* Barra inferior: conserva su posición original */
+body.chat-active #bottomNav {
+  transform: translateY(var(--keyboard-height, 0px));
+  transition: none !important;
+}
+
+/* La conversación ocupa el espacio disponible */
+#chatView,
+#privateView {
+  min-height: 0;
+  overflow: hidden;
+}
+
+#messages,
+#privateMessages {
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+/* Evitar desplazamientos automáticos de toda la página */
+html, body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 </style>
 </head>
 
@@ -2260,6 +2315,71 @@ $("initialRoom").innerHTML=
 showError(e.message);
 
 }
+
+})();
+
+/* ===== CONTROL DEL TECLADO EN ANDROID ===== */
+
+(function () {
+
+  const viewport = window.visualViewport;
+
+  let baseHeight = window.innerHeight;
+
+  function updateKeyboard() {
+
+    if (!viewport) return;
+
+    const active = document.activeElement;
+
+    const isTyping =
+      active &&
+      (
+        active.tagName === "INPUT" ||
+        active.tagName === "TEXTAREA"
+      );
+
+    if (!isTyping) {
+      document.documentElement.style.setProperty(
+        "--keyboard-height", "0px"
+      );
+      document.documentElement.style.setProperty(
+        "--app-height", window.innerHeight + "px"
+      );
+      baseHeight = window.innerHeight;
+      return;
+    }
+
+    const visibleHeight = viewport.height;
+
+    const keyboardHeight = Math.max(
+      0,
+      baseHeight - visibleHeight - viewport.offsetTop
+    );
+
+    document.documentElement.style.setProperty(
+      "--app-height", visibleHeight + "px"
+    );
+
+    document.documentElement.style.setProperty(
+      "--keyboard-height", keyboardHeight + "px"
+    );
+  }
+
+  document.addEventListener("focusin", function () {
+    updateKeyboard();
+  });
+
+  document.addEventListener("focusout", function () {
+    setTimeout(updateKeyboard, 300);
+  });
+
+  if (viewport) {
+    viewport.addEventListener("resize", updateKeyboard);
+    viewport.addEventListener("scroll", updateKeyboard);
+  }
+
+  window.addEventListener("resize", updateKeyboard);
 
 })();
 

@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Bundle
 import android.webkit.WebChromeClient
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 
@@ -17,6 +18,10 @@ class MainActivity : Activity() {
         val web = WebView(this)
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
+
+        // Consultar siempre la versión actual de GitHub Pages
+        web.settings.cacheMode = WebSettings.LOAD_NO_CACHE
+
         web.webViewClient = WebViewClient()
         web.webChromeClient = WebChromeClient()
 

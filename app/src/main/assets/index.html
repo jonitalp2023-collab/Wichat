@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1039,8 +1040,16 @@ table:"messages",
 filter:"room_id=eq."+id
 },p=>addMessage(p.new))
 .subscribe(s=>{
-if(s==="SUBSCRIBED")
+
+if(s==="SUBSCRIBED"){
+
 $("status").textContent="● Conectado";
+
+/* CARGA EL HISTORIAL DE LAS ÚLTIMAS 12 HORAS */
+loadRoomMessages(id);
+
+}
+
 });
 
 presenceChannel=db.channel("wichat-presence-"+id,{
@@ -1314,6 +1323,47 @@ div.append(n,t);
 
 $("messages").appendChild(div);
 $("messages").scrollTop=$("messages").scrollHeight;
+
+}
+
+/* CARGA LOS MENSAJES PÚBLICOS DE LAS ÚLTIMAS 12 HORAS */
+
+async function loadRoomMessages(roomId){
+
+const cutoff=new Date(
+Date.now()-12*60*60*1000
+).toISOString();
+
+let from=0;
+const pageSize=500;
+
+while(true){
+
+const {data,error}=await db
+.from("messages")
+.select("*")
+.eq("room_id",roomId)
+.gte("created_at",cutoff)
+.order("created_at",{ascending:true})
+.range(from,from+pageSize-1);
+
+if(error){
+console.error("Error cargando historial:",error);
+$("status").textContent="Error cargando mensajes: "+error.message;
+return;
+}
+
+/* Evita mostrar mensajes de una sala que ya se abandonó */
+
+if(String(currentRoom)!==String(roomId))return;
+
+(data||[]).forEach(addMessage);
+
+if(!data||data.length<pageSize)break;
+
+from+=pageSize;
+
+}
 
 }
 

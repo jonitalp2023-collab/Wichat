@@ -4,7 +4,7 @@
 
     <application
         android:allowBackup="true"
-        android:label="Chat Argentina"
+        android:label="Chat-Argentina"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:usesCleartextTraffic="true"

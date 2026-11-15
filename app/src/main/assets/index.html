@@ -47,7 +47,6 @@ border-radius:0;background:#222;
 display:flex;flex-direction:column;min-height:0;
 }
 
-/* PESTAÑAS SUPERIORES */
 .room-pills{
 display:flex;align-items:center;gap:7px;
 padding:12px 8px;background:#111;
@@ -63,7 +62,6 @@ white-space:nowrap;
 }
 .room-pill.active{background:#08a9ed;color:white}
 
-/* VISTAS */
 #chatView,#usersView,#roomsView,#privateView{
 flex:1;min-height:0;display:flex;flex-direction:column;
 }
@@ -72,7 +70,6 @@ display:none!important;
 }
 .chat-welcome{display:none}
 
-/* MENSAJES */
 #messages,#privateMessages{
 flex:1;min-height:0;overflow-y:auto;
 background:#222;border:0;border-radius:0;
@@ -102,7 +99,6 @@ min-width:0;overflow-wrap:anywhere;
 font-size:15px;line-height:1.35;
 }
 
-/* BARRA PARA ESCRIBIR */
 .composer{
 display:flex;align-items:center;gap:8px;
 flex:0 0 auto;padding:9px 14px;
@@ -140,7 +136,6 @@ box-shadow:0 8px 24px #000b;
 .emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .emoji-grid button{background:#192c49;padding:8px 2px;font-size:23px}
 
-/* USUARIOS Y SALAS */
 #usersView,#roomsView{padding:15px;background:#222}
 #usersView h3,#roomsView h3{margin:8px 0 12px;color:#55b8ff}
 .user-item{
@@ -162,7 +157,6 @@ background:#292929;border:1px solid #383838;
 }
 .room-tab.active{background:#07549a;border-color:#168bea}
 
-/* PRIVADOS */
 .private-header{display:flex;align-items:center;gap:10px;margin:8px 0;padding:5px}
 .private-header h3{overflow-wrap:anywhere;color:#55b8ff}
 .private-tabs{
@@ -186,7 +180,6 @@ border-radius:50%;display:flex;align-items:center;
 justify-content:center;padding:2px 5px;
 }
 
-/* NAVEGACIÓN INFERIOR */
 #bottomNav{
 position:fixed;left:0;right:0;bottom:0;z-index:500;
 display:grid;grid-template-columns:repeat(5,1fr);
@@ -206,7 +199,6 @@ padding:7px 3px;font-size:12px;
 #adminOpenBtn{color:#ffd34d}
 #adminOpenBtn:active{background:#292929}
 
-/* AVISOS */
 #privateNotice{
 display:none;position:fixed;top:12px;left:50%;
 transform:translateX(-50%);
@@ -217,7 +209,6 @@ text-align:center;font-weight:bold;
 box-shadow:0 5px 20px #0008;
 }
 
-/* MODERACIÓN */
 #moderationModal{
 display:none;position:fixed;inset:0;
 z-index:20000;background:rgba(0,0,0,.85);
@@ -234,7 +225,6 @@ box-shadow:0 10px 35px #000b;
 .moderation-card p{color:#d5e3f5;line-height:1.5}
 .moderation-card button{width:100%;margin-top:12px}
 
-/* MENÚ DE USUARIO */
 #userMenuModal{
 display:none;position:fixed;inset:0;
 z-index:25000;background:rgba(0,0,0,.75);
@@ -255,7 +245,6 @@ text-align:center;overflow-wrap:anywhere;
 .user-menu-card .kick-action{background:#344361}
 .user-menu-card .ban-action{background:#bd394d}
 
-/* ADMINISTRACIÓN */
 #adminPanel{
 position:fixed;z-index:800;left:10px;right:10px;
 top:10px;bottom:90px;overflow-y:auto;
@@ -402,7 +391,6 @@ alt="WiChat">
 <span>Chat</span>
 </button>
 
-<!-- BOTÓN NUEVO DE ADMINISTRACIÓN -->
 <button id="adminOpenBtn" class="nav-btn hidden" onclick="openAdmin()">
 <span class="nav-icon">⭐</span>
 <span>ADMIN</span>
@@ -465,6 +453,7 @@ const $=id=>document.getElementById(id);
 
 let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null;
+let nicknameChannel=null;
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null;
 let receivedIds=new Set(),privateReceivedIds=new Set();
 let roomUsers=new Map(),activePrivateUser=null;
@@ -486,7 +475,160 @@ if(!session?.user?.id)throw new Error("No se pudo identificar al usuario.");
 return session.user.id;
 }
 
-function showError(s){$("error").textContent=s}
+/* =====================================
+   SISTEMA DE NICKS ÚNICOS EN LÍNEA
+===================================== */
+
+function normalizeNickname(name){
+return String(name||"").trim().toLowerCase();
+}
+
+function wait(ms){
+return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+async function claimNickname(name){
+const nicknameKey=normalizeNickname(name);
+
+if(!nicknameKey)return false;
+
+if(nicknameChannel){
+await releaseNickname();
+}
+
+const channel=db.channel("wichat-online-nicknames",{
+config:{presence:{key:senderId}}
+});
+
+nicknameChannel=channel;
+
+return new Promise((resolve,reject)=>{
+
+let finished=false;
+
+const timeout=setTimeout(async()=>{
+if(finished)return;
+finished=true;
+if(nicknameChannel===channel)nicknameChannel=null;
+await db.removeChannel(channel);
+reject(new Error("No se pudo comprobar la disponibilidad del Nick. Intentá nuevamente."));
+},15000);
+
+channel.subscribe(async status=>{
+
+if(status==="SUBSCRIBED"&&!finished){
+
+try{
+
+/* Publicar el Nick en la presencia global */
+const {error}=await channel.track({
+sender_id:senderId,
+nickname:name,
+nickname_key:nicknameKey
+});
+
+if(error)throw error;
+
+/* Esperar a que los demás usuarios reciban la presencia */
+await wait(1200);
+
+if(finished)return;
+
+const state=channel.presenceState();
+const duplicates=[];
+
+Object.values(state).forEach(entries=>{
+(entries||[]).forEach(user=>{
+
+if(
+String(user.nickname_key||normalizeNickname(user.nickname))===nicknameKey
+){
+duplicates.push(String(user.sender_id||""));
+}
+
+});
+});
+
+/*
+Si dos usuarios intentan entrar a la vez,
+el identificador menor gana.
+Así ambos realizan la misma comprobación.
+*/
+
+const uniqueIds=[...new Set(duplicates)].sort();
+
+if(uniqueIds.length>1&&uniqueIds[0]!==String(senderId)){
+
+finished=true;
+clearTimeout(timeout);
+
+if(nicknameChannel===channel)nicknameChannel=null;
+
+await db.removeChannel(channel);
+
+resolve(false);
+return;
+
+}
+
+/* Nick disponible */
+finished=true;
+clearTimeout(timeout);
+resolve(true);
+
+}catch(error){
+
+if(finished)return;
+
+finished=true;
+clearTimeout(timeout);
+
+if(nicknameChannel===channel)nicknameChannel=null;
+
+await db.removeChannel(channel);
+
+reject(error);
+
+}
+
+}
+
+if(
+(status==="CHANNEL_ERROR"||status==="TIMED_OUT")&&
+!finished
+){
+
+finished=true;
+clearTimeout(timeout);
+
+if(nicknameChannel===channel)nicknameChannel=null;
+
+db.removeChannel(channel);
+
+reject(new Error("No se pudo conectar para comprobar el Nick."));
+
+}
+
+});
+
+});
+}
+
+async function releaseNickname(){
+if(nicknameChannel){
+const channel=nicknameChannel;
+nicknameChannel=null;
+try{
+await db.removeChannel(channel);
+}catch(e){
+console.log("Error liberando Nick:",e);
+}
+}
+}
+
+function showError(s){
+$("error").textContent=s;
+}
 
 /* MODERACIÓN */
 
@@ -576,7 +718,8 @@ select.innerHTML="";
 
 rooms.forEach(r=>{
 const o=document.createElement("option");
-o.value=r.id;o.textContent=r.name;
+o.value=r.id;
+o.textContent=r.name;
 select.appendChild(o);
 });
 
@@ -593,54 +736,96 @@ async function enterChat(){
 showError("");
 const name=$("nickname").value.trim();
 const btn=$("enterBtn");
-if(!name){showError("Escribí tu Nick.");return}
 
-nickname=name;isAdmin=false;adminPin="";btn.disabled=true;
+if(!name){
+showError("Escribí tu Nick.");
+return;
+}
+
+nickname=name;
+isAdmin=false;
+adminPin="";
+btn.disabled=true;
 
 try{
+
 senderId=await ensureAuthUser();
 
 if(name.toUpperCase()==="UNIX"){
 const pin=$("adminPin").value;
 if(!pin)throw new Error("Ingresá el PIN de administrador UNIX.");
+
 const {data,error}=await db.rpc("verify_admin_pin",{pin_input:pin});
-if(error||data!==true)throw new Error("PIN incorrecto o falta ejecutar el SQL de configuración.");
-isAdmin=true;adminPin=pin;
+
+if(error||data!==true)
+throw new Error("PIN incorrecto o falta ejecutar el SQL de configuración.");
+
+isAdmin=true;
+adminPin=pin;
 }
 
+/* Comprobar las salas */
 await fetchRooms();
+
 currentRoom=$("initialRoom").value||rooms[0]?.id;
-if(!currentRoom)throw new Error("No hay salas disponibles.");
+
+if(!currentRoom)
+throw new Error("No hay salas disponibles.");
 
 const selectedRoom=rooms.find(r=>String(r.id)===String(currentRoom));
+
 const {data:allowed,error}=await db.rpc("check_chat_access",{
-sender_id_input:senderId,room_id_input:currentRoom
+sender_id_input:senderId,
+room_id_input:currentRoom
 });
+
 if(error)throw error;
 
 if(!allowed){
 currentRoom=null;
 showModerationModal("blocked",selectedRoom?.name||"esta sala",true);
-btn.disabled=false;return;
+btn.disabled=false;
+return;
 }
 
+/* =====================================
+   VERIFICAR NICK ANTES DE ENTRAR
+===================================== */
+
+const available=await claimNickname(nickname);
+
+if(!available){
+currentRoom=null;
+throw new Error("Este Nick ya está en uso. Elegí otro.");
+}
+
+/* Entrar al chat */
 $("login").style.display="none";
 $("chat").style.display="block";
 document.body.classList.add("chat-active");
 
-/* MOSTRAR ADMIN SOLAMENTE AL ADMINISTRADOR */
 $("adminOpenBtn").classList.toggle("hidden",!isAdmin);
 
 renderTabs();
 await switchRoom(currentRoom);
+
 subscribeRooms();
 subscribePrivateNotifications();
 subscribeModerationEvents();
 
 }catch(e){
+
+/* Liberar el Nick si ocurrió un error */
+await releaseNickname();
+
+currentRoom=null;
+
 showError("No se pudo ingresar: "+e.message);
+
 btn.disabled=false;
+
 }
+
 }
 
 function closeEmojiPickers(){
@@ -668,11 +853,13 @@ closeEmojiPickers();
 function renderTabs(){
 const list=$("roomTabs");
 const pills=$("roomPills");
+
 list.innerHTML="";
 pills.innerHTML="";
 
 rooms.forEach(r=>{
 const active=String(r.id)===String(currentRoom);
+
 const roomName=String(r.name).trim().toLowerCase()==="general"
 ?"Status":"#"+String(r.name).replace(/^#/,"");
 
@@ -691,119 +878,207 @@ list.appendChild(b);
 }
 
 async function switchRoom(id){
+
 const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{
-sender_id_input:senderId,room_id_input:id
+sender_id_input:senderId,
+room_id_input:id
 });
-if(accessError){$("status").textContent="Error de acceso: "+accessError.message;return}
+
+if(accessError){
+$("status").textContent="Error de acceso: "+accessError.message;
+return;
+}
+
 if(!allowed){
 const room=rooms.find(r=>String(r.id)===String(id));
 $("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";
 return;
 }
 
-if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null}
-if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null}
+if(messageChannel){
+await db.removeChannel(messageChannel);
+messageChannel=null;
+}
+
+if(presenceChannel){
+await db.removeChannel(presenceChannel);
+presenceChannel=null;
+}
 
 currentRoom=id;
 showMainTab("chat");
+
 receivedIds.clear();
 roomUsers.clear();
+
 $("messages").innerHTML="";
+
 renderTabs();
 renderUsers();
 
 const room=rooms.find(r=>String(r.id)===String(id));
+
 $("status").textContent="Cargando "+(room?.name||"sala")+"...";
 
 messageChannel=db.channel("wichat-messages-"+id)
 .on("postgres_changes",{
-event:"INSERT",schema:"public",table:"messages",
+event:"INSERT",
+schema:"public",
+table:"messages",
 filter:"room_id=eq."+id
 },p=>addMessage(p.new))
-.subscribe(s=>{if(s==="SUBSCRIBED")$("status").textContent="● Conectado"});
+.subscribe(s=>{
+if(s==="SUBSCRIBED")
+$("status").textContent="● Conectado";
+});
 
 presenceChannel=db.channel("wichat-presence-"+id,{
 config:{presence:{key:senderId}}
 });
+
 presenceChannel
 .on("presence",{event:"sync"},updatePresenceList)
 .on("presence",{event:"join"},updatePresenceList)
 .on("presence",{event:"leave"},updatePresenceList)
 .subscribe(async state=>{
+
 if(state==="SUBSCRIBED"){
+
 await presenceChannel.track({
-nickname,sender_id:senderId,is_admin:isAdmin,
+nickname,
+sender_id:senderId,
+is_admin:isAdmin,
 online_at:new Date().toISOString()
 });
+
 updatePresenceList();
+
 }
+
 });
+
 }
 
 function updatePresenceList(){
+
 if(!presenceChannel)return;
+
 const state=presenceChannel.presenceState();
 const next=new Map();
 
 Object.keys(state).forEach(key=>{
+
 const entries=state[key]||[];
+
 if(entries.length){
+
 const p=entries[entries.length-1];
 const id=p.sender_id||key;
-next.set(id,{id,nick:p.nickname||"Usuario",admin:p.is_admin===true});
-}
+
+next.set(id,{
+id,
+nick:p.nickname||"Usuario",
+admin:p.is_admin===true
 });
+
+}
+
+});
+
 roomUsers=next;
+
 renderUsers();
 renderModerationUsers();
+
 }
 
 /* MENÚ DE USUARIO */
 
 function openUserMenu(user){
-if(!user||!user.id||String(user.id)===String(senderId))return;
-selectedMenuUser={id:user.id,nick:user.nick||"Usuario"};
+
+if(!user||!user.id||String(user.id)===String(senderId))
+return;
+
+selectedMenuUser={
+id:user.id,
+nick:user.nick||"Usuario"
+};
+
 $("userMenuTitle").textContent=selectedMenuUser.nick;
 $("adminUserActions").classList.toggle("hidden",!isAdmin);
 $("userMenuModal").classList.add("show");
+
 }
 
-function closeUserMenu(){$("userMenuModal").classList.remove("show")}
+function closeUserMenu(){
+$("userMenuModal").classList.remove("show");
+}
 
 async function userMenuPrivate(){
+
 if(!selectedMenuUser)return;
+
 const user={...selectedMenuUser};
+
 closeUserMenu();
+
 await openPrivateChat(user);
+
 }
 
 async function userMenuModerate(action){
+
 if(!isAdmin||!selectedMenuUser)return;
+
 const user={...selectedMenuUser};
-const actionText=action==="ban"?"banear por cinco minutos a ":"echar de la sala a ";
-if(!confirm("¿Querés "+actionText+user.nick+"?"))return;
+
+const actionText=action==="ban"
+?"banear por cinco minutos a "
+:"echar de la sala a ";
+
+if(!confirm("¿Querés "+actionText+user.nick+"?"))
+return;
+
 closeUserMenu();
 
 const {data,error}=await db.rpc("admin_moderate_user",{
-pin_input:adminPin,target_sender_id:user.id,
-room_id_input:currentRoom,action_name:action
+pin_input:adminPin,
+target_sender_id:user.id,
+room_id_input:currentRoom,
+action_name:action
 });
-if(error){alert("No se pudo moderar al usuario: "+error.message);return}
-$("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos.":"Usuario expulsado de la sala.";
+
+if(error){
+alert("No se pudo moderar al usuario: "+error.message);
+return;
+}
+
+$("adminStatus").textContent=action==="ban"
+?"Usuario baneado por cinco minutos."
+:"Usuario expulsado de la sala.";
+
 if(action==="ban")await loadBannedUsers();
+
 }
 
 function renderUsers(){
+
 const list=$("usersList");
+
 if(!list)return;
 
 const users=Array.from(roomUsers.values()).sort((a,b)=>{
+
 if(a.admin&&a.nick.toUpperCase()==="UNIX")return -1;
 if(b.admin&&b.nick.toUpperCase()==="UNIX")return 1;
+
 return a.nick.localeCompare(b.nick);
+
 });
 
-$("usersCountText").textContent=users.length+" "+(users.length===1?"usuario conectado":"usuarios conectados");
+$("usersCountText").textContent=users.length+" "+
+(users.length===1?"usuario conectado":"usuarios conectados");
+
 list.innerHTML="";
 
 if(!users.length){
@@ -812,72 +1087,112 @@ return;
 }
 
 users.forEach(u=>{
+
 const item=document.createElement("div");
 item.className="user-item";
+
 const dot=document.createElement("span");
 dot.className="online-dot";
+
 const name=document.createElement("span");
 name.className="user-name";
 
 if(u.admin&&u.nick.toUpperCase()==="UNIX"){
+
 const star=document.createElement("span");
 star.className="admin-star";
 star.textContent="⭐";
+
 name.appendChild(star);
+
 }
+
 name.appendChild(document.createTextNode(u.nick));
+
 item.append(dot,name);
 
 if(u.id!==senderId){
 item.onclick=()=>openUserMenu(u);
-}else{item.title="Vos"}
+}else{
+item.title="Vos";
+}
 
 list.appendChild(item);
+
 });
+
 }
 
 function renderModerationUsers(){
+
 const s=$("userToModerate");
 const old=s.value;
+
 s.innerHTML='<option value="">Elegí un usuario conectado</option>';
+
 roomUsers.forEach(u=>{
+
 if(u.id===senderId)return;
+
 const o=document.createElement("option");
-o.value=u.id;o.textContent=u.nick;
+o.value=u.id;
+o.textContent=u.nick;
+
 s.appendChild(o);
+
 });
-if(Array.from(s.options).some(o=>o.value===old))s.value=old;
+
+if(Array.from(s.options).some(o=>o.value===old))
+s.value=old;
+
 }
 
 /* MENSAJES PÚBLICOS */
 
 function addMessage(m){
+
 if(!m||receivedIds.has(m.id))return;
+
 receivedIds.add(m.id);
 
 const div=document.createElement("div");
 div.className="message";
+
 const n=document.createElement("strong");
 n.className="nickname";
 
 const nick=m.nickname||"Usuario";
-let hash=0;
-for(let i=0;i<nick.length;i++)hash=nick.charCodeAt(i)+((hash<<5)-hash);
 
-const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];
+let hash=0;
+
+for(let i=0;i<nick.length;i++)
+hash=nick.charCodeAt(i)+((hash<<5)-hash);
+
+const colors=[
+"#e58bdc","#55b8ff","#f28b45","#e77991",
+"#65c9ba","#b7a1e8","#e6c56d","#72a9ed"
+];
+
 n.style.color=colors[Math.abs(hash)%colors.length];
 
 if(nick.toUpperCase()==="UNIX"){
+
 const star=document.createElement("span");
 star.className="admin-star";
 star.textContent="⭐";
+
 n.appendChild(star);
+
 }
+
 n.appendChild(document.createTextNode(nick));
 
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){
 n.style.cursor="pointer";
-n.onclick=()=>openUserMenu({id:m.sender_id,nick});
+n.onclick=()=>openUserMenu({
+id:m.sender_id,
+nick
+});
 }
 
 const t=document.createElement("span");
@@ -885,344 +1200,638 @@ t.className="msgtext";
 t.textContent=m.message||m.content||"";
 
 div.append(n,t);
+
 $("messages").appendChild(div);
 $("messages").scrollTop=$("messages").scrollHeight;
+
 }
 
 async function sendMessage(){
+
 const input=$("messageInput");
 const btn=$("sendBtn");
 const value=input.value.trim();
+
 if(!value||!nickname||!currentRoom)return;
+
 btn.disabled=true;
+
 try{
+
 const {error}=await db.from("messages").insert({
-nickname,message:value,content:value,
-room_id:currentRoom,sender_id:senderId
+nickname,
+message:value,
+content:value,
+room_id:currentRoom,
+sender_id:senderId
 });
+
 if(error)throw error;
+
 input.value="";
-}catch(e){alert("No se pudo enviar el mensaje: "+e.message)}
-finally{btn.disabled=false;input.focus()}
+
+}catch(e){
+
+alert("No se pudo enviar el mensaje: "+e.message);
+
+}finally{
+
+btn.disabled=false;
+input.focus();
+
+}
+
 }
 
 /* EMOJIS */
 
 const emojiGroups={
+
 "😊":["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😍","🥰","😘","😗","😚","😋","😜","🤪","😎","😭","😢","😡","😱","🥺","🤔","😴","🤗","🤩","😏","😬","🤯"],
+
 "❤️":["❤️","🧡","💛","💚","💙","💜","🖤","🤍","💔","💕","💞","💖","💘","💝","💗","💓","💟","❣️","♥️"],
+
 "👍":["👍","👎","👏","🙌","🤝","🙏","💪","👌","✌️","🤞","👋","🤟","🤘","🫶","☝️","👊","✋"],
+
 "⚽":["⚽","🏀","🏈","⚾","🎾","🏐","🏉","🥊","🏆","🥇","🥈","🚴","🏎️","🏁"],
+
 "🍕":["🍕","🍔","🍟","🌭","🍿","🍩","🍪","🎂","🍰","🍎","🍓","🍉","🍌","🍇","☕","🧉","🍻"],
+
 "🎉":["🎉","🎊","🎈","🎁","🎂","🥳","🎆","🎇","✨","🔥","💯","⭐","🌟","💥","🎵","🎶"]
+
 };
 
 let emojiTarget="messageInput";
 
 function toggleEmoji(target){
+
 emojiTarget=target;
-const picker=$(target==="privateInput"?"emojiPickerPrivate":"emojiPickerPublic");
+
+const picker=$(target==="privateInput"
+?"emojiPickerPrivate"
+:"emojiPickerPublic");
+
 const wasOpen=picker.classList.contains("open");
+
 closeEmojiPickers();
+
 if(!wasOpen)renderEmojiPicker(picker);
+
 }
 
 function renderEmojiPicker(picker){
+
 picker.innerHTML="";
+
 const cats=document.createElement("div");
 cats.className="emoji-cats";
+
 const grid=document.createElement("div");
 grid.className="emoji-grid";
 
 function draw(cat){
+
 grid.innerHTML="";
+
 emojiGroups[cat].forEach(emoji=>{
+
 const b=document.createElement("button");
-b.type="button";b.textContent=emoji;
+b.type="button";
+b.textContent=emoji;
 b.onclick=()=>insertEmoji(emoji);
+
 grid.appendChild(b);
+
 });
+
 }
 
 Object.keys(emojiGroups).forEach((cat,index)=>{
+
 const b=document.createElement("button");
-b.type="button";b.textContent=cat;
+b.type="button";
+b.textContent=cat;
+
 if(index===0)b.classList.add("active");
+
 b.onclick=()=>{
-cats.querySelectorAll("button").forEach(x=>x.classList.remove("active"));
-b.classList.add("active");draw(cat);
+
+cats.querySelectorAll("button").forEach(x=>
+x.classList.remove("active")
+);
+
+b.classList.add("active");
+draw(cat);
+
 };
+
 cats.appendChild(b);
+
 });
+
 picker.append(cats,grid);
 draw(Object.keys(emojiGroups)[0]);
 picker.classList.add("open");
+
 }
 
 function insertEmoji(emoji){
+
 const input=$(emojiTarget);
+
 if(!input)return;
+
 const start=input.selectionStart??input.value.length;
 const end=input.selectionEnd??input.value.length;
+
 input.value=input.value.slice(0,start)+emoji+input.value.slice(end);
+
 input.focus();
+
 const pos=start+emoji.length;
+
 input.setSelectionRange(pos,pos);
+
 }
 
 /* NOTIFICACIONES PRIVADAS */
 
 function showPrivateNotification(senderNick){
+
 const notice=$("privateNotice");
+
 notice.textContent="🔔 "+senderNick+" te está hablando por privado";
 notice.style.display="block";
-if(privateNoticeTimer)clearTimeout(privateNoticeTimer);
-privateNoticeTimer=setTimeout(()=>{notice.style.display="none"},5000);
+
+if(privateNoticeTimer)
+clearTimeout(privateNoticeTimer);
+
+privateNoticeTimer=setTimeout(()=>{
+notice.style.display="none";
+},5000);
+
 }
 
 function subscribePrivateNotifications(){
+
 if(privateNoticeChannel){
 db.removeChannel(privateNoticeChannel);
 privateNoticeChannel=null;
 }
+
 if(!senderId)return;
 
 privateNoticeChannel=db.channel("wichat-private-notifications-"+senderId)
 .on("postgres_changes",{
-event:"INSERT",schema:"public",table:"private_messages",
+event:"INSERT",
+schema:"public",
+table:"private_messages",
 filter:"recipient_id=eq."+senderId
 },async payload=>{
+
 const m=payload.new;
+
 if(!m||String(m.recipient_id)!==String(senderId))return;
 if(String(m.sender_id)===String(senderId))return;
 
-let user=privateChats.find(u=>String(u.id)===String(m.sender_id));
-if(!user){
-user={id:m.sender_id,nick:m.sender_nickname||"Usuario"};
-privateChats.push(user);
-}else if(m.sender_nickname){user.nick=m.sender_nickname}
+let user=privateChats.find(u=>
+String(u.id)===String(m.sender_id)
+);
 
-const isActive=activePrivateUser&&String(activePrivateUser.id)===String(m.sender_id);
+if(!user){
+
+user={
+id:m.sender_id,
+nick:m.sender_nickname||"Usuario"
+};
+
+privateChats.push(user);
+
+}else if(m.sender_nickname){
+
+user.nick=m.sender_nickname;
+
+}
+
+const isActive=activePrivateUser&&
+String(activePrivateUser.id)===String(m.sender_id);
+
 if(!isActive){
+
 privateUnread.add(String(m.sender_id));
 renderPrivateTabs();
 showPrivateNotification(user.nick);
 await openPrivateChat(user);
-}else{addPrivateMessage(m)}
+
+}else{
+
+addPrivateMessage(m);
+
+}
+
 }).subscribe();
+
 }
 
 /* CONVERSACIONES PRIVADAS */
 
 function renderPrivateTabs(){
+
 const container=$("privateTabs");
+
 container.innerHTML="";
+
 privateChats.forEach(user=>{
+
 const tab=document.createElement("button");
-tab.className="private-tab"+(activePrivateUser&&String(activePrivateUser.id)===String(user.id)?" active":"");
+
+tab.className="private-tab"+
+(activePrivateUser&&String(activePrivateUser.id)===String(user.id)
+?" active":"");
 
 const name=document.createElement("span");
 name.className="private-tab-name";
 name.textContent="💬 "+user.nick;
+
 tab.appendChild(name);
 
 if(privateUnread.has(String(user.id))){
+
 const unread=document.createElement("span");
 unread.className="private-unread";
 unread.textContent="1";
+
 tab.appendChild(unread);
+
 }
 
 const close=document.createElement("span");
 close.className="private-tab-close";
 close.textContent="×";
-close.onclick=e=>{e.stopPropagation();closePrivateTab(user.id)};
+
+close.onclick=e=>{
+e.stopPropagation();
+closePrivateTab(user.id);
+};
+
 tab.appendChild(close);
+
 tab.onclick=()=>switchPrivateTab(user.id);
+
 container.appendChild(tab);
+
 });
+
 }
 
 async function openPrivateChat(user){
+
 if(!user||String(user.id)===String(senderId))return;
-let existing=privateChats.find(u=>String(u.id)===String(user.id));
-if(!existing)privateChats.push({id:user.id,nick:user.nick});
+
+let existing=privateChats.find(u=>
+String(u.id)===String(user.id)
+);
+
+if(!existing)
+privateChats.push({
+id:user.id,
+nick:user.nick
+});
+
 await switchPrivateTab(user.id);
+
 }
 
 async function switchPrivateTab(userId){
-const user=privateChats.find(u=>String(u.id)===String(userId));
+
+const user=privateChats.find(u=>
+String(u.id)===String(userId)
+);
+
 if(!user)return;
+
 activePrivateUser=user;
+
 privateUnread.delete(String(userId));
+
 renderPrivateTabs();
+
 privateReceivedIds.clear();
 
 $("chatView").classList.add("hidden");
 $("usersView").classList.add("hidden");
 $("roomsView").classList.add("hidden");
 $("privateView").classList.remove("hidden");
+
 $("navUsers").classList.remove("active");
 $("navRooms").classList.remove("active");
 $("navChat").classList.remove("active");
 
 $("privateTitle").textContent="Privado con "+user.nick;
-$("privateMessages").innerHTML='<p class="muted">Cargando conversación...</p>';
 
-if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null}
+$("privateMessages").innerHTML=
+'<p class="muted">Cargando conversación...</p>';
+
+if(privateChannel){
+await db.removeChannel(privateChannel);
+privateChannel=null;
+}
+
 await loadPrivateMessages();
-if(!activePrivateUser||String(activePrivateUser.id)!==String(userId))return;
+
+if(!activePrivateUser||
+String(activePrivateUser.id)!==String(userId))return;
 
 privateChannel=db.channel("wichat-private-"+senderId+"-"+userId)
 .on("postgres_changes",{
-event:"INSERT",schema:"public",table:"private_messages"
+event:"INSERT",
+schema:"public",
+table:"private_messages"
 },payload=>{
+
 const m=payload.new;
+
 if(!m)return;
+
 if(
-(String(m.sender_id)===String(senderId)&&String(m.recipient_id)===String(userId))||
-(String(m.sender_id)===String(userId)&&String(m.recipient_id)===String(senderId))
-){addPrivateMessage(m)}
+(String(m.sender_id)===String(senderId)&&
+String(m.recipient_id)===String(userId))||
+(String(m.sender_id)===String(userId)&&
+String(m.recipient_id)===String(senderId))
+){
+
+addPrivateMessage(m);
+
+}
+
 }).subscribe();
 
 $("privateInput").focus();
+
 }
 
 function closePrivateTab(userId){
-const index=privateChats.findIndex(u=>String(u.id)===String(userId));
+
+const index=privateChats.findIndex(u=>
+String(u.id)===String(userId)
+);
+
 if(index===-1)return;
-const wasActive=activePrivateUser&&String(activePrivateUser.id)===String(userId);
+
+const wasActive=activePrivateUser&&
+String(activePrivateUser.id)===String(userId);
+
 privateChats.splice(index,1);
 privateUnread.delete(String(userId));
 
 if(wasActive){
-if(privateChannel){db.removeChannel(privateChannel);privateChannel=null}
+
+if(privateChannel){
+db.removeChannel(privateChannel);
+privateChannel=null;
+}
+
 activePrivateUser=null;
 privateReceivedIds.clear();
+
 $("privateMessages").innerHTML="";
+
 if(privateChats.length){
+
 const next=privateChats[Math.max(0,index-1)]||privateChats[0];
+
 switchPrivateTab(next.id);
-}else{backToUsers()}
+
+}else{
+
+backToUsers();
+
 }
+
+}
+
 renderPrivateTabs();
+
 }
 
 async function loadPrivateMessages(){
+
 if(!activePrivateUser)return;
+
 const other=activePrivateUser.id;
-const filter="and(sender_id.eq."+senderId+",recipient_id.eq."+other+"),and(sender_id.eq."+other+",recipient_id.eq."+senderId+")";
+
+const filter="and(sender_id.eq."+senderId+
+",recipient_id.eq."+other+"),and(sender_id.eq."+other+
+",recipient_id.eq."+senderId+")";
 
 const {data,error}=await db.from("private_messages")
-.select("*").or(filter).order("created_at",{ascending:true});
+.select("*")
+.or(filter)
+.order("created_at",{ascending:true});
 
 if(error){
-$("privateMessages").textContent="No se pudo cargar la conversación: "+error.message;
+
+$("privateMessages").textContent=
+"No se pudo cargar la conversación: "+error.message;
+
 return;
+
 }
+
 $("privateMessages").innerHTML="";
+
 privateReceivedIds.clear();
+
 (data||[]).forEach(addPrivateMessage);
+
 if(!(data||[]).length){
-$("privateMessages").innerHTML='<p class="muted">Todavía no hay mensajes. ¡Saludá!</p>';
+
+$("privateMessages").innerHTML=
+'<p class="muted">Todavía no hay mensajes. ¡Saludá!</p>';
+
 }
+
 }
 
 function addPrivateMessage(m){
+
 if(!m||privateReceivedIds.has(m.id))return;
+
 privateReceivedIds.add(m.id);
+
 const box=$("privateMessages");
+
 const empty=box.querySelector(".muted");
+
 if(empty)box.innerHTML="";
 
 const div=document.createElement("div");
-div.className="private-message"+(String(m.sender_id)===String(senderId)?" mine":"");
+
+div.className="private-message"+
+(String(m.sender_id)===String(senderId)?" mine":"");
 
 const who=document.createElement("strong");
+
 who.className="nickname";
-const privateNick=String(m.sender_id)===String(senderId)?nickname:(m.sender_nickname||"Usuario");
+
+const privateNick=String(m.sender_id)===String(senderId)
+?nickname
+:(m.sender_nickname||"Usuario");
 
 let hash=0;
-for(let i=0;i<privateNick.length;i++)hash=privateNick.charCodeAt(i)+((hash<<5)-hash);
-const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];
+
+for(let i=0;i<privateNick.length;i++)
+hash=privateNick.charCodeAt(i)+((hash<<5)-hash);
+
+const colors=[
+"#e58bdc","#55b8ff","#f28b45","#e77991",
+"#65c9ba","#b7a1e8","#e6c56d","#72a9ed"
+];
+
 who.style.color=colors[Math.abs(hash)%colors.length];
 
 if(privateNick.toUpperCase()==="UNIX"){
+
 const star=document.createElement("span");
-star.className="admin-star";star.textContent="⭐";who.appendChild(star);
+star.className="admin-star";
+star.textContent="⭐";
+
+who.appendChild(star);
+
 }
+
 who.appendChild(document.createTextNode(privateNick+": "));
+
 const msg=document.createElement("span");
+
 msg.className="msgtext";
 msg.textContent=m.content||"";
+
 div.append(who,msg);
+
 box.appendChild(div);
 box.scrollTop=box.scrollHeight;
+
 }
 
 async function sendPrivateMessage(){
+
 if(!activePrivateUser)return;
+
 const input=$("privateInput");
 const btn=$("privateSendBtn");
 const value=input.value.trim();
+
 if(!value)return;
+
 btn.disabled=true;
+
 try{
+
 const {data,error}=await db.from("private_messages").insert({
-sender_id:senderId,recipient_id:activePrivateUser.id,
-sender_nickname:nickname,content:value
+
+sender_id:senderId,
+recipient_id:activePrivateUser.id,
+sender_nickname:nickname,
+content:value
+
 }).select().single();
+
 if(error)throw error;
+
 addPrivateMessage(data);
+
 input.value="";
-}catch(e){alert("No se pudo enviar el mensaje privado: "+e.message)}
-finally{btn.disabled=false;input.focus()}
+
+}catch(e){
+
+alert("No se pudo enviar el mensaje privado: "+e.message);
+
+}finally{
+
+btn.disabled=false;
+input.focus();
+
+}
+
 }
 
 async function backToUsers(){
-if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null}
+
+if(privateChannel){
+await db.removeChannel(privateChannel);
+privateChannel=null;
+}
+
 activePrivateUser=null;
 privateReceivedIds.clear();
+
 $("privateView").classList.add("hidden");
 $("usersView").classList.remove("hidden");
 $("roomsView").classList.add("hidden");
+
 $("navUsers").classList.add("active");
 $("navRooms").classList.remove("active");
 $("navChat").classList.remove("active");
+
 $("privateInput").value="";
+
 closeEmojiPickers();
 renderPrivateTabs();
+
 }
 
 /* ACTUALIZAR SALAS */
 
 function subscribeRooms(){
-if(roomChannel)db.removeChannel(roomChannel);
+
+if(roomChannel)
+db.removeChannel(roomChannel);
+
 roomChannel=db.channel("wichat-rooms")
 .on("postgres_changes",{
-event:"*",schema:"public",table:"rooms"
+event:"*",
+schema:"public",
+table:"rooms"
 },async()=>{
+
 const previous=currentRoom;
+
 await fetchRooms();
+
 if(!rooms.some(r=>String(r.id)===String(previous))){
-currentRoom=rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||rooms[0]?.id||null;
+
+currentRoom=
+rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||
+rooms[0]?.id||
+null;
+
 }
+
 renderTabs();
-if(currentRoom)await switchRoom(currentRoom);
+
+if(currentRoom)
+await switchRoom(currentRoom);
+
 }).subscribe();
+
 }
 
 /* ADMINISTRACIÓN */
 
 function openAdmin(){
+
 if(!isAdmin){
 alert("No tenés permisos de administrador.");
 return;
 }
+
 $("adminPanel").classList.remove("hidden");
+
 renderRoomDelete();
 renderModerationUsers();
 loadBannedUsers();
+
 }
 
 function closeAdmin(){
@@ -1230,158 +1839,341 @@ $("adminPanel").classList.add("hidden");
 }
 
 async function createRoom(){
+
 if(!isAdmin)return;
+
 const name=$("newRoomName").value.trim();
+
 if(!name){
 $("adminStatus").textContent="Escribí el nombre de la sala.";
 return;
 }
-const {error}=await db.rpc("admin_create_room",{pin_input:adminPin,room_name:name});
-$("adminStatus").textContent=error?"Error: "+error.message:"Sala creada.";
+
+const {error}=await db.rpc("admin_create_room",{
+pin_input:adminPin,
+room_name:name
+});
+
+$("adminStatus").textContent=error
+?"Error: "+error.message
+:"Sala creada.";
+
 if(!error){
+
 $("newRoomName").value="";
+
 await fetchRooms();
+
 renderTabs();
+
 }
+
 }
 
 function renderRoomDelete(){
+
 const select=$("roomToDelete");
+
 if(!select)return;
+
 const previous=select.value;
+
 select.innerHTML='<option value="">Elegí una sala</option>';
+
 rooms.forEach(r=>{
+
 const option=document.createElement("option");
-option.value=r.id;option.textContent=r.name;
+
+option.value=r.id;
+option.textContent=r.name;
+
 select.appendChild(option);
+
 });
-if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
+
+if(rooms.some(r=>String(r.id)===String(previous)))
+select.value=previous;
+
 }
 
 async function deleteRoom(){
+
 if(!isAdmin)return;
+
 const id=$("roomToDelete").value;
-if(!id){$("adminStatus").textContent="Elegí una sala.";return}
-const room=rooms.find(r=>String(r.id)===String(id));
-if(!confirm('¿Seguro que querés eliminar la sala "'+(room?.name||"")+'"?'))return;
 
-const {error}=await db.rpc("admin_delete_room",{
-pin_input:adminPin,room_id_input:Number(id)
-});
-if(error){$("adminStatus").textContent="Error al eliminar: "+error.message;return}
-
-$("adminStatus").textContent="Sala eliminada correctamente.";
-const wasCurrent=String(currentRoom)===String(id);
-await fetchRooms();
-
-if(wasCurrent){
-if(rooms.length){
-currentRoom=rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||rooms[0].id;
-await switchRoom(currentRoom);
-}else{
-$("status").textContent="No quedan salas. Creá una nueva desde Administración.";
-$("messages").innerHTML="";
-}
-}
-renderTabs();
-renderRoomDelete();
-}
-
-async function moderateUser(action){
-if(!isAdmin)return;
-const target=$("userToModerate").value;
-if(!target){$("adminStatus").textContent="Elegí un usuario conectado.";return}
-
-const {data,error}=await db.rpc("admin_moderate_user",{
-pin_input:adminPin,target_sender_id:target,
-room_id_input:currentRoom,action_name:action
-});
-if(error){$("adminStatus").textContent="Error: "+error.message;return}
-$("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos en esta sala.":"Usuario expulsado de esta sala.";
-if(action==="ban")await loadBannedUsers();
-}
-
-async function loadBannedUsers(){
-if(!isAdmin)return;
-const list=$("bannedUsersList");
-list.innerHTML='<p class="muted">Cargando baneos...</p>';
-
-const {data,error}=await db.rpc("admin_list_bans",{pin_input:adminPin});
-if(error){list.textContent="Error al cargar baneos: "+error.message;return}
-list.innerHTML="";
-if(!data||!data.length){
-list.innerHTML='<p class="muted">No hay usuarios baneados actualmente.</p>';
+if(!id){
+$("adminStatus").textContent="Elegí una sala.";
 return;
 }
 
+const room=rooms.find(r=>String(r.id)===String(id));
+
+if(!confirm('¿Seguro que querés eliminar la sala "'+
+(room?.name||"")+'"?'))return;
+
+const {error}=await db.rpc("admin_delete_room",{
+pin_input:adminPin,
+room_id_input:Number(id)
+});
+
+if(error){
+
+$("adminStatus").textContent=
+"Error al eliminar: "+error.message;
+
+return;
+
+}
+
+$("adminStatus").textContent="Sala eliminada correctamente.";
+
+const wasCurrent=String(currentRoom)===String(id);
+
+await fetchRooms();
+
+if(wasCurrent){
+
+if(rooms.length){
+
+currentRoom=
+rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||
+rooms[0].id;
+
+await switchRoom(currentRoom);
+
+}else{
+
+$("status").textContent=
+"No quedan salas. Creá una nueva desde Administración.";
+
+$("messages").innerHTML="";
+
+}
+
+}
+
+renderTabs();
+renderRoomDelete();
+
+}
+
+async function moderateUser(action){
+
+if(!isAdmin)return;
+
+const target=$("userToModerate").value;
+
+if(!target){
+
+$("adminStatus").textContent="Elegí un usuario conectado.";
+
+return;
+
+}
+
+const {data,error}=await db.rpc("admin_moderate_user",{
+
+pin_input:adminPin,
+target_sender_id:target,
+room_id_input:currentRoom,
+action_name:action
+
+});
+
+if(error){
+
+$("adminStatus").textContent="Error: "+error.message;
+
+return;
+
+}
+
+$("adminStatus").textContent=action==="ban"
+?"Usuario baneado por cinco minutos en esta sala."
+:"Usuario expulsado de esta sala.";
+
+if(action==="ban")
+await loadBannedUsers();
+
+}
+
+async function loadBannedUsers(){
+
+if(!isAdmin)return;
+
+const list=$("bannedUsersList");
+
+list.innerHTML='<p class="muted">Cargando baneos...</p>';
+
+const {data,error}=await db.rpc("admin_list_bans",{
+pin_input:adminPin
+});
+
+if(error){
+
+list.textContent="Error al cargar baneos: "+error.message;
+
+return;
+
+}
+
+list.innerHTML="";
+
+if(!data||!data.length){
+
+list.innerHTML=
+'<p class="muted">No hay usuarios baneados actualmente.</p>';
+
+return;
+
+}
+
 data.forEach(ban=>{
+
 const card=document.createElement("div");
 card.className="banned-card";
+
 const name=document.createElement("strong");
 name.className="banned-name";
 name.textContent="🚫 "+(ban.nickname||"Usuario");
 
 const details=document.createElement("p");
 details.className="banned-details";
+
 let roomText=ban.ban_type||"Baneo";
+
 if(ban.room_id){
-const room=rooms.find(r=>String(r.id)===String(ban.room_id));
+
+const room=rooms.find(r=>
+String(r.id)===String(ban.room_id)
+);
+
 roomText+=": "+(room?.name||"Sala "+ban.room_id);
+
 }
-const expiration=ban.expires_at?new Date(ban.expires_at).toLocaleString("es-AR"):"Sin vencimiento";
-details.textContent=roomText+" | IP: "+(ban.client_ip||"No disponible")+" | Vence: "+expiration;
+
+const expiration=ban.expires_at
+?new Date(ban.expires_at).toLocaleString("es-AR")
+:"Sin vencimiento";
+
+details.textContent=
+roomText+" | IP: "+(ban.client_ip||"No disponible")+
+" | Vence: "+expiration;
 
 const button=document.createElement("button");
+
 button.className="unban-button";
 button.textContent="DESBANEAR";
+
 if(!ban.sender_id){
+
 button.disabled=true;
 button.textContent="No se puede identificar al usuario";
+
 }else{
+
 button.onclick=()=>unbanUser(ban.sender_id,ban.nickname);
+
 }
+
 card.append(name,details,button);
+
 list.appendChild(card);
+
 });
+
 }
 
 async function unbanUser(target,nick){
+
 if(!isAdmin)return;
-if(!confirm("¿Querés desbanear a "+(nick||"este usuario")+"?"))return;
+
+if(!confirm("¿Querés desbanear a "+(nick||"este usuario")+"?"))
+return;
+
 const {data,error}=await db.rpc("admin_unban_user",{
-pin_input:adminPin,target_sender_id:target
+pin_input:adminPin,
+target_sender_id:target
 });
-if(error){$("adminStatus").textContent="Error al desbanear: "+error.message;return}
-$("adminStatus").textContent=data?.message||"Usuario desbloqueado correctamente.";
+
+if(error){
+
+$("adminStatus").textContent=
+"Error al desbanear: "+error.message;
+
+return;
+
+}
+
+$("adminStatus").textContent=
+data?.message||"Usuario desbloqueado correctamente.";
+
 await loadBannedUsers();
+
 }
 
 /* SALIR */
 
 async function exitChat(){
+
 closeUserMenu();
+
 selectedMenuUser=null;
 
-if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null}
-if(privateNoticeChannel){await db.removeChannel(privateNoticeChannel);privateNoticeChannel=null}
-if(moderationChannel){await db.removeChannel(moderationChannel);moderationChannel=null}
-if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null}
-if(presenceChannel){
-await presenceChannel.untrack();
-await db.removeChannel(presenceChannel);
-presenceChannel=null;
-}
-if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null}
+/* LIBERAR EL NICK AL SALIR */
+await releaseNickname();
 
-if(privateNoticeTimer){clearTimeout(privateNoticeTimer);privateNoticeTimer=null}
+if(privateChannel){
+await db.removeChannel(privateChannel);
+privateChannel=null;
+}
+
+if(privateNoticeChannel){
+await db.removeChannel(privateNoticeChannel);
+privateNoticeChannel=null;
+}
+
+if(moderationChannel){
+await db.removeChannel(moderationChannel);
+moderationChannel=null;
+}
+
+if(messageChannel){
+await db.removeChannel(messageChannel);
+messageChannel=null;
+}
+
+if(presenceChannel){
+
+await presenceChannel.untrack();
+
+await db.removeChannel(presenceChannel);
+
+presenceChannel=null;
+
+}
+
+if(roomChannel){
+await db.removeChannel(roomChannel);
+roomChannel=null;
+}
+
+if(privateNoticeTimer){
+clearTimeout(privateNoticeTimer);
+privateNoticeTimer=null;
+}
+
 $("privateNotice").style.display="none";
 
 receivedIds.clear();
 privateReceivedIds.clear();
 roomUsers.clear();
+
 activePrivateUser=null;
 privateChats=[];
 privateUnread.clear();
+
 $("privateTabs").innerHTML="";
 
 adminPin="";
@@ -1392,32 +2184,52 @@ senderId="";
 
 $("chat").style.display="none";
 $("login").style.display="block";
+
 document.body.classList.remove("chat-active");
+
 $("enterBtn").disabled=false;
+
 $("messages").innerHTML="";
 $("privateMessages").innerHTML="";
 $("privateInput").value="";
 $("messageInput").value="";
+
 $("adminPanel").classList.add("hidden");
 $("adminOpenBtn").classList.add("hidden");
+
 $("adminPin").value="";
 $("adminPinWrap").classList.add("hidden");
+
 $("error").textContent="";
-$("bannedUsersList").innerHTML='<p class="muted">Presioná actualizar para ver los baneados.</p>';
+
+$("bannedUsersList").innerHTML=
+'<p class="muted">Presioná actualizar para ver los baneados.</p>';
+
 showMainTab("chat");
+
 renderUsers();
+
 }
 
 /* INICIO */
 
 (async()=>{
+
 try{
+
 await fetchRooms();
+
 }catch(e){
-$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';
+
+$("initialRoom").innerHTML=
+'<option value="">Configuración pendiente</option>';
+
 showError(e.message);
+
 }
+
 })();
+
 </script>
 </body>
 </html>

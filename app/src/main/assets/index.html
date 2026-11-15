@@ -138,8 +138,6 @@ border-radius:6px;
 color:white;
 }
 
-/* INDICADOR DE MENSAJE PRIVADO NUEVO */
-
 .private-unread{
 background:#ed334f;
 color:white;
@@ -188,6 +186,41 @@ box-shadow:0 10px 35px #000b;
 .moderation-card p{color:#d5e3f5;line-height:1.5}
 .moderation-card button{width:100%;margin-top:12px}
 
+/* MENÚ AL TOCAR UN NICK */
+#userMenuModal{
+display:none;
+position:fixed;
+inset:0;
+z-index:25000;
+background:rgba(0,0,0,.75);
+align-items:center;
+justify-content:center;
+padding:20px;
+}
+#userMenuModal.show{display:flex}
+.user-menu-card{
+width:100%;
+max-width:350px;
+background:#141e35;
+border:1px solid #278bd2;
+border-radius:16px;
+padding:20px;
+box-shadow:0 10px 35px #000b;
+}
+.user-menu-card h3{
+color:#55b8ff;
+margin:0 0 15px;
+text-align:center;
+overflow-wrap:anywhere;
+}
+.user-menu-card button{
+width:100%;
+margin-top:10px;
+}
+.user-menu-card .private-action{background:#168bea}
+.user-menu-card .kick-action{background:#344361}
+.user-menu-card .ban-action{background:#bd394d}
+
 #adminPanel{position:fixed;z-index:800;left:10px;right:10px;top:10px;bottom:90px;overflow-y:auto;max-width:680px;margin:auto;background:#141e35}
 #adminPanel .row input{min-width:0}
 #adminPanel h4{margin-bottom:5px}
@@ -234,6 +267,19 @@ body.chat-active .container{max-width:850px;margin:auto}
 <body>
 
 <div id="privateNotice" role="status" aria-live="polite"></div>
+
+<!-- MENÚ DE OPCIONES DEL USUARIO -->
+<div id="userMenuModal" onclick="if(event.target===this)closeUserMenu()">
+  <div class="user-menu-card">
+    <h3 id="userMenuTitle">Usuario</h3>
+    <button class="private-action" onclick="userMenuPrivate()">💬 Enviar mensaje privado</button>
+    <div id="adminUserActions" class="hidden">
+      <button class="kick-action" onclick="userMenuModerate('kick')">🚪 Echar usuario</button>
+      <button class="ban-action" onclick="userMenuModerate('ban')">🚫 Banear usuario por 5 minutos</button>
+    </div>
+    <button class="secondary" onclick="closeUserMenu()">Cerrar</button>
+  </div>
+</div>
 
 <div id="moderationModal" role="alertdialog" aria-modal="true">
 <div class="moderation-card">
@@ -302,7 +348,7 @@ body.chat-active .container{max-width:850px;margin:auto}
 <div id="usersView" class="hidden">
 <h3>👥 Usuarios en línea</h3>
 <div id="usersCountText" class="user-count">0 usuarios conectados</div>
-<p class="muted">Tocá un Nick para iniciar una conversación privada.</p>
+<p class="muted">Tocá un Nick para ver sus opciones.</p>
 <div id="usersList"><p class="muted">Esperando usuarios...</p></div>
 </div>
 
@@ -398,6 +444,7 @@ let privateChats=[];
 let privateUnread=new Set();
 let isAdmin=false,adminPin="";
 let privateNoticeTimer=null;
+let selectedMenuUser=null;
 
 async function ensureAuthUser(){
 let {data:{session},error}=await db.auth.getSession();
@@ -705,6 +752,76 @@ renderUsers();
 renderModerationUsers();
 }
 
+/* MENÚ DE OPCIONES AL TOCAR UN NICK */
+
+function openUserMenu(user){
+
+if(!user||!user.id)return;
+if(String(user.id)===String(senderId))return;
+
+selectedMenuUser={
+id:user.id,
+nick:user.nick||"Usuario"
+};
+
+$("userMenuTitle").textContent=selectedMenuUser.nick;
+$("adminUserActions").classList.toggle("hidden",!isAdmin);
+$("userMenuModal").classList.add("show");
+
+}
+
+function closeUserMenu(){
+$("userMenuModal").classList.remove("show");
+}
+
+async function userMenuPrivate(){
+
+if(!selectedMenuUser)return;
+
+const user={...selectedMenuUser};
+
+closeUserMenu();
+
+await openPrivateChat(user);
+
+}
+
+async function userMenuModerate(action){
+
+if(!isAdmin||!selectedMenuUser)return;
+
+const user={...selectedMenuUser};
+
+const actionText=action==="ban"
+?"banear por cinco minutos a "
+:"echar de la sala a ";
+
+if(!confirm("¿Querés "+actionText+user.nick+"?"))return;
+
+closeUserMenu();
+
+const {data,error}=await db.rpc("admin_moderate_user",{
+pin_input:adminPin,
+target_sender_id:user.id,
+room_id_input:currentRoom,
+action_name:action
+});
+
+if(error){
+alert("No se pudo moderar al usuario: "+error.message);
+return;
+}
+
+$("adminStatus").textContent=action==="ban"
+?"Usuario baneado por cinco minutos."
+:"Usuario expulsado de la sala.";
+
+if(action==="ban"){
+await loadBannedUsers();
+}
+
+}
+
 function renderUsers(){
 const list=$("usersList");
 if(!list)return;
@@ -746,8 +863,8 @@ name.appendChild(document.createTextNode(u.nick));
 item.append(dot,name);
 
 if(u.id!==senderId){
-item.title="Chatear en privado con "+u.nick;
-item.onclick=()=>openPrivateChat(u);
+item.title="Tocá para ver las opciones de "+u.nick;
+item.onclick=()=>openUserMenu(u);
 }else{
 item.title="Vos";
 }
@@ -792,6 +909,15 @@ n.appendChild(star);
 }
 
 n.appendChild(document.createTextNode((m.nickname||"Usuario")+":"));
+
+if(m.sender_id&&String(m.sender_id)!==String(senderId)){
+n.style.cursor="pointer";
+n.title="Ver opciones de "+(m.nickname||"Usuario");
+n.onclick=()=>openUserMenu({
+id:m.sender_id,
+nick:m.nickname||"Usuario"
+});
+}
 
 const t=document.createElement("span");
 t.className="msgtext";
@@ -949,7 +1075,6 @@ const m=payload.new;
 if(!m||String(m.recipient_id)!==String(senderId))return;
 if(String(m.sender_id)===String(senderId))return;
 
-// Buscar o crear automáticamente la pestaña del remitente
 let user=privateChats.find(
 u=>String(u.id)===String(m.sender_id)
 );
@@ -969,7 +1094,6 @@ user.nick=m.sender_nickname;
 
 }
 
-// Comprobar si esa conversación está abierta
 const isActive=
 activePrivateUser&&
 String(activePrivateUser.id)===String(m.sender_id);
@@ -981,10 +1105,8 @@ showPrivateNotification(user.nick);
 
 }
 
-// Actualizar pestañas automáticamente
 renderPrivateTabs();
 
-// Mostrar el mensaje si ya estamos en esa conversación
 if(isActive){
 addPrivateMessage(m);
 }
@@ -1014,7 +1136,6 @@ name.textContent="💬 "+user.nick;
 
 tab.appendChild(name);
 
-// Indicador rojo de mensaje nuevo
 if(privateUnread.has(String(user.id))){
 
 const unread=document.createElement("span");
@@ -1074,7 +1195,6 @@ if(!user)return;
 
 activePrivateUser=user;
 
-// Quitar notificación al abrir la conversación
 privateUnread.delete(String(userId));
 renderPrivateTabs();
 
@@ -1595,6 +1715,9 @@ await loadBannedUsers();
 /* SALIR DEL CHAT */
 
 async function exitChat(){
+
+closeUserMenu();
+selectedMenuUser=null;
 
 if(privateChannel){
 await db.removeChannel(privateChannel);

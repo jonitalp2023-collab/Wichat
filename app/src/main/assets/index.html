@@ -1,18 +1,18 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>CHAT ARGENTINA</title>
+<title>WiChat</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#080f1e;color:white;font-family:Arial,sans-serif}
-header{background:#121a30;padding:16px;text-align:center;border-bottom:1px solid #273451}
+header{display:none!important}
 header h1{margin:0;color:#55b8ff}
 header p{margin:6px 0 0;color:#9baac5}
+
 .container{max-width:700px;margin:auto;padding:15px}
 .panel{background:#141e35;padding:18px;border-radius:15px;margin-top:18px}
 input,select{width:100%;padding:14px;border:1px solid #344361;border-radius:10px;background:#0c1427;color:white;font-size:16px;margin:8px 0}
@@ -28,17 +28,72 @@ button:disabled{opacity:.5}
 .admin-box{border:1px solid #d99b35}
 .hidden{display:none!important}
 
+/* LOGO */
+.brand-logo{
+display:block;
+width:145px;
+height:115px;
+object-fit:contain;
+margin:0 auto 18px;
+}
+
+#login{
+text-align:center;
+}
+
+#login input,
+#login select{
+text-align:left;
+}
+
+.chat-brand-logo{
+display:block;
+width:100px;
+height:65px;
+object-fit:contain;
+margin:auto;
+}
+
 body.chat-active{overflow:hidden}
 body.chat-active header{display:none}
 body.chat-active .container{max-width:none;width:100%;height:100dvh;padding:0}
 #chat{display:none;height:100dvh;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
 #chat>.panel{height:100%;margin:0;padding:10px 12px 8px;border-radius:0;background:#080f1e;display:flex;flex-direction:column;min-height:0}
 
-.chat-top{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#102747;border:1px solid #1b5a91;border-radius:12px;padding:10px 12px;flex:0 0 auto}
+.chat-top{
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+position:relative;
+gap:8px;
+min-height:105px;
+background:#102747;
+border:1px solid #1b5a91;
+border-radius:12px;
+padding:10px 12px;
+flex:0 0 auto;
+}
+
 .chat-top h2{margin:0;color:#55b8ff;font-size:19px}
 .chat-top p{margin:4px 0 0;color:#b5c8e4;font-size:13px}
-.online-summary{font-size:12px;color:#70dca1;text-align:right;white-space:nowrap}
-#adminOpenBtn{padding:8px 10px}
+
+.online-summary{
+display:flex;
+gap:12px;
+justify-content:center;
+font-size:12px;
+color:#70dca1;
+text-align:center;
+white-space:normal;
+}
+
+#adminOpenBtn{
+position:absolute;
+right:8px;
+top:8px;
+padding:8px 10px;
+}
 
 #chatView,#usersView,#roomsView,#privateView{flex:1;min-height:0;display:flex;flex-direction:column}
 #chatView.hidden,#usersView.hidden,#roomsView.hidden,#privateView.hidden{display:none!important}
@@ -296,7 +351,11 @@ body.chat-active .container{max-width:850px;margin:auto}
 <div class="container">
 
 <section id="login" class="panel">
-<h2>🇦🇷 Bienvenido a CHAT ARGENTINA</h2>
+
+<img class="brand-logo"
+src="https://raw.githubusercontent.com/jonitalp2023-collab/Wichat/main/app/src/main/res/drawable/ic_launcher_logo.png"
+alt="WiChat">
+
 <p>Elegí tu Nick y la sala a la que querés entrar.</p>
 
 <input id="nickname" maxlength="25" placeholder="Escribí tu Nick" autocomplete="nickname">
@@ -317,14 +376,16 @@ body.chat-active .container{max-width:850px;margin:auto}
 <div class="panel">
 
 <div class="chat-top">
-<div>
-<h2>🇦🇷 CHAT ARGENTINA</h2>
-<p>Bienvenido a nuestra comunidad</p>
-</div>
+
+<img class="chat-brand-logo"
+src="https://raw.githubusercontent.com/jonitalp2023-collab/Wichat/main/app/src/main/res/drawable/ic_launcher_logo.png"
+alt="WiChat">
+
 <div class="online-summary">
 <div>🟢 <span id="usersCount">0</span> en línea</div>
 <div id="currentRoomLabel">Sala: General</div>
 </div>
+
 <button id="adminOpenBtn" class="secondary hidden" onclick="openAdmin()">⚙</button>
 </div>
 

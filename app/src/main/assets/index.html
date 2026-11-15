@@ -97,8 +97,6 @@ overscroll-behavior:contain
 .private-header{display:flex;align-items:center;gap:10px;margin:8px 0}
 .private-header h3{overflow-wrap:anywhere;color:#55b8ff}
 
-/* PESTAÑAS DE CONVERSACIONES PRIVADAS */
-
 .private-tabs{
 display:flex;
 gap:7px;
@@ -138,6 +136,23 @@ background:#344361;
 padding:3px 7px;
 border-radius:6px;
 color:white;
+}
+
+/* INDICADOR DE MENSAJE PRIVADO NUEVO */
+
+.private-unread{
+background:#ed334f;
+color:white;
+font-size:11px;
+font-weight:bold;
+min-width:19px;
+height:19px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+padding:2px 5px;
+box-shadow:0 0 8px #ed334f;
 }
 
 #bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:500;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;background:#071326;border-top:1px solid #1b5a91;padding:7px 8px calc(7px + env(safe-area-inset-bottom));box-shadow:0 -5px 18px #0008}
@@ -380,6 +395,7 @@ let privateChannel=null,privateNoticeChannel=null,moderationChannel=null;
 let receivedIds=new Set(),privateReceivedIds=new Set();
 let roomUsers=new Map(),activePrivateUser=null;
 let privateChats=[];
+let privateUnread=new Set();
 let isAdmin=false,adminPin="";
 let privateNoticeTimer=null;
 
@@ -931,19 +947,45 @@ filter:"recipient_id=eq."+senderId
 const m=payload.new;
 
 if(!m||String(m.recipient_id)!==String(senderId))return;
+if(String(m.sender_id)===String(senderId))return;
 
-const alreadyOpen=privateChats.some(
+// Buscar o crear automáticamente la pestaña del remitente
+let user=privateChats.find(
 u=>String(u.id)===String(m.sender_id)
 );
 
-if(!alreadyOpen){
-showPrivateNotification(m.sender_nickname||"Un usuario");
+if(!user){
+
+user={
+id:m.sender_id,
+nick:m.sender_nickname||"Usuario"
+};
+
+privateChats.push(user);
+
+}else if(m.sender_nickname){
+
+user.nick=m.sender_nickname;
+
 }
 
-if(
+// Comprobar si esa conversación está abierta
+const isActive=
 activePrivateUser&&
-String(activePrivateUser.id)===String(m.sender_id)
-){
+String(activePrivateUser.id)===String(m.sender_id);
+
+if(!isActive){
+
+privateUnread.add(String(m.sender_id));
+showPrivateNotification(user.nick);
+
+}
+
+// Actualizar pestañas automáticamente
+renderPrivateTabs();
+
+// Mostrar el mensaje si ya estamos en esa conversación
+if(isActive){
 addPrivateMessage(m);
 }
 
@@ -968,7 +1010,21 @@ tab.className="private-tab"+
 
 const name=document.createElement("span");
 name.className="private-tab-name";
-name.textContent=user.nick;
+name.textContent="💬 "+user.nick;
+
+tab.appendChild(name);
+
+// Indicador rojo de mensaje nuevo
+if(privateUnread.has(String(user.id))){
+
+const unread=document.createElement("span");
+unread.className="private-unread";
+unread.textContent="1";
+unread.title="Mensaje privado nuevo";
+
+tab.appendChild(unread);
+
+}
 
 const close=document.createElement("span");
 close.className="private-tab-close";
@@ -979,7 +1035,7 @@ e.stopPropagation();
 closePrivateTab(user.id);
 };
 
-tab.append(name,close);
+tab.appendChild(close);
 
 tab.onclick=()=>switchPrivateTab(user.id);
 
@@ -1017,6 +1073,11 @@ u=>String(u.id)===String(userId)
 if(!user)return;
 
 activePrivateUser=user;
+
+// Quitar notificación al abrir la conversación
+privateUnread.delete(String(userId));
+renderPrivateTabs();
+
 privateReceivedIds.clear();
 
 $("chatView").classList.add("hidden");
@@ -1082,6 +1143,7 @@ activePrivateUser&&
 String(activePrivateUser.id)===String(userId);
 
 privateChats.splice(index,1);
+privateUnread.delete(String(userId));
 
 if(wasActive){
 
@@ -1578,6 +1640,7 @@ roomUsers.clear();
 
 activePrivateUser=null;
 privateChats=[];
+privateUnread.clear();
 $("privateTabs").innerHTML="";
 
 adminPin="";

@@ -115,7 +115,7 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 #adminOpenBtn{color:#facc15}
 #adminOpenBtn.active{background:#51400c;color:#facc15}
 #adminOpenBtn:active{background:#51400c}
-#privateNotice{display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 30px);max-width:500px;background:#168bea;color:white;padding:15px;border-radius:12px;z-index:9999;text-align:center;font-weight:bold;box-shadow:0 5px 20px #0008}
+#privateNotice{cursor:pointer;transition:transform .2s,opacity .2s}#privateNotice:active{transform:translateX(-50%) scale(.98)}.private-unread{min-width:19px;height:19px;padding:0 5px;border-radius:12px;background:#ef4444;color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;margin-left:5px}.notification-settings{position:fixed;right:12px;top:12px;z-index:9998;background:#172b45;color:#d9eaff;border:1px solid #385477;border-radius:18px;padding:6px 10px;font-size:11px}#privateNotice{display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 30px);max-width:500px;background:#168bea;color:white;padding:15px;border-radius:12px;z-index:9999;text-align:center;font-weight:bold;box-shadow:0 5px 20px #0008}
 #profileModal{display:none;position:fixed;inset:0;z-index:26000;background:rgba(0,0,0,.82);align-items:center;justify-content:center;padding:18px}
 #profileModal.show{display:flex}
 .profile-card{width:100%;max-width:410px;max-height:90dvh;overflow:auto;padding:22px;background:linear-gradient(155deg,#192b49,#101a30);border:1px solid #278bd2;border-radius:18px;box-shadow:0 12px 40px #000b}
@@ -281,6 +281,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 </head>
 <body>
 <div id="privateNotice" role="status" aria-live="polite"></div>
+<button id="notificationSoundToggle" class="notification-settings" onclick="toggleNotificationSound()">🔔 Sonido: sí</button>
 <div id="profileModal" onclick="if(event.target===this)closeMyProfile()">
 <div class="profile-card">
 <h2>✏️ Mi perfil</h2>
@@ -524,12 +525,12 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;let accountSessionHeartbeatTimer=null,accountSessionLeaseActive=false,accountDeviceId=null;
-let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
+let privateChannel=null,privateNoticeChannel=null,reactionNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
 let reactionChannel=null,reactionContext="";
 const reactionCache=new Map();
 const reactionEmojis=["👍","❤️","😂","😮","😢","👏","🔥"];
-let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
+let privateChats=[],privateUnread=new Map(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null,notificationSoundEnabled=true;
 let authMode="home";
 let isRegisteredAccount=false;
 const registeredUsers=new Set();
@@ -882,7 +883,7 @@ await saveChatProfile();
 await loadRegisteredProfiles();
 $("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
 $("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom);
-subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
+subscribeRooms();subscribePrivateNotifications();subscribeReactionNotifications();subscribeModerationEvents();
 }catch(e){await releaseNickname();await releaseAccountDeviceSession();currentRoom=null;console.error("Error al ingresar al chat:",e);showError("No se pudo ingresar: "+(e.message||String(e)));btn.disabled=false;}
 }
 function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");}
@@ -917,7 +918,7 @@ currentRoom=id;showMainTab("chat");$("roomTopic").style.display="flex";$("roomTo
 topicChannel=db.channel("wichat-room-topic-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id)).subscribe();
 receivedIds.clear();roomUsers.clear();reactionCache.clear();$("messages").innerHTML="";subscribeMessageReactions("public");renderTabs();renderUsers();
 const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";
-messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new)).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
+messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>{const m=p.new;if(m&&String(m.sender_id)!==String(senderId)&&typeof m.message==="string"&&new RegExp("(^|\\\\s)@"+nickname.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new)).subscribe(s=>{")+"(\\\\b|$)","i").test(m.message)){showChatNotification("📣 "+(m.nickname||"Alguien")+" te mencionó en #"+(rooms.find(r=>String(r.id)===String(id))?.name||"sala"));}addMessage(m);}).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
 presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
 presenceChannel.on("presence",{event:"sync"},updatePresenceList).on("presence",{event:"join"},updatePresenceList).on("presence",{event:"leave"},updatePresenceList).subscribe(async state=>{
 if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,is_registered:isRegisteredAccount,online_at:new Date().toISOString()});updatePresenceList();}
@@ -1364,29 +1365,61 @@ const input=$(emojiTarget);if(!input)return;const start=input.selectionStart??in
 input.value=input.value.slice(0,start)+emoji+input.value.slice(end);input.focus();const pos=start+emoji.length;input.setSelectionRange(pos,pos);
 }
 
-/* NOTIFICACIONES PRIVADAS */
-function showPrivateNotification(senderNick){
-const notice=$("privateNotice");notice.textContent="🔔 "+senderNick+" te está hablando por privado";notice.style.display="block";
-if(privateNoticeTimer)clearTimeout(privateNoticeTimer);privateNoticeTimer=setTimeout(()=>{notice.style.display="none";},5000);
+/* NOTIFICACIONES Y MENSAJES SIN LEER */
+function playChatNotificationSound(){
+ if(!notificationSoundEnabled)return;
+ try{const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;const ctx=new AudioCtx(),osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="sine";osc.frequency.value=880;gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.12,ctx.currentTime+.02);gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.22);osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.23);osc.onended=()=>ctx.close();}catch(_){}
+}
+function toggleNotificationSound(){
+ notificationSoundEnabled=!notificationSoundEnabled;
+ $("notificationSoundToggle").textContent=notificationSoundEnabled?"🔔 Sonido: sí":"🔕 Sonido: no";
+}
+function showChatNotification(message,action){
+ const notice=$("privateNotice");notice.textContent=message;notice.style.display="block";notice.onclick=typeof action==="function"?action:null;
+ playChatNotificationSound();
+ if(privateNoticeTimer)clearTimeout(privateNoticeTimer);
+ privateNoticeTimer=setTimeout(()=>{notice.style.display="none";notice.onclick=null;},5500);
+}
+function showPrivateNotification(senderNick,user){
+ showChatNotification("🔔 "+senderNick+" te mandó un mensaje privado · Tocar para abrir",()=>{ $("privateNotice").style.display="none";if(user)openPrivateChat(user);});
+}
+function incrementPrivateUnread(userId){
+ const id=String(userId);privateUnread.set(id,(privateUnread.get(id)||0)+1);renderPrivateTabs();
 }
 function subscribePrivateNotifications(){
-if(privateNoticeChannel){db.removeChannel(privateNoticeChannel);privateNoticeChannel=null;}if(!senderId)return;
-privateNoticeChannel=db.channel("wichat-private-notifications-"+senderId).on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages",filter:"recipient_id=eq."+senderId},async payload=>{
-const m=payload.new;if(!m||String(m.recipient_id)!==String(senderId))return;if(String(m.sender_id)===String(senderId))return;
-let user=privateChats.find(u=>String(u.id)===String(m.sender_id));
-if(!user){user={id:m.sender_id,nick:m.sender_nickname||"Usuario"};privateChats.push(user);}else if(m.sender_nickname){user.nick=m.sender_nickname;}
-const isActive=activePrivateUser&&String(activePrivateUser.id)===String(m.sender_id);
-if(!isActive){privateUnread.add(String(m.sender_id));renderPrivateTabs();await openPrivateChat(user);}else{addPrivateMessage(m);}
-}).subscribe();
+ if(privateNoticeChannel){db.removeChannel(privateNoticeChannel);privateNoticeChannel=null;}if(!senderId)return;
+ privateNoticeChannel=db.channel("wichat-private-notifications-"+senderId).on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages",filter:"recipient_id=eq."+senderId},payload=>{
+  const m=payload.new;if(!m||String(m.recipient_id)!==String(senderId)||String(m.sender_id)===String(senderId))return;
+  let user=privateChats.find(u=>String(u.id)===String(m.sender_id));
+  if(!user){user={id:m.sender_id,nick:m.sender_nickname||"Usuario"};privateChats.push(user);}else if(m.sender_nickname){user.nick=m.sender_nickname;}
+  const isActive=activePrivateUser&&String(activePrivateUser.id)===String(m.sender_id)&&!$("privateView").classList.contains("hidden");
+  if(isActive){addPrivateMessage(m);}else{incrementPrivateUnread(m.sender_id);showPrivateNotification(user.nick,user);}
+ }).subscribe();
 }
-
+function subscribeReactionNotifications(){
+ if(reactionNoticeChannel){db.removeChannel(reactionNoticeChannel);reactionNoticeChannel=null;}if(!senderId)return;
+ reactionNoticeChannel=db.channel("wichat-reaction-notices-"+senderId).on("postgres_changes",{event:"INSERT",schema:"public",table:"chat_message_reactions"},async payload=>{
+  const reaction=payload.new;if(!reaction||String(reaction.user_id)===String(senderId))return;
+  try{
+   if(reaction.message_id){
+    const {data,error}=await db.from("messages").select("sender_id,nickname").eq("id",reaction.message_id).maybeSingle();
+    if(error||!data||String(data.sender_id)!==String(senderId))return;
+    showChatNotification((data.nickname||"Alguien")+" reaccionó a tu mensaje "+reaction.reaction);
+   }else if(reaction.private_message_id){
+    const {data,error}=await db.from("private_messages").select("sender_id,recipient_id,sender_nickname").eq("id",reaction.private_message_id).maybeSingle();
+    if(error||!data||String(data.sender_id)!==String(senderId))return;
+    showChatNotification("💗 "+(data.sender_nickname||"Alguien")+" reaccionó a tu mensaje privado");
+   }
+  }catch(_){}
+ }).subscribe();
+}
 /* PESTAÑAS PRIVADAS */
 function renderPrivateTabs(){
 const container=$("roomPills");if(!container)return;container.querySelectorAll(".private-tab").forEach(tab=>tab.remove());
 privateChats.forEach(user=>{
 const tab=document.createElement("button");tab.className="private-tab"+(activePrivateUser&&String(activePrivateUser.id)===String(user.id)?" active":"");
 const name=document.createElement("span");name.className="private-tab-name";name.textContent="💬 "+user.nick;tab.appendChild(name);
-if(privateUnread.has(String(user.id))){const unread=document.createElement("span");unread.className="private-unread";unread.textContent="1";tab.appendChild(unread);}
+if((privateUnread.get(String(user.id))||0)>0){const unread=document.createElement("span");unread.className="private-unread";unread.textContent=String(privateUnread.get(String(user.id)));tab.appendChild(unread);}
 const close=document.createElement("span");close.className="private-tab-close";close.textContent="×";close.onclick=e=>{e.stopPropagation();closePrivateTab(user.id);};tab.appendChild(close);
 tab.onclick=()=>switchPrivateTab(user.id);container.appendChild(tab);
 });
@@ -1762,7 +1795,7 @@ if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
 if(reactionChannel){await db.removeChannel(reactionChannel);reactionChannel=null;}reactionContext="";reactionCache.clear();
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
 currentRoomTopic="";$("roomTopic").style.display="none";$("roomTopicText").textContent="Sin tópico";
-if(privateNoticeChannel){await db.removeChannel(privateNoticeChannel);privateNoticeChannel=null;}
+if(privateNoticeChannel){await db.removeChannel(privateNoticeChannel);privateNoticeChannel=null;}if(reactionNoticeChannel){await db.removeChannel(reactionNoticeChannel);reactionNoticeChannel=null;}
 if(moderationChannel){await db.removeChannel(moderationChannel);moderationChannel=null;}
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await presenceChannel.untrack();await db.removeChannel(presenceChannel);presenceChannel=null;}

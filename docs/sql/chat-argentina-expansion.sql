@@ -262,8 +262,8 @@ begin
  if exists(select 1 from public.wichat_room_bans where sender_id=sender_id_input and room_id=room_id_input and expires_at>now()) then return false; end if;
  if user_ip is not null and exists(select 1 from public.wichat_ip_bans where client_ip=user_ip and room_id=room_id_input and expires_at>now()) then return false; end if;
  if exists(select 1 from public.rooms where id=room_id_input and is_vip=true) then
-  if sender_id_input !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then return false; end if;
-  sender_uuid:=sender_id_input::uuid;
+  if auth.uid() is null or sender_id_input is distinct from auth.uid()::text then return false; end if;
+  sender_uuid:=auth.uid();
   if not exists(select 1 from public.chat_vip_members where user_id=sender_uuid) then return false; end if;
  end if;
  return true;

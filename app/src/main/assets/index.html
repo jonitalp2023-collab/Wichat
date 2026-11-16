@@ -1092,7 +1092,14 @@ if(nick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.c
 n.appendChild(document.createTextNode(nick));
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,n);
-const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";div.dataset.reactionMessage=String(m.id);div.append(n,t);$("messages").appendChild(div);renderReactionBar(div,m.id,false);if(!deferReactionLoad)loadMessageReactions(m.id,false);$("messages").scrollTop=$("messages").scrollHeight;
+div.dataset.reactionMessage=String(m.id);
+if(m.message_type==="sticker"||m.message_type==="gif"){
+  const mediaUrl=String(m.media_url||"");
+  if(/^https:\/\//i.test(mediaUrl)){
+    const media=document.createElement("img");media.className="chat-media";media.src=mediaUrl;media.alt=m.message_type==="gif"?"GIF":"Sticker";media.loading="lazy";media.referrerPolicy="no-referrer";media.onerror=()=>{media.replaceWith(document.createTextNode("No se pudo cargar el contenido multimedia."));};div.append(n,media);
+  }else{const fallback=document.createElement("span");fallback.className="msgtext";fallback.textContent="Contenido multimedia no disponible.";div.append(n,fallback);}
+}else{const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";div.append(n,t);}
+$("messages").appendChild(div);renderReactionBar(div,m.id,false);if(!deferReactionLoad)loadMessageReactions(m.id,false);$("messages").scrollTop=$("messages").scrollHeight;
 }
 async function loadRoomMessages(roomId){
 const cutoff=new Date(Date.now()-12*60*60*1000).toISOString();let from=0;const pageSize=500;
@@ -1311,7 +1318,14 @@ const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c5
 if(m.sender_id&&registeredUsers.has(String(m.sender_id)))addRegisteredPlus(who);
 if(privateNick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";who.appendChild(star);}
 who.appendChild(document.createTextNode(privateNick+": "));
-if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.dataset.reactionMessage=String(m.id);div.append(who,msg);box.appendChild(div);renderReactionBar(div,m.id,true);if(!deferReactionLoad)loadMessageReactions(m.id,true);box.scrollTop=box.scrollHeight;
+if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);div.dataset.reactionMessage=String(m.id);
+if(m.message_type==="sticker"||m.message_type==="gif"){
+  const mediaUrl=String(m.media_url||"");
+  if(/^https:\/\//i.test(mediaUrl)){
+    const media=document.createElement("img");media.className="chat-media";media.src=mediaUrl;media.alt=m.message_type==="gif"?"GIF":"Sticker";media.loading="lazy";media.referrerPolicy="no-referrer";media.onerror=()=>{media.replaceWith(document.createTextNode("No se pudo cargar el contenido multimedia."));};div.append(who,media);
+  }else{const fallback=document.createElement("span");fallback.className="msgtext";fallback.textContent="Contenido multimedia no disponible.";div.append(who,fallback);}
+}else{const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);}
+box.appendChild(div);renderReactionBar(div,m.id,true);if(!deferReactionLoad)loadMessageReactions(m.id,true);box.scrollTop=box.scrollHeight;
 }
 async function sendPrivateMessage(){
 if(!activePrivateUser)return;const input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();if(!value)return;btn.disabled=true;

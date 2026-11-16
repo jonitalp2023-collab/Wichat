@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -76,6 +75,7 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .private-message.mine{background:transparent}
 .nickname{font-weight:bold;white-space:nowrap;font-size:15px}
 .admin-star{color:#ffd34d;margin-right:4px}
+.registered-plus{color:#20d66b;font-weight:900;margin-right:5px;font-size:17px;text-shadow:0 0 6px rgba(32,214,107,.35)}
 .msgtext{color:#f4f4f4;white-space:pre-wrap;min-width:0;overflow-wrap:anywhere;font-size:15px;line-height:1.35}
 .composer{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;background:#222}
 .composer input{margin:0;min-width:0;flex:1;padding:15px 17px;background:#303030;border:0;border-radius:30px;color:white;font-size:16px}
@@ -122,10 +122,10 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 .user-menu-card .kick-action{background:#344361}
 .user-menu-card .ban-action{background:#bd394d}
 
-/* PANEL ADMIN: DESPLAZAMIENTO INDEPENDIENTE PARA CELULARES */
+/* PANEL ADMIN: scroll independiente y cómodo en celulares */
 #adminPanel{
-  position:fixed!important;
-  z-index:30000!important;
+  position:fixed;
+  z-index:5000;
   top:calc(env(safe-area-inset-top) + 8px);
   bottom:calc(env(safe-area-inset-bottom) + 8px);
   left:8px;
@@ -139,22 +139,14 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
   background:#141e35;
   border:1px solid #d99b35;
   border-radius:15px;
-
-  display:block;
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-
+  overflow-y:scroll;
+  overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
   overscroll-behavior-y:contain;
   touch-action:pan-y;
   scrollbar-width:thin;
   scrollbar-color:#52749d #141e35;
-
-  pointer-events:auto;
-  isolation:isolate;
-  overscroll-behavior:contain;
 }
-#adminPanel.hidden{display:none!important}
 #adminPanel .row{
   display:flex;
   align-items:center;
@@ -199,39 +191,21 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 #adminPanel .banned-card{
   width:100%;
   overflow-wrap:anywhere;
-  margin:12px 0;
-  padding:12px;
-  border:1px solid #344361;
-  border-radius:10px;
-  background:#101a30;
 }
 #adminPanel .bot-card .bot-actions{
   display:flex;
   flex-wrap:wrap;
   gap:8px;
-  margin-top:10px;
 }
 #adminPanel .bot-card .bot-actions button{
   flex:1 1 120px;
   min-height:45px;
 }
-#adminPanel .bot-active{color:#70dca1;font-size:12px;font-weight:bold}
-#adminPanel .bot-inactive{color:#ff8585;font-size:12px;font-weight:bold}
-#adminPanel .banned-name{display:block;color:#ff8585}
-#adminPanel .banned-details{color:#b9cce5;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
-#adminPanel .unban-button{background:#168bea;width:100%}
 #adminPanel::-webkit-scrollbar{width:7px}
-#adminPanel::-webkit-scrollbar-track{background:#141e35}
 #adminPanel::-webkit-scrollbar-thumb{background:#52749d;border-radius:10px}
 
 @media(max-width:420px){
-  #adminPanel{
-    left:5px;
-    right:5px;
-    top:calc(env(safe-area-inset-top) + 5px);
-    bottom:calc(env(safe-area-inset-bottom) + 5px);
-    padding:13px;
-  }
+  #adminPanel{left:5px;right:5px;padding:13px}
   #adminPanel .row{flex-wrap:wrap}
   #adminPanel .row button{flex:1 1 100%}
   #adminPanel .bot-card .bot-actions button{flex:1 1 100%}
@@ -345,6 +319,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div class="row"><button onclick="saveBot()">➕ Crear bot</button><button class="secondary" onclick="loadBots()">🔄 Actualizar</button></div>
 <p id="botAdminStatus" class="muted"></p>
 <div id="botsList" style="margin-top:12px"><p class="muted">Presioná actualizar para ver los bots.</p></div>
+
 </div></section></div>
 
 <script>
@@ -358,6 +333,9 @@ let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicCh
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
 let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
 let authMode="home";
+let isRegisteredAccount=false;
+const registeredUsers=new Set();
+const checkedProfiles=new Set();
 
 function showLoginMode(mode){
 authMode=mode;
@@ -511,6 +489,40 @@ const general=rooms.find(r=>String(r.name).trim().toLowerCase()==="general");
 if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;else if(general)select.value=general.id;else if(rooms.length)select.value=rooms[0].id;
 if(isAdmin)renderRoomDelete();if(!rooms.length)throw new Error("No hay salas. Creá una desde Administración.");
 }
+async function saveChatProfile(){
+  if(!senderId)return;
+  const {error}=await db.from("chat_profiles").upsert({
+    user_id:senderId,
+    nickname:nickname,
+    is_registered:isRegisteredAccount,
+    updated_at:new Date().toISOString()
+  },{onConflict:"user_id"});
+  if(error)throw new Error("No se pudo guardar el perfil del chat: "+error.message);
+  checkedProfiles.add(String(senderId));
+  if(isRegisteredAccount)registeredUsers.add(String(senderId));
+  else registeredUsers.delete(String(senderId));
+}
+async function loadRegisteredProfiles(){
+  const {data,error}=await db.from("chat_profiles").select("user_id,is_registered").eq("is_registered",true);
+  if(error){console.warn("No se pudieron cargar los perfiles registrados:",error.message);return;}
+  (data||[]).forEach(p=>{if(p.user_id){registeredUsers.add(String(p.user_id));checkedProfiles.add(String(p.user_id));}});
+}
+function addRegisteredPlus(element){
+  if(!element||element.querySelector(".registered-plus"))return;
+  const mark=document.createElement("span");mark.className="registered-plus";mark.textContent="+";mark.setAttribute("aria-label","Usuario registrado");
+  element.insertBefore(mark,element.firstChild);
+}
+async function ensureRegisteredStatus(userId,element){
+  const id=String(userId||"");if(!id)return false;
+  if(registeredUsers.has(id)){addRegisteredPlus(element);return true;}
+  if(checkedProfiles.has(id))return false;
+  checkedProfiles.add(id);
+  const {data,error}=await db.from("chat_profiles").select("is_registered").eq("user_id",id).maybeSingle();
+  if(error){checkedProfiles.delete(id);console.warn("No se pudo consultar el perfil:",error.message);return false;}
+  if(data&&data.is_registered===true){registeredUsers.add(id);addRegisteredPlus(element);return true;}
+  return false;
+}
+
 async function enterChat(){
 if(authMode==="home")authMode="guest";
 showError("");const name=$("nickname").value.trim(),btn=$("enterBtn");
@@ -518,6 +530,7 @@ if(!name){showError("Escribí tu Nick.");return;}
 nickname=name;isAdmin=false;adminPin="";btn.disabled=true;
 try{
 senderId=await ensureAuthUser();
+isRegisteredAccount=authMode==="account";
 if(name.trim().toUpperCase()==="UNIX"){
 const pin=$("adminPin").value.trim();if(!pin)throw new Error("Ingresá el PIN de administrador UNIX.");
 const {data,error}=await db.rpc("verify_admin_pin",{pin_input:pin});
@@ -532,6 +545,8 @@ const {data:allowed,error}=await db.rpc("check_chat_access",{sender_id_input:sen
 if(error)throw error;
 if(!allowed){currentRoom=null;showModerationModal("blocked",selectedRoom?.name||"esta sala",true);btn.disabled=false;return;}
 const available=await claimNickname(nickname);if(!available){currentRoom=null;throw new Error("Este Nick ya está en uso. Elegí otro.");}
+await saveChatProfile();
+await loadRegisteredProfiles();
 $("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
 $("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom);
 subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
@@ -571,12 +586,12 @@ const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Car
 messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new)).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
 presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
 presenceChannel.on("presence",{event:"sync"},updatePresenceList).on("presence",{event:"join"},updatePresenceList).on("presence",{event:"leave"},updatePresenceList).subscribe(async state=>{
-if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,online_at:new Date().toISOString()});updatePresenceList();}
+if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,is_registered:isRegisteredAccount,online_at:new Date().toISOString()});updatePresenceList();}
 });
 }
 function updatePresenceList(){
 if(!presenceChannel)return;const state=presenceChannel.presenceState(),next=new Map();
-Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length){const p=entries[entries.length-1],id=p.sender_id||key;next.set(id,{id,nick:p.nickname||"Usuario",admin:p.is_admin===true});}});
+Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length){const p=entries[entries.length-1],id=p.sender_id||key;next.set(id,{id,nick:p.nickname||"Usuario",admin:p.is_admin===true,registered:p.is_registered===true||registeredUsers.has(String(id))});}});
 roomUsers=next;renderUsers();renderModerationUsers();
 }
 
@@ -607,6 +622,7 @@ if(!users.length){list.innerHTML='<p class="muted">Todavía no hay usuarios cone
 users.forEach(u=>{
 const item=document.createElement("div");item.className="user-item";const dot=document.createElement("span");dot.className="online-dot";
 const name=document.createElement("span");name.className="user-name";
+if(u.registered||registeredUsers.has(String(u.id)))addRegisteredPlus(name);
 if(u.admin&&u.nick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";name.appendChild(star);}
 name.appendChild(document.createTextNode(u.nick));item.append(dot,name);
 if(u.id!==senderId){item.onclick=()=>openUserMenu(u);}else{item.title="Vos";}list.appendChild(item);
@@ -624,9 +640,11 @@ if(!m||receivedIds.has(m.id))return;receivedIds.add(m.id);
 const div=document.createElement("div");div.className="message";const n=document.createElement("strong");n.className="nickname";const nick=m.nickname||"Usuario";let hash=0;
 for(let i=0;i<nick.length;i++)hash=nick.charCodeAt(i)+((hash<<5)-hash);
 const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];n.style.color=colors[Math.abs(hash)%colors.length];
+if(m.sender_id&&registeredUsers.has(String(m.sender_id)))addRegisteredPlus(n);
 if(nick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";n.appendChild(star);}
 n.appendChild(document.createTextNode(nick));
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
+if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,n);
 const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";div.append(n,t);$("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
 }
 async function loadRoomMessages(roomId){
@@ -657,6 +675,7 @@ async function sendMessage(){
       throw new Error("El ID de la sala no es un UUID válido: "+roomId);
     }
 
+    /* Confirma que seguimos usando la sesión anónima correcta. */
     const {data:authData,error:authError}=await db.auth.getSession();
     if(authError)throw authError;
 
@@ -666,6 +685,7 @@ async function sendMessage(){
       throw new Error("La sesión cambió. Salí y volvé a ingresar al chat.");
     }
 
+    /* No se usa .select() después del INSERT para no exigir una política SELECT adicional. */
     const {error:insertError}=await db.from("messages").insert({
       nickname:senderNickname,
       message:value,
@@ -681,6 +701,7 @@ async function sendMessage(){
       nickname:senderNickname
     });
 
+    /* Evita que un bot se dispare a sí mismo. */
     if(senderNickname.toLowerCase()==="mili")return;
 
     const requestBody={
@@ -835,8 +856,10 @@ const who=document.createElement("strong");who.className="nickname";
 const privateNick=String(m.sender_id)===String(senderId)?nickname:(m.sender_nickname||"Usuario");let hash=0;
 for(let i=0;i<privateNick.length;i++)hash=privateNick.charCodeAt(i)+((hash<<5)-hash);
 const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];who.style.color=colors[Math.abs(hash)%colors.length];
+if(m.sender_id&&registeredUsers.has(String(m.sender_id)))addRegisteredPlus(who);
 if(privateNick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";who.appendChild(star);}
-who.appendChild(document.createTextNode(privateNick+": "));const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);box.appendChild(div);box.scrollTop=box.scrollHeight;
+who.appendChild(document.createTextNode(privateNick+": "));
+if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);box.appendChild(div);box.scrollTop=box.scrollHeight;
 }
 async function sendPrivateMessage(){
 if(!activePrivateUser)return;const input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();if(!value)return;btn.disabled=true;
@@ -868,16 +891,13 @@ function openAdmin(){
   const panel=$("adminPanel");
   panel.classList.remove("hidden");
   panel.scrollTop=0;
-
   if(currentRoom)loadRoomTopic(currentRoom);
   renderRoomDelete();
   renderModerationUsers();
   loadBannedUsers();
   loadBots();
 }
-function closeAdmin(){
-  $("adminPanel").classList.add("hidden");
-}
+function closeAdmin(){$("adminPanel").classList.add("hidden");}
 async function createRoom(){
 if(!isAdmin)return;const name=$("newRoomName").value.trim();
 if(!name){$("adminStatus").textContent="Escribí el nombre de la sala.";return;}
@@ -944,6 +964,7 @@ const data=await callAdminApi("unban_user",{target_sender_id:target});
 $("adminStatus").textContent=data?.message||"Usuario desbloqueado correctamente.";await loadBannedUsers();
 }catch(error){$("adminStatus").textContent="Error al desbanear: "+error.message;}
 }
+
 
 /* ADMINISTRACIÓN DE BOTS */
 let editingBotId = null;
@@ -1041,7 +1062,7 @@ if(presenceChannel){await presenceChannel.untrack();await db.removeChannel(prese
 if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null;}
 if(privateNoticeTimer){clearTimeout(privateNoticeTimer);privateNoticeTimer=null;}
 $("privateNotice").style.display="none";receivedIds.clear();privateReceivedIds.clear();roomUsers.clear();activePrivateUser=null;privateChats=[];privateUnread.clear();
-adminPin="";isAdmin=false;currentRoom=null;nickname="";senderId="";renderTabs();
+adminPin="";isAdmin=false;isRegisteredAccount=false;registeredUsers.clear();checkedProfiles.clear();currentRoom=null;nickname="";senderId="";renderTabs();
 $("chat").style.display="none";$("login").style.display="block";document.body.classList.remove("chat-active");$("enterBtn").disabled=false;showLoginMode("home");
 $("messages").innerHTML="";$("privateMessages").innerHTML="";$("privateInput").value="";$("messageInput").value="";
 $("adminPanel").classList.add("hidden");$("adminOpenBtn").classList.add("hidden");$("adminPin").value="";$("adminPinWrap").classList.add("hidden");$("error").textContent="";
@@ -1064,31 +1085,6 @@ window.addEventListener("resize",updateScreen);
 document.addEventListener("focusin",function(event){if(event.target.matches("input,textarea"))setTimeout(updateScreen,50);});
 document.addEventListener("focusout",function(){setTimeout(updateScreen,300);});
 updateScreen();
-})();
-
-/* AJUSTE DEL PANEL ADMIN EN PANTALLAS TÁCTILES */
-(function(){
-const panel=$("adminPanel");
-if(!panel)return;
-
-let startY=0;
-let startScroll=0;
-
-panel.addEventListener("touchstart",function(event){
-  if(!event.touches||!event.touches.length)return;
-  startY=event.touches[0].clientY;
-  startScroll=panel.scrollTop;
-},{passive:true});
-
-panel.addEventListener("touchmove",function(event){
-  if(!event.touches||!event.touches.length)return;
-  const currentY=event.touches[0].clientY;
-  const distance=startY-currentY;
-
-  if(panel.scrollHeight>panel.clientHeight){
-    panel.scrollTop=startScroll+distance;
-  }
-},{passive:true});
 })();
 </script>
 </body>

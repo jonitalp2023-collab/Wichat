@@ -1058,6 +1058,7 @@ async function sendMediaMessage(){
   let parsed;
   try{parsed=new URL(url);}catch(_){alert("Pegá un enlace válido.");return;}
   if(parsed.protocol!=="https:"){alert("Por seguridad, el enlace debe comenzar con HTTPS.");return;}
+  if(parsed.href.length>2048){alert("El enlace es demasiado largo.");return;}
   if(!/\.(png|jpe?g|webp|gif)$/i.test(parsed.pathname)){alert("El enlace debe ser directo a un archivo .png, .jpg, .webp o .gif.");return;}
   btn.disabled=true;
   try{
@@ -1567,7 +1568,7 @@ async function deleteBot(id,name){
 
 /* SALIR */
 async function exitChat(){
-closeUserMenu();selectedMenuUser=null;await releaseNickname();await releaseAccountDeviceSession();
+closeMediaComposer();closeUserMenu();selectedMenuUser=null;await releaseNickname();await releaseAccountDeviceSession();
 if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
 if(reactionChannel){await db.removeChannel(reactionChannel);reactionChannel=null;}reactionContext="";reactionCache.clear();
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}

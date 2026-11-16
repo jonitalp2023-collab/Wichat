@@ -98,14 +98,17 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .user-count{font-size:12px;color:#9baac5;margin-bottom:10px}
 .room-tab{width:100%;text-align:left;margin:5px 0;background:#292929;border:1px solid #383838}
 .room-tab.active{background:#07549a;border-color:#168bea}
-#bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:2000;display:grid;grid-template-columns:repeat(5,1fr);gap:5px;background:#111;border-top:0;padding:7px 10px calc(7px + env(safe-area-inset-bottom));box-shadow:none}
+#bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:2000;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;background:#17191e;border-top:1px solid #292d35;padding:8px 10px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -5px 18px #0004}
 body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:none!important;transition:none!important;z-index:2000}
-.nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:transparent;color:#ddd;padding:7px 3px;font-size:12px}
-.nav-icon{font-size:23px;line-height:25px}
-.nav-btn.active{background:transparent;color:#08a9ed}
-.nav-btn.exit{color:white}
-#adminOpenBtn{color:#ffd34d}
-#adminOpenBtn:active{background:#292929}
+.nav-btn{min-width:0;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:transparent;color:#aab3c2;border-radius:14px;padding:6px 2px;font-size:11px;font-weight:600;letter-spacing:.1px;transition:background .18s ease,color .18s ease,transform .18s ease}
+.nav-btn .nav-icon{width:25px;height:25px;display:flex;align-items:center;justify-content:center;line-height:1}
+.nav-btn .nav-icon svg{width:23px;height:23px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nav-btn.active{background:#075985;color:#fff}
+.nav-btn:active{transform:scale(.96)}
+.nav-btn.exit{color:#aab3c2}
+#adminOpenBtn{color:#facc15}
+#adminOpenBtn.active{background:#51400c;color:#facc15}
+#adminOpenBtn:active{background:#51400c}
 #privateNotice{display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 30px);max-width:500px;background:#168bea;color:white;padding:15px;border-radius:12px;z-index:9999;text-align:center;font-weight:bold;box-shadow:0 5px 20px #0008}
 #moderationModal{display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:20px}
 #moderationModal.show{display:flex}
@@ -329,12 +332,12 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <input id="privateInput" maxlength="1000" placeholder="Escribí un mensaje privado..." onkeydown="if(event.key==='Enter')sendPrivateMessage()">
 <button id="privateSendBtn" class="send-button" onclick="sendPrivateMessage()">➤</button></div></div>
 </div>
-<nav id="bottomNav">
-<button id="navRooms" class="nav-btn active" onclick="showMainTab('rooms')"><span class="nav-icon">☰</span><span>Salas</span></button>
-<button id="navUsers" class="nav-btn" onclick="showMainTab('users')"><span class="nav-icon">♧</span><span>Usuarios</span></button>
-<button id="navChat" class="nav-btn" onclick="showMainTab('chat')"><span class="nav-icon">●</span><span>Chat</span></button>
-<button id="adminOpenBtn" class="nav-btn hidden" onclick="openAdmin()"><span class="nav-icon">⭐</span><span>ADMIN</span></button>
-<button id="navExit" class="nav-btn exit" onclick="exitChat()"><span class="nav-icon">✕</span><span>Salir</span></button>
+<nav id="bottomNav" aria-label="Navegación principal">
+<button id="navRooms" class="nav-btn active" onclick="showMainTab('rooms')" aria-label="Salas"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5"/><rect x="3" y="12" width="18" height="8" rx="1.5"/><path d="M7 6.5h.01M7 16h.01"/></svg></span><span>Salas</span></button>
+<button id="navUsers" class="nav-btn" onclick="showMainTab('users')" aria-label="Usuarios"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Usuarios</span></button>
+<button id="navChat" class="nav-btn" onclick="showMainTab('chat')" aria-label="Chat"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></span><span>Chat</span></button>
+<button id="adminOpenBtn" class="nav-btn hidden" onclick="openAdmin()" aria-label="Administración"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 3z"/><path d="M8 20h8"/></svg></span><span>ADMIN</span></button>
+<button id="navExit" class="nav-btn exit" onclick="exitChat()" aria-label="Salir"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></span><span>Salir</span></button>
 </nav>
 <div id="adminPanel" class="panel admin-box hidden">
   <div class="admin-topbar">

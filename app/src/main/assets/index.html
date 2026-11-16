@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>CHAT ARGENTINA</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 *{box-sizing:border-box}
 html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
@@ -218,12 +217,7 @@ if(!isAdmin||!adminPin)throw new Error("No tenés permisos de administrador.");
 const {data,error}=await db.functions.invoke("admin-api",{body:{action,pin_input:adminPin,...extra}});
 if(error){
 let message=error.message||"Error al comunicarse con Admin API.";
-try{
-if(error.context&&typeof error.context.json==="function"){
-const response=await error.context.json();
-if(response?.message)message=response.message;
-}
-}catch(_){}
+try{if(error.context&&typeof error.context.json==="function"){const response=await error.context.json();if(response?.message)message=response.message;}}catch(_){}
 throw new Error(message);
 }
 if(!data||data.success!==true)throw new Error(data?.message||"La Admin API no respondió correctamente.");
@@ -241,10 +235,7 @@ const channel=db.channel("wichat-online-nicknames",{config:{presence:{key:sender
 nicknameChannel=channel;
 return new Promise((resolve,reject)=>{
 let finished=false;
-const timeout=setTimeout(async()=>{
-if(finished)return;finished=true;if(nicknameChannel===channel)nicknameChannel=null;
-await db.removeChannel(channel);reject(new Error("No se pudo comprobar la disponibilidad del Nick. Intentá nuevamente."));
-},15000);
+const timeout=setTimeout(async()=>{if(finished)return;finished=true;if(nicknameChannel===channel)nicknameChannel=null;await db.removeChannel(channel);reject(new Error("No se pudo comprobar la disponibilidad del Nick. Intentá nuevamente."));},15000);
 channel.subscribe(async status=>{
 if(status==="SUBSCRIBED"&&!finished){
 try{
@@ -252,30 +243,17 @@ const {error}=await channel.track({sender_id:senderId,nickname:name,nickname_key
 if(error)throw error;
 await wait(1200);if(finished)return;
 const state=channel.presenceState(),duplicates=[];
-Object.values(state).forEach(entries=>(entries||[]).forEach(user=>{
-if(String(user.nickname_key||normalizeNickname(user.nickname))===nicknameKey)duplicates.push(String(user.sender_id||""));
-}));
+Object.values(state).forEach(entries=>(entries||[]).forEach(user=>{if(String(user.nickname_key||normalizeNickname(user.nickname))===nicknameKey)duplicates.push(String(user.sender_id||""));}));
 const uniqueIds=[...new Set(duplicates)].sort();
-if(uniqueIds.length>1&&uniqueIds[0]!==String(senderId)){
-finished=true;clearTimeout(timeout);if(nicknameChannel===channel)nicknameChannel=null;
-await db.removeChannel(channel);resolve(false);return;
-}
+if(uniqueIds.length>1&&uniqueIds[0]!==String(senderId)){finished=true;clearTimeout(timeout);if(nicknameChannel===channel)nicknameChannel=null;await db.removeChannel(channel);resolve(false);return;}
 finished=true;clearTimeout(timeout);resolve(true);
-}catch(error){
-if(finished)return;finished=true;clearTimeout(timeout);if(nicknameChannel===channel)nicknameChannel=null;
-await db.removeChannel(channel);reject(error);
+}catch(error){if(finished)return;finished=true;clearTimeout(timeout);if(nicknameChannel===channel)nicknameChannel=null;await db.removeChannel(channel);reject(error);}
 }
-}
-if((status==="CHANNEL_ERROR"||status==="TIMED_OUT")&&!finished){
-finished=true;clearTimeout(timeout);if(nicknameChannel===channel)nicknameChannel=null;
-db.removeChannel(channel);reject(new Error("No se pudo conectar para comprobar el Nick."));
-}
+if((status==="CHANNEL_ERROR"||status==="TIMED_OUT")&&!finished){finished=true;clearTimeout(timeout);if(nicknameChannel===channel)nicknameChannel=null;db.removeChannel(channel);reject(new Error("No se pudo conectar para comprobar el Nick."));}
 });
 });
 }
-async function releaseNickname(){
-if(nicknameChannel){const channel=nicknameChannel;nicknameChannel=null;try{await db.removeChannel(channel);}catch(e){console.log("Error liberando Nick:",e);}}
-}
+async function releaseNickname(){if(nicknameChannel){const channel=nicknameChannel;nicknameChannel=null;try{await db.removeChannel(channel);}catch(e){console.log("Error liberando Nick:",e);}}}
 function showError(s){$("error").textContent=s;}
 
 /* TÓPICOS POR SALA */
@@ -462,10 +440,54 @@ if(error){console.error("Error cargando historial:",error);$("status").textConte
 if(String(currentRoom)!==String(roomId))return;(data||[]).forEach(addMessage);if(!data||data.length<pageSize)break;from+=pageSize;
 }
 }
+
+/* ENVÍO DE MENSAJES + CONEXIÓN CON MILI */
 async function sendMessage(){
-const input=$("messageInput"),btn=$("sendBtn"),value=input.value.trim();if(!value||!nickname||!currentRoom)return;btn.disabled=true;
-try{const {error}=await db.from("messages").insert({nickname,message:value,content:value,room_id:currentRoom,sender_id:senderId});if(error)throw error;input.value="";}
-catch(e){alert("No se pudo enviar el mensaje: "+e.message);}finally{btn.disabled=false;input.focus();}
+  const input = $("messageInput");
+  const btn = $("sendBtn");
+  const value = input.value.trim();
+
+  if (!value || !nickname || !currentRoom) return;
+
+  btn.disabled = true;
+
+  try {
+    const roomId = currentRoom;
+
+    // Primero guardar el mensaje del usuario en la sala
+    const { error } = await db.from("messages").insert({
+      nickname: nickname,
+      message: value,
+      content: value,
+      room_id: roomId,
+      sender_id: senderId
+    });
+
+    if (error) throw error;
+
+    input.value = "";
+
+    // Después avisar a Mili para que analice el mensaje y el contexto de la sala
+    const { data, error: botError } = await db.functions.invoke("chat-bot", {
+      body: {
+        message: value,
+        nickname: nickname,
+        room_id: roomId
+      }
+    });
+
+    if (botError) {
+      console.error("Error al contactar a Mili:", botError);
+    } else {
+      console.log("Respuesta de Mili:", data);
+    }
+
+  } catch (e) {
+    alert("No se pudo enviar el mensaje: " + (e.message || String(e)));
+  } finally {
+    btn.disabled = false;
+    input.focus();
+  }
 }
 
 /* EMOJIS */

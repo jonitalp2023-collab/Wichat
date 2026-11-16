@@ -453,7 +453,7 @@ const SUPABASE_KEY="sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 let nickname="",senderId="",currentRoom=null,rooms=[];
-let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null;
+let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
 let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
@@ -542,34 +542,37 @@ return data.data;
 
 /* SISTEMA DE NICKS ÚNICOS EN LÍNEA */
 function normalizeNickname(name){return String(name||"").trim().toLowerCase();}
-function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 async function claimNickname(name){
 const nicknameKey=normalizeNickname(name);
 if(!nicknameKey)return false;
-if(nicknameChannel)await releaseNickname();
-const channel=db.channel("wichat-online-nicknames",{config:{presence:{key:senderId}}});
-nicknameChannel=channel;
-return new Promise((resolve,reject)=>{
-let finished=false;
-const timeout=setTimeout(async()=>{if(finished)return;finished=true;if(nicknameChannel===channel)nicknameChannel=null;await db.removeChannel(channel);reject(new Error("No se pudo comprobar la disponibilidad del Nick. Intentá nuevamente."));},15000);
-channel.subscribe(async status=>{
-if(status==="SUBSCRIBED"&&!finished){
-try{
-const {error}=await channel.track({sender_id:senderId,nickname:name,nickname_key:nicknameKey});
+if(nicknameLeaseActive)await releaseNickname();
+const {data,error}=await db.rpc("wichat_acquire_nickname",{
+p_nickname:name,
+p_sender_id:senderId,
+p_admin_pin:adminPin||null
+});
 if(error)throw error;
-await wait(1200);if(finished)return;
-const state=channel.presenceState(),duplicates=[];
-Object.values(state).forEach(entries=>(entries||[]).forEach(user=>{if(String(user.nickname_key||normalizeNickname(user.nickname))===nicknameKey)duplicates.push(String(user.sender_id||""));}));
-const uniqueIds=[...new Set(duplicates)].sort();
-if(uniqueIds.length>1&&uniqueIds[0]!==String(senderId)){finished=true;clearTimeout(timeout);if(nicknameChannel===channel)nicknameChannel=null;await db.removeChannel(channel);resolve(false);return;}
-finished=true;clearTimeout(timeout);resolve(true);
-}catch(error){if(finished)return;finished=true;clearTimeout(timeout);if(nicknameChannel===channel)nicknameChannel=null;await db.removeChannel(channel);reject(error);}
+if(data!==true)return false;
+nicknameLeaseActive=true;
+if(nicknameHeartbeatTimer)clearInterval(nicknameHeartbeatTimer);
+nicknameHeartbeatTimer=setInterval(async()=>{
+try{
+const {data:renewed,error:renewError}=await db.rpc("wichat_refresh_nickname",{p_sender_id:senderId});
+if(renewError)throw renewError;
+if(renewed!==true)console.warn("No se pudo renovar la reserva del Nick.");
+}catch(error){console.error("Error renovando la reserva del Nick:",error);}
+},45000);
+return true;
 }
-if((status==="CHANNEL_ERROR"||status==="TIMED_OUT")&&!finished){finished=true;clearTimeout(timeout);if(nicknameChannel===channel)nicknameChannel=null;db.removeChannel(channel);reject(new Error("No se pudo conectar para comprobar el Nick."));}
-});
-});
+async function releaseNickname(){
+if(nicknameHeartbeatTimer){clearInterval(nicknameHeartbeatTimer);nicknameHeartbeatTimer=null;}
+if(nicknameLeaseActive&&senderId){
+try{await db.rpc("wichat_release_nickname",{p_sender_id:senderId});}
+catch(error){console.warn("Error liberando la reserva del Nick:",error);}
 }
-async function releaseNickname(){if(nicknameChannel){const channel=nicknameChannel;nicknameChannel=null;try{await db.removeChannel(channel);}catch(e){console.log("Error liberando Nick:",e);}}}
+nicknameLeaseActive=false;
+if(nicknameChannel){const channel=nicknameChannel;nicknameChannel=null;try{await db.removeChannel(channel);}catch(e){console.log("Error liberando Nick:",e);}}
+}
 function showError(s){$("error").textContent=s;}
 
 /* TÓPICOS POR SALA */

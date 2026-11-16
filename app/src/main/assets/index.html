@@ -1214,7 +1214,7 @@ async function sendPrivateRichMessage(type,value){
 if(!activePrivateUser||$("privateSendBtn").disabled)return;
 const button=$("privateSendBtn");button.disabled=true;
 try{
-const payload={sender_id:senderId,recipient_id:activePrivateUser.id,sender_nickname:nickname,content:type==="sticker"?String(value):"GIF",message_type:type,media_url:type==="gif"?value:null};
+const payload={sender_id:senderId,recipient_id:activePrivateUser.id,sender_nickname:nickname,content:type==="sticker"?String(value):"GIF",message_type:type,media_url:type==="gif"?value:"https://chatargentina.invalid/stickers/"+encodeURIComponent(String(value))};
 const {data,error}=await db.from("private_messages").insert(payload).select().single();if(error)throw error;
 addPrivateMessage(data);closeEmojiPickers();
 }catch(error){alert("No se pudo enviar el contenido privado: "+error.message);}

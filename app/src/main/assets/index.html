@@ -781,6 +781,8 @@ async function saveMyProfile(){
       updated_at:new Date().toISOString()
     },{onConflict:"user_id"});
     if(error)throw error;
+    publicProfileCache.set(String(senderId),{user_id:senderId,avatar_url:avatar||null,status:status||null,bio:bio||null});
+    renderUsers();
     $("myProfileFeedback").textContent="¡Perfil actualizado!";
     setTimeout(closeMyProfile,650);
   }catch(error){

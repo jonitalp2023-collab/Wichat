@@ -1707,7 +1707,7 @@ async function loadModerationHistory(){
   rows.forEach(item=>{
    const card=document.createElement("div");card.className="banned-card";
    const title=document.createElement("strong");title.className="banned-name";
-   title.textContent=(item.action==="ban"?"🚫 Baneo":"🚪 Expulsión")+" · "+(item.nickname||"Usuario");
+   title.textContent=(item.action==="ban"?"🚫 Baneo":item.action==="kick"?"🚪 Expulsión":item.action==="warning_1"?"⚠️ Primera advertencia":item.action==="warning_2"?"🚨 Segunda advertencia":"🛡️ Moderación")+" · "+(item.nickname||"Usuario");
    const detail=document.createElement("p");detail.className="banned-details";
    const room=rooms.find(r=>String(r.id)===String(item.room_id));
    const date=item.created_at?new Date(item.created_at).toLocaleString("es-AR"):"Fecha desconocida";

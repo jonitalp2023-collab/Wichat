@@ -953,7 +953,7 @@ const m=payload.new;if(!m||String(m.recipient_id)!==String(senderId))return;if(S
 let user=privateChats.find(u=>String(u.id)===String(m.sender_id));
 if(!user){user={id:m.sender_id,nick:m.sender_nickname||"Usuario"};privateChats.push(user);}else if(m.sender_nickname){user.nick=m.sender_nickname;}
 const isActive=activePrivateUser&&String(activePrivateUser.id)===String(m.sender_id);
-if(!isActive){privateUnread.add(String(m.sender_id));renderPrivateTabs();showPrivateNotification(user.nick);await openPrivateChat(user);}else{addPrivateMessage(m);}
+if(!isActive){privateUnread.add(String(m.sender_id));renderPrivateTabs();await openPrivateChat(user);}else{addPrivateMessage(m);}
 }).subscribe();
 }
 

@@ -312,6 +312,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <h3 id="userMenuTitle">Usuario</h3>
 <button class="secondary" onclick="userMenuViewProfile()">👤 Ver perfil</button>
 <button class="private-action" onclick="userMenuPrivate()">💬 Enviar mensaje privado</button>
+<button class="secondary" onclick="reportSelectedUser()">🚩 Denunciar usuario</button>
 <div id="adminUserActions" class="hidden">
 <button class="kick-action" onclick="userMenuModerate('kick')">🚪 Echar usuario</button>
 <button class="ban-action" onclick="userMenuModerate('ban')">🚫 Banear usuario</button>
@@ -476,6 +477,12 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <h4>📋 Historial de sanciones</h4><p class="muted">Últimas 100 advertencias, expulsiones y baneos registrados.</p>
       <button class="secondary" onclick="loadModerationHistory()">↻ Ver historial</button>
       <div id="moderationHistoryList" class="admin-list"><p class="muted">Presioná para consultar el historial.</p></div>
+    </div>
+    <div class="admin-card">
+      <h4>🚩 Denuncias de usuarios</h4>
+      <p class="muted">Revisá los reportes enviados por la comunidad y registrá su resolución.</p>
+      <button class="secondary" onclick="loadUserReports()">↻ Actualizar denuncias</button>
+      <div id="userReportsList" class="admin-list"><p class="muted">Presioná para consultar las denuncias.</p></div>
     </div>
     <div class="admin-card">
       <h4>🚫 Usuarios baneados</h4><p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
@@ -945,6 +952,26 @@ function openUserMenu(user){
 if(!user||!user.id||String(user.id)===String(senderId))return;
 selectedMenuUser={id:user.id,nick:user.nick||"Usuario"};$("userMenuTitle").textContent=selectedMenuUser.nick;
 $("adminUserActions").classList.toggle("hidden",!isAdmin);$("userMenuModal").classList.add("show");
+}
+async function reportSelectedUser(){
+ if(!selectedMenuUser||!senderId)return;
+ const target={...selectedMenuUser};
+ const choice=prompt("Motivo de la denuncia:\n1 - Spam\n2 - Insultos\n3 - Acoso\n4 - Contenido inapropiado\n5 - Otro","1");
+ if(choice===null)return;
+ const categories={"1":"spam","2":"insultos","3":"acoso","4":"contenido_inapropiado","5":"otro"};
+ const category=categories[choice.trim()];
+ if(!category){alert("Elegí una categoría válida.");return;}
+ const detailsInput=prompt("Contanos brevemente qué pasó (entre 5 y 500 caracteres):","");
+ if(detailsInput===null)return;
+ const details=detailsInput.trim();
+ if(details.length<5||details.length>500){alert("La descripción debe tener entre 5 y 500 caracteres.");return;}
+ if(!confirm("¿Enviar una denuncia sobre "+target.nick+"? La revisará el equipo de moderación."))return;
+ try{
+  const {error}=await db.from("chat_user_reports").insert({reporter_id:senderId,target_user_id:target.id,room_id:currentRoom,category,details});
+  if(error)throw error;
+  closeUserMenu();
+  alert("Denuncia enviada. Gracias por ayudar a cuidar CHAT ARGENTINA.");
+ }catch(error){alert("No se pudo enviar la denuncia: "+(error.message||"Intentá más tarde."));}
 }
 function closeUserMenu(){$("userMenuModal").classList.remove("show");}
 function closePublicProfile(){$("publicProfileModal").classList.remove("show");}
@@ -1696,6 +1723,42 @@ function formatModerationDuration(minutes){
  if(value>=1440)return "24 horas";
  if(value>=60)return (value/60)+" hora"+(value===60?"":"s");
  return value+" minutos";
+}
+async function loadUserReports(){
+ if(!isAdmin)return;
+ const list=$("userReportsList");if(!list)return;
+ list.innerHTML='<p class="muted">Cargando denuncias...</p>';
+ try{
+  const rows=await callAdminApi("list_user_reports");list.innerHTML="";
+  if(!rows||!rows.length){list.innerHTML='<p class="muted">No hay denuncias registradas.</p>';return;}
+  rows.forEach(report=>{
+   const card=document.createElement("div");card.className="banned-card";
+   const title=document.createElement("strong");title.className="banned-name";
+   const labels={spam:"Spam",insultos:"Insultos",acoso:"Acoso",contenido_inapropiado:"Contenido inapropiado",otro:"Otro"};
+   title.textContent="🚩 "+report.target_nickname+" · "+(labels[report.category]||"Denuncia");
+   const detail=document.createElement("p");detail.className="banned-details";
+   const room=rooms.find(r=>String(r.id)===String(report.room_id));
+   detail.textContent="Denunció: "+report.reporter_nickname+" · "+(room?.name||"Sala desconocida")+" · "+new Date(report.created_at).toLocaleString("es-AR")+" · "+report.details;
+   card.append(title,detail);
+   const status=document.createElement("p");status.className="muted";
+   status.textContent="Estado: "+({pending:"Pendiente",reviewed:"Revisada",dismissed:"Descartada",action_taken:"Se tomó una medida"}[report.status]||report.status);
+   card.appendChild(status);
+   if(report.status==="pending"){
+    const actions=document.createElement("div");actions.className="row";
+    [["reviewed","Marcar revisada"],["action_taken","Tomar medida"],["dismissed","Descartar"]].forEach(item=>{
+     const button=document.createElement("button");button.className="secondary";button.textContent=item[1];
+     button.onclick=()=>reviewUserReport(report.id,item[0]);actions.appendChild(button);
+    });
+    card.appendChild(actions);
+   }
+   list.appendChild(card);
+  });
+ }catch(error){list.textContent="Error al cargar denuncias: "+error.message;}
+}
+async function reviewUserReport(reportId,status){
+ if(!isAdmin)return;
+ try{await callAdminApi("review_user_report",{report_id:reportId,report_status:status});await loadUserReports();}
+ catch(error){alert("No se pudo actualizar la denuncia: "+error.message);}
 }
 async function loadModerationHistory(){
  if(!isAdmin)return;

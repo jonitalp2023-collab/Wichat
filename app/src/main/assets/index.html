@@ -521,7 +521,7 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,reactionChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;let accountSessionHeartbeatTimer=null,accountSessionLeaseActive=false,accountDeviceId=null;
-let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
+let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="",privateConversationRequestId=0;
 let adminStatsChannel=null,adminStatsMessageCount=null,adminStatsRefreshTimer=null,adminStatsRefreshRequest=0;
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
 let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
@@ -1276,11 +1276,11 @@ else await sendRichMessage("[[CHATARG_GIF:"+encodeURIComponent(parsed.href)+"]]"
 }
 async function sendPrivateRichMessage(type,value){
 if(!activePrivateUser||$("privateSendBtn").disabled)return;
-const button=$("privateSendBtn");button.disabled=true;
+const recipientId=activePrivateUser.id,button=$("privateSendBtn");button.disabled=true;
 try{
-const payload={sender_id:senderId,recipient_id:activePrivateUser.id,sender_nickname:nickname,content:type==="sticker"?String(value):"GIF",message_type:type,media_url:type==="gif"?value:"https://chatargentina.invalid/stickers/"+encodeURIComponent(String(value))};
+const payload={sender_id:senderId,recipient_id:recipientId,sender_nickname:nickname,content:type==="sticker"?String(value):"GIF",message_type:type,media_url:type==="gif"?value:"https://chatargentina.invalid/stickers/"+encodeURIComponent(String(value))};
 const {data,error}=await db.from("private_messages").insert(payload).select().single();if(error)throw error;
-addPrivateMessage(data);closeEmojiPickers();
+if(activePrivateUser&&String(activePrivateUser.id)===String(recipientId)){addPrivateMessage(data);closeEmojiPickers();}
 }catch(error){alert("No se pudo enviar el contenido privado: "+error.message);}
 finally{button.disabled=false;$("privateInput").focus();}
 }
@@ -1338,12 +1338,15 @@ async function openPrivateChat(user){
 if(!user||String(user.id)===String(senderId))return;let existing=privateChats.find(u=>String(u.id)===String(user.id));if(!existing)privateChats.push({id:user.id,nick:user.nick});await switchPrivateTab(user.id);
 }
 async function switchPrivateTab(userId){
-const user=privateChats.find(u=>String(u.id)===String(userId));if(!user)return;activePrivateUser=user;privateUnread.delete(String(userId));renderPrivateTabs();privateReceivedIds.clear();
+const user=privateChats.find(u=>String(u.id)===String(userId));if(!user)return;
+const requestId=++privateConversationRequestId;
+activePrivateUser=user;privateUnread.delete(String(userId));renderPrivateTabs();privateReceivedIds.clear();
 $("chatView").classList.add("hidden");$("usersView").classList.add("hidden");$("roomsView").classList.add("hidden");$("privateView").classList.remove("hidden");$("roomTopic").style.display="none";
 $("navUsers").classList.remove("active");$("navRooms").classList.remove("active");$("navChat").classList.remove("active");
 $("privateMessages").innerHTML='<p class="muted">Cargando conversación...</p>';
-if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
-await loadPrivateMessages();if(!activePrivateUser||String(activePrivateUser.id)!==String(userId))return;
+if(privateChannel){const oldChannel=privateChannel;privateChannel=null;await db.removeChannel(oldChannel);}
+if(requestId!==privateConversationRequestId)return;
+await loadPrivateMessages(userId,requestId);if(requestId!==privateConversationRequestId||!activePrivateUser||String(activePrivateUser.id)!==String(userId))return;
 privateChannel=db.channel("wichat-private-"+senderId+"-"+userId).on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages"},payload=>{
 const m=payload.new;if(!m)return;
 if((String(m.sender_id)===String(senderId)&&String(m.recipient_id)===String(userId))||(String(m.sender_id)===String(userId)&&String(m.recipient_id)===String(senderId)))addPrivateMessage(m);
@@ -1353,15 +1356,18 @@ function closePrivateTab(userId){
 const index=privateChats.findIndex(u=>String(u.id)===String(userId));if(index===-1)return;
 const wasActive=activePrivateUser&&String(activePrivateUser.id)===String(userId);privateChats.splice(index,1);privateUnread.delete(String(userId));
 if(wasActive){
+privateConversationRequestId++;
 if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}activePrivateUser=null;privateReceivedIds.clear();$("privateMessages").innerHTML="";
 if(privateChats.length){const next=privateChats[Math.max(0,index-1)]||privateChats[0];switchPrivateTab(next.id);}else{backToUsers();}
 }
 renderPrivateTabs();
 }
-async function loadPrivateMessages(){
-if(!activePrivateUser)return;const other=activePrivateUser.id;
+async function loadPrivateMessages(userId,requestId){
+const other=userId||activePrivateUser?.id;if(!other)return;
+const expectedRequestId=requestId??privateConversationRequestId;
 const filter="and(sender_id.eq."+senderId+",recipient_id.eq."+other+"),and(sender_id.eq."+other+",recipient_id.eq."+senderId+")";
 const {data,error}=await db.from("private_messages").select("*").or(filter).order("created_at",{ascending:true});
+if(expectedRequestId!==privateConversationRequestId||!activePrivateUser||String(activePrivateUser.id)!==String(other))return;
 if(error){$("privateMessages").textContent="No se pudo cargar la conversación: "+error.message;return;}
 $("privateMessages").innerHTML="";privateReceivedIds.clear();privateReactionRows.clear();(data||[]).forEach(addPrivateMessage);
 if(!(data||[]).length)$("privateMessages").innerHTML='<p class="muted">Todavía no hay mensajes. ¡Saludá!</p>';
@@ -1390,12 +1396,13 @@ const reactions=document.createElement("div");reactions.className="private-messa
 div.append(who,msg,reactions);box.appendChild(div);renderPrivateMessageReactions(m.id);box.scrollTop=box.scrollHeight;
 }
 async function sendPrivateMessage(){
-if(!activePrivateUser)return;const input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();if(!value)return;btn.disabled=true;
-try{const {data,error}=await db.from("private_messages").insert({sender_id:senderId,recipient_id:activePrivateUser.id,sender_nickname:nickname,content:value}).select().single();if(error)throw error;addPrivateMessage(data);input.value="";}
+if(!activePrivateUser)return;const recipientId=activePrivateUser.id,input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();if(!value)return;btn.disabled=true;
+try{const {data,error}=await db.from("private_messages").insert({sender_id:senderId,recipient_id:recipientId,sender_nickname:nickname,content:value}).select().single();if(error)throw error;if(activePrivateUser&&String(activePrivateUser.id)===String(recipientId)){addPrivateMessage(data);input.value="";}}
 catch(e){alert("No se pudo enviar el mensaje privado: "+e.message);}finally{btn.disabled=false;input.focus();}
 }
 async function backToUsers(){
-if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}activePrivateUser=null;privateReceivedIds.clear();
+privateConversationRequestId++;
+if(privateChannel){const oldChannel=privateChannel;privateChannel=null;await db.removeChannel(oldChannel);}activePrivateUser=null;privateReceivedIds.clear();
 $("privateView").classList.add("hidden");$("usersView").classList.remove("hidden");$("roomsView").classList.add("hidden");$("chatView").classList.add("hidden");$("roomTopic").style.display="none";
 $("navUsers").classList.add("active");$("navRooms").classList.remove("active");$("navChat").classList.remove("active");$("privateInput").value="";closeEmojiPickers();renderPrivateTabs();
 }

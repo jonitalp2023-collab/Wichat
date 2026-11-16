@@ -725,15 +725,20 @@ if(isAdmin&&$("roomTopicInput"))$("roomTopicInput").value=currentRoomTopic;
 async function saveRoomTopic(){
 if(!isAdmin||!currentRoom)return;
 const input=$("roomTopicInput"),status=$("topicAdminStatus"),topic=input.value.trim();
-const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:currentRoom,topic_input:topic||null});
-status.textContent=error?"Error: "+error.message:"Tópico guardado correctamente.";
-if(!error)await loadRoomTopic(currentRoom);
+try{
+await callAdminApi("set_room_topic",{room_id_input:Number(currentRoom),topic_input:topic||null});
+status.textContent="Tópico guardado correctamente.";
+await loadRoomTopic(currentRoom);
+}catch(error){status.textContent="Error: "+error.message;}
 }
 async function deleteRoomTopic(){
 if(!isAdmin||!currentRoom)return;
-const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:currentRoom,topic_input:null});
-$("topicAdminStatus").textContent=error?"Error: "+error.message:"Tópico borrado.";
-if(!error){$("roomTopicInput").value="";await loadRoomTopic(currentRoom);}
+try{
+await callAdminApi("set_room_topic",{room_id_input:Number(currentRoom),topic_input:null});
+$("topicAdminStatus").textContent="Tópico borrado.";
+$("roomTopicInput").value="";
+await loadRoomTopic(currentRoom);
+}catch(error){$("topicAdminStatus").textContent="Error: "+error.message;}
 }
 
 /* MODERACIÓN */
@@ -1520,8 +1525,8 @@ const roomId=$("vipRoomSelect").value,enabled=$("vipRoomMode").value==="true";
 if(!roomId){$("vipRoomStatus").textContent="Elegí una sala.";return;}
 $("vipRoomStatus").textContent="Actualizando acceso VIP...";
 try{
-const {data,error}=await db.rpc("admin_set_room_vip",{pin_input:adminPin,room_id_input:Number(roomId),vip_enabled:enabled});
-if(error)throw error;if(data!==true)throw new Error("No se pudo actualizar la sala.");
+const data=await callAdminApi("set_room_vip",{room_id_input:Number(roomId),vip_enabled:enabled});
+if(data!==true)throw new Error("No se pudo actualizar la sala.");
 await fetchRooms();renderTabs();renderRoomDelete();
 $("vipRoomStatus").textContent=enabled?"La sala ahora es VIP.":"La sala ahora es pública.";
 }catch(error){$("vipRoomStatus").textContent="No se pudo cambiar el acceso VIP: "+error.message;}
@@ -1532,8 +1537,8 @@ const targetNick=$("vipMemberNickname").value.trim(),enabled=$("vipMemberMode").
 if(!targetNick){$("vipMemberStatus").textContent="Escribí el Nick exacto del usuario.";return;}
 $("vipMemberStatus").textContent="Actualizando membresía VIP...";
 try{
-const {data,error}=await db.rpc("admin_set_vip_member",{pin_input:adminPin,nickname_input:targetNick,vip_enabled:enabled});
-if(error)throw error;if(data!==true)throw new Error("No se pudo actualizar la membresía.");
+const data=await callAdminApi("set_vip_member",{nickname_input:targetNick,vip_enabled:enabled});
+if(data!==true)throw new Error("No se pudo actualizar la membresía.");
 $("vipMemberStatus").textContent=enabled?"Membresía VIP otorgada a "+targetNick+".":"Membresía VIP quitada a "+targetNick+".";
 $("vipMemberNickname").value="";
 }catch(error){$("vipMemberStatus").textContent="No se pudo cambiar la membresía: "+error.message;}

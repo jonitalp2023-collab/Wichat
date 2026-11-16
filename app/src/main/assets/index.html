@@ -750,7 +750,7 @@ const select=$("initialRoom"),previous=select.value;select.innerHTML="";
 rooms.forEach(r=>{const o=document.createElement("option");o.value=r.id;o.textContent=r.name;select.appendChild(o);});
 const general=rooms.find(r=>String(r.name).trim().toLowerCase()==="general");
 if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;else if(general)select.value=general.id;else if(rooms.length)select.value=rooms[0].id;
-if(isAdmin)renderRoomDelete();if(!rooms.length)throw new Error("No hay salas. Creá una desde Administración.");
+if(isAdmin){renderRoomDelete();updateAdminStats();}if(!rooms.length)throw new Error("No hay salas. Creá una desde Administración.");
 }
 async function saveChatProfile(){
   if(!senderId)return;

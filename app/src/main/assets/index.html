@@ -743,13 +743,13 @@ if(!error){$("roomTopicInput").value="";await loadRoomTopic(currentRoom);}
 }
 
 /* MODERACIÓN */
-function showModerationModal(action,roomName,blocked=false,reason=""){
+function showModerationModal(action,roomName,blocked=false,reason="",durationMinutes=5){
 const title=$("moderationTitle"),message=$("moderationMessage"),button=$("moderationModal").querySelector("button");
 if(blocked){title.textContent="⛔ Acceso restringido";message.textContent="No podés entrar a la sala "+roomName+". Tu expulsión o baneo sigue vigente. Podrás volver cuando termine el plazo.";}
 else if(action==="warning_1"){title.textContent="⚠️ Primera advertencia";message.textContent="El bot de CHAT ARGENTINA te avisa que está prohibido escribir insultos. Por favor, respetá a los demás usuarios. A la tercera infracción serás expulsado durante cinco minutos.";}
 else if(action==="warning_2"){title.textContent="🚨 Segunda advertencia";message.textContent="Esta es tu segunda advertencia por utilizar insultos. Si volvés a hacerlo, serás expulsado automáticamente durante cinco minutos.";}
-else if(action==="ban"){title.textContent="🚫 Fuiste baneado";message.textContent="UNIX te baneó de CHAT ARGENTINA en la sala "+roomName+" durante cinco minutos.";}
-else if(action==="kick"){title.textContent="🚪 Fuiste expulsado";message.textContent="UNIX te expulsó de la sala "+roomName+" durante cinco minutos.";}
+else if(action==="ban"){title.textContent="🚫 Fuiste baneado";message.textContent="UNIX te baneó de CHAT ARGENTINA en la sala "+roomName+" durante "+(durationMinutes>=1440?"24 horas":durationMinutes>=60?(durationMinutes/60)+" hora(s)":durationMinutes+" minutos")+".";}
+else if(action==="kick"){title.textContent="🚪 Fuiste expulsado";message.textContent="UNIX te expulsó de la sala "+roomName+" durante "+(durationMinutes>=1440?"24 horas":durationMinutes>=60?(durationMinutes/60)+" hora(s)":durationMinutes+" minutos")+".";}
 else{title.textContent="🚫 Acceso restringido";message.textContent="Tu acceso a la sala "+roomName+" fue restringido durante cinco minutos.";}
 if(reason){message.textContent+="\n\nMotivo indicado por el administrador: "+reason;}
 button.textContent=(action==="warning_1"||action==="warning_2")?"ENTENDIDO":"CERRAR";$("moderationModal").classList.add("show");
@@ -760,9 +760,9 @@ if(moderationChannel){db.removeChannel(moderationChannel);moderationChannel=null
 if(!senderId)return;
 moderationChannel=db.channel("wichat-moderation-"+senderId).on("postgres_changes",{event:"INSERT",schema:"public",table:"wichat_moderation_events",filter:"sender_id=eq."+senderId},async payload=>{
 const event=payload.new;if(!event||String(event.sender_id)!==String(senderId))return;if(String(event.room_id)!==String(currentRoom))return;
-const room=rooms.find(r=>String(r.id)===String(event.room_id)),roomName=room?.name||"esta sala",action=String(event.action||"");
+const room=rooms.find(r=>String(r.id)===String(event.room_id)),roomName=room?.name||"esta sala",action=String(event.action||""),durationMinutes=Number(event.duration_minutes||5);
 if(action==="warning_1"||action==="warning_2"){showModerationModal(action,roomName);return;}
-if(action==="ban"||action==="kick"){const reason=String(event.reason||"");await exitChat();showModerationModal(action,roomName,false,reason);}
+if(action==="ban"||action==="kick"){const reason=String(event.reason||"");await exitChat();showModerationModal(action,roomName,false,reason,durationMinutes);}
 }).subscribe();
 }
 $("nickname").addEventListener("input",()=>{const admin=$("nickname").value.trim().toUpperCase()==="UNIX";$("adminPinWrap").classList.toggle("hidden",!admin);});

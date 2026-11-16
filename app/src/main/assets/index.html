@@ -868,7 +868,7 @@ const {data,error}=await db.from("chat_profiles").select("nickname,bio,avatar_ur
 if(error)throw error;
 const p=data||{};
 $("profileNickname").textContent=p.nickname||nick||"Usuario";
-if(p.avatar_url&&/^https?:\\/\\//i.test(p.avatar_url)){$("profileAvatar").src=p.avatar_url;$("profileAvatar").classList.remove("hidden");}
+if(p.avatar_url&&(p.avatar_url.toLowerCase().startsWith("https://")||p.avatar_url.toLowerCase().startsWith("http://"))){$("profileAvatar").src=p.avatar_url;$("profileAvatar").classList.remove("hidden");}
 $("profileStatus").textContent=p.status||"Sin estado";
 $("profileBio").textContent=p.bio||"Todavía no agregó una descripción.";
 if(own){$("profileAvatarInput").value=p.avatar_url||"";$("profileStatusInput").value=p.status||"";$("profileBioInput").value=p.bio||"";}

@@ -684,11 +684,13 @@ async function sendMessage(){
 
   const roomId=String(currentRoom).trim();
   const senderNickname=String(nickname).trim();
-  const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  // Las salas existentes pueden tener ID numérico (por ejemplo, 1)
+  // o UUID. Se conserva el ID original para que coincida con la base de datos.
+  const roomIdPattern=/^(?:[1-9][0-9]*|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
 
   try{
-    if(!uuidPattern.test(roomId)){
-      throw new Error("El ID de la sala no es un UUID válido: "+roomId);
+    if(!roomIdPattern.test(roomId)){
+      throw new Error("El ID de la sala no es válido: "+roomId);
     }
 
     /* Confirma que seguimos usando la sesión anónima correcta. */

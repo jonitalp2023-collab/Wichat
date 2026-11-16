@@ -1624,7 +1624,7 @@ async function deleteBot(id,name){
 
 /* SALIR */
 async function exitChat(){
-closeMediaComposer();closeUserMenu();selectedMenuUser=null;await releaseNickname();await releaseAccountDeviceSession();
+stopAdminStatsLive();closeMediaComposer();closeUserMenu();selectedMenuUser=null;await releaseNickname();await releaseAccountDeviceSession();
 if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
 if(reactionChannel){await db.removeChannel(reactionChannel);reactionChannel=null;}reactionContext="";reactionCache.clear();
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}

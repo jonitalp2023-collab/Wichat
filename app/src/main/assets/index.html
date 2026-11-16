@@ -476,8 +476,10 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <div class="admin-stat"><span>💬</span><small>SALAS CREADAS</small><strong id="adminStatRoomsDetail">0</strong></div>
       <div class="admin-stat"><span>👥</span><small>USUARIOS EN SALA ACTUAL</small><strong id="adminStatUsersDetail">0</strong></div>
       <div class="admin-stat"><span>🤖</span><small>BOTS CONFIGURADOS</small><strong id="adminStatBotsDetail">—</strong></div>
+      <div class="admin-stat"><span>✉️</span><small>MENSAJES TOTALES</small><strong id="adminStatMessagesDetail">—</strong></div>
+      <div class="admin-stat"><span>🟢</span><small>CUENTAS REGISTRADAS</small><strong id="adminStatRegisteredDetail">—</strong></div>
     </div>
-    <p class="muted">Estos indicadores muestran los datos disponibles en la sesión actual. No representan estadísticas históricas.</p>
+    <p class="muted">Los mensajes se actualizan en tiempo real mientras el panel está abierto. Las cuentas registradas se consultan al abrir Estadísticas.</p>
   </section>
 
   <section class="admin-section" id="adminSectionSettings">
@@ -505,6 +507,7 @@ const $=id=>document.getElementById(id);
 let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,reactionChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;let accountSessionHeartbeatTimer=null,accountSessionLeaseActive=false,accountDeviceId=null;
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
+let adminStatsChannel=null,adminStatsMessageCount=null;
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
 let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
 let authMode="home";
@@ -856,7 +859,7 @@ if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderI
 function updatePresenceList(){
 if(!presenceChannel)return;const state=presenceChannel.presenceState(),next=new Map();
 Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length){const p=entries[entries.length-1],id=p.sender_id||key;next.set(id,{id,nick:p.nickname||"Usuario",admin:p.is_admin===true,registered:p.is_registered===true||registeredUsers.has(String(id))});}});
-roomUsers=next;renderUsers();renderModerationUsers();
+roomUsers=next;renderUsers();renderModerationUsers();updateAdminStats();
 }
 
 /* PERFILES PERSONALIZADOS */
@@ -1330,13 +1333,31 @@ function adminShowSection(section){
   if(panel)panel.scrollTop=0;
 }
 function updateAdminStats(){
-  const roomCount=rooms.length;
-  const userCount=roomUsers.size;
-  const values={
-    adminStatRooms:roomCount,adminStatUsers:userCount,
-    adminStatRoomsDetail:roomCount,adminStatUsersDetail:userCount
-  };
+  const roomCount=rooms.length,userCount=roomUsers.size;
+  const values={adminStatRooms:roomCount,adminStatUsers:userCount,adminStatRoomsDetail:roomCount,adminStatUsersDetail:userCount};
   Object.entries(values).forEach(([id,value])=>{const el=$(id);if(el)el.textContent=String(value);});
+  if(adminStatsMessageCount!==null){const el=$("adminStatMessagesDetail");if(el)el.textContent=String(adminStatsMessageCount);}
+}
+async function refreshAdminHistoricalStats(){
+  if(!isAdmin)return;
+  const [messagesResult,profilesResult]=await Promise.all([
+    db.from("messages").select("id",{count:"exact",head:true}),
+    db.from("chat_profiles").select("user_id",{count:"exact",head:true}).eq("is_registered",true)
+  ]);
+  if(messagesResult.error)console.warn("No se pudo consultar el total de mensajes:",messagesResult.error.message);
+  else{adminStatsMessageCount=messagesResult.count||0;const el=$("adminStatMessagesDetail");if(el)el.textContent=String(adminStatsMessageCount);}
+  if(profilesResult.error)console.warn("No se pudo consultar el total de cuentas:",profilesResult.error.message);
+  else{const el=$("adminStatRegisteredDetail");if(el)el.textContent=String(profilesResult.count||0);}
+}
+function subscribeAdminStats(){
+  if(!isAdmin||adminStatsChannel)return;
+  adminStatsChannel=db.channel("wichat-admin-live-stats")
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},()=>{
+      if(adminStatsMessageCount===null)return;
+      adminStatsMessageCount++;
+      const el=$("adminStatMessagesDetail");if(el)el.textContent=String(adminStatsMessageCount);
+    })
+    .subscribe(status=>{if(status==="SUBSCRIBED")refreshAdminHistoricalStats();});
 }
 
 /* ADMINISTRACIÓN */
@@ -1355,8 +1376,12 @@ function openAdmin(){
   renderModerationUsers();
   loadBannedUsers();
   loadBots();
+  subscribeAdminStats();
 }
-function closeAdmin(){$("adminPanel").classList.add("hidden");}
+function closeAdmin(){
+  $("adminPanel").classList.add("hidden");
+  if(adminStatsChannel){db.removeChannel(adminStatsChannel);adminStatsChannel=null;}
+}
 async function createRoom(){
 if(!isAdmin)return;const name=$("newRoomName").value.trim();
 if(!name){$("adminStatus").textContent="Escribí el nombre de la sala.";return;}

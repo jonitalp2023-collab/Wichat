@@ -132,18 +132,21 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
   right:8px;
   width:auto;
   max-width:680px;
-  height:auto;
-  max-height:none;
+  height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+  max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+  min-height:0;
   margin:0 auto;
   padding:16px;
   background:#141e35;
   border:1px solid #d99b35;
   border-radius:15px;
-  overflow-y:scroll;
+  display:block;
+  overflow-y:auto;
   overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
   overscroll-behavior-y:contain;
   touch-action:pan-y;
+  scrollbar-gutter:stable;
   scrollbar-width:thin;
   scrollbar-color:#52749d #141e35;
 }
@@ -932,20 +935,37 @@ rooms.forEach(r=>{const option=document.createElement("option");option.value=r.i
 if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
 }
 async function deleteRoom(){
-if(!isAdmin)return;const id=$("roomToDelete").value;
-if(!id){$("adminStatus").textContent="Elegí una sala.";return;}
-const room=rooms.find(r=>String(r.id)===String(id));
-if(!confirm('¿Seguro que querés eliminar la sala "'+(room?.name||"")+'"?'))return;
+if(!isAdmin)return;
+const select=$("roomToDelete"),id=String(select.value||"").trim();
+const status=$("adminStatus");
+if(!id){status.textContent="Elegí una sala.";return;}
+const room=rooms.find(r=>String(r.id)===id);
+if(!room){status.textContent="No se encontró la sala seleccionada. Actualizá la lista e intentá nuevamente.";await fetchRooms();renderRoomDelete();return;}
+if(!confirm('¿Seguro que querés eliminar la sala "'+room.name+'"?'))return;
+status.textContent="Eliminando sala...";
 try{
-await callAdminApi("delete_room",{room_id_input:id});
-$("adminStatus").textContent="Sala eliminada correctamente.";
-const wasCurrent=String(currentRoom)===String(id);await fetchRooms();
-if(wasCurrent){
-if(rooms.length){currentRoom=rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||rooms[0].id;await switchRoom(currentRoom);}
-else{$("status").textContent="No quedan salas. Creá una nueva desde Administración.";$("messages").innerHTML="";}
+  // Se envían ambos nombres de parámetro para compatibilidad con la versión
+  // desplegada de Admin API, conservando el ID original (numérico o UUID).
+  await callAdminApi("delete_room",{room_id_input:id,room_id:id});
+  await fetchRooms();
+  const wasCurrent=String(currentRoom)===id;
+  if(wasCurrent){
+    if(rooms.length){
+      currentRoom=rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||rooms[0].id;
+      await switchRoom(currentRoom);
+    }else{
+      currentRoom=null;
+      $("status").textContent="No quedan salas. Creá una nueva desde Administración.";
+      $("messages").innerHTML="";
+    }
+  }
+  renderTabs();
+  renderRoomDelete();
+  status.textContent="Sala eliminada correctamente.";
+}catch(error){
+  console.error("ERROR ELIMINANDO SALA:",error);
+  status.textContent="No se pudo eliminar la sala: "+(error.message||String(error))+". La operación debe estar habilitada en la función admin-api de Supabase.";
 }
-renderTabs();renderRoomDelete();
-}catch(error){$("adminStatus").textContent="Error al eliminar sala: "+error.message;}
 }
 async function moderateUser(action){
 if(!isAdmin)return;const target=$("userToModerate").value;

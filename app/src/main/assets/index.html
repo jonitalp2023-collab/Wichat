@@ -1024,6 +1024,21 @@ if(String(currentRoom)!==String(roomId))return;(data||[]).forEach(addMessage);if
 await loadRoomReactions(roomId);
 }
 
+/* PROTECCIÓN ANTI-SPAM EN EL CLIENTE.
+   El trigger de Supabase sigue siendo la protección definitiva para todos los dispositivos. */
+const localChatSendEvents=[];
+function checkLocalChatRate(body){
+const now=Date.now(),normalized=String(body||"").trim().toLowerCase().replace(/\\s+/g," ");
+for(let i=localChatSendEvents.length-1;i>=0;i--)if(now-localChatSendEvents[i].time>60000)localChatSendEvents.splice(i,1);
+const recent=localChatSendEvents.filter(x=>now-x.time<10000);
+if(recent.length>=6)return "Estás enviando mensajes demasiado rápido. Esperá unos segundos.";
+if(recent.length&&now-recent[0].time<1200)return "Esperá un momento antes de enviar otro mensaje.";
+if(localChatSendEvents.filter(x=>x.body===normalized).length>=2)return "Detectamos mensajes repetidos. Cambiá el texto antes de volver a enviarlo.";
+return "";
+}
+function recordLocalChatSend(body){localChatSendEvents.push({time:Date.now(),body:String(body||"").trim().toLowerCase().replace(/\\s+/g," ")});}
+function showAntiSpamError(message){alert(message||"Esperá un momento antes de enviar otro mensaje.");}
+
 /* ENVÍO DE MENSAJES + CONEXIÓN CON LOS BOTS */
 async function sendMessage(){
   const input=$("messageInput");
@@ -1031,6 +1046,8 @@ async function sendMessage(){
   const value=input.value.trim();
 
   if(!value||!nickname||!currentRoom||btn.disabled)return;
+  const localLimitMessage=checkLocalChatRate(value);
+  if(localLimitMessage){showAntiSpamError(localLimitMessage);return;}
 
   btn.disabled=true;
 
@@ -1063,6 +1080,7 @@ async function sendMessage(){
       sender_id:senderId
     });
     if(insertError)throw insertError;
+    recordLocalChatSend(value);
 
     input.value="";
     console.log("MENSAJE PUBLICADO:",{
@@ -1162,6 +1180,7 @@ picker.appendChild(grid);picker.classList.add("open");
 }
 async function sendRichMessage(value){
 const input=$("messageInput"),button=$("sendBtn");if(!nickname||!currentRoom||button.disabled)return;
+const localLimitMessage=checkLocalChatRate(value);if(localLimitMessage){showAntiSpamError(localLimitMessage);return;}
 button.disabled=true;
 try{
 const roomId=String(currentRoom).trim(),roomIdPattern=/^(?:[1-9][0-9]*|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
@@ -1170,6 +1189,7 @@ const {data:authData,error:authError}=await db.auth.getSession();if(authError)th
 if(!authData?.session?.user?.id||String(authData.session.user.id)!==String(senderId))throw new Error("La sesión cambió. Salí y volvé a ingresar al chat.");
 const {error}=await db.from("messages").insert({nickname:String(nickname).trim(),message:value,room_id:roomId,sender_id:senderId});
 if(error)throw error;
+recordLocalChatSend(value);
 closeEmojiPickers();input.focus();
 }catch(error){alert("No se pudo enviar: "+error.message);}
 finally{button.disabled=false;}

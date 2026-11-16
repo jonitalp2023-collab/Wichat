@@ -429,6 +429,17 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <p id="roomWelcomeStatus" class="muted"></p>
     </div>
     <div class="admin-card">
+      <h4>🗓️ Mensajes programados</h4>
+      <p class="muted">Prepará un anuncio para que se publique automáticamente en una sala en la fecha y hora elegidas.</p>
+      <select id="scheduledRoomSelect"><option value="">Elegí una sala</option></select>
+      <textarea id="scheduledMessageInput" maxlength="500" rows="3" placeholder="Escribí el mensaje que se publicará..."></textarea>
+      <label style="display:block;margin:8px 0;color:#b9cce5;font-size:13px">Fecha y hora de publicación</label>
+      <input id="scheduledAtInput" type="datetime-local">
+      <div class="row"><button onclick="scheduleRoomAnnouncement()">Programar mensaje</button><button class="secondary" onclick="loadScheduledAnnouncements()">Actualizar lista</button></div>
+      <p id="scheduledAnnouncementStatus" class="muted"></p>
+      <div id="scheduledAnnouncementsList" class="muted">No se cargaron los mensajes programados.</div>
+    </div>
+    <div class="admin-card">
       <h4>➕ Crear una sala</h4><p class="muted">Agregá un nuevo espacio de conversación.</p>
       <div class="row"><input id="newRoomName" maxlength="30" placeholder="Nombre de la sala"><button onclick="createRoom()">Crear sala</button></div>
     </div>
@@ -775,6 +786,79 @@ async function clearRoomWelcome(){
  $("roomWelcomeInput").value="";
  await saveRoomWelcome();
 }
+/* MENSAJES AUTOMÁTICOS PROGRAMADOS */
+function refreshScheduledRoomSelect(){
+ const select=$("scheduledRoomSelect");if(!select)return;
+ const previous=select.value;select.innerHTML='<option value="">Elegí una sala</option>';
+ rooms.forEach(room=>{const option=document.createElement("option");option.value=room.id;option.textContent=room.name;select.appendChild(option);});
+ if(rooms.some(room=>String(room.id)===String(previous)))select.value=previous;
+}
+function setScheduledDateMinimum(){
+ const input=$("scheduledAtInput");if(!input)return;
+ const local=new Date(Date.now()-new Date().getTimezoneOffset()*60000);
+ input.min=local.toISOString().slice(0,16);
+}
+async function scheduleRoomAnnouncement(){
+ if(!isAdmin)return;
+ const roomId=$("scheduledRoomSelect").value;
+ const message=$("scheduledMessageInput").value.trim();
+ const dateValue=$("scheduledAtInput").value;
+ const status=$("scheduledAnnouncementStatus");
+ if(!roomId||!message||!dateValue){status.textContent="Elegí una sala, escribí el mensaje y seleccioná fecha y hora.";return;}
+ const scheduledAt=new Date(dateValue);
+ if(!Number.isFinite(scheduledAt.getTime())||scheduledAt.getTime()<=Date.now()){status.textContent="La fecha y hora deben ser futuras.";return;}
+ status.textContent="Programando mensaje...";
+ try{
+  const {data,error}=await db.rpc("admin_schedule_announcement",{pin_input:adminPin,room_id_input:Number(roomId),message_input:message,scheduled_at_input:scheduledAt.toISOString()});
+  if(error)throw error;
+  $("scheduledMessageInput").value="";
+  $("scheduledAtInput").value="";
+  status.textContent="Mensaje programado correctamente.";
+  await loadScheduledAnnouncements();
+ }catch(error){status.textContent="No se pudo programar: "+(error.message||String(error));}
+}
+async function loadScheduledAnnouncements(){
+ if(!isAdmin)return;
+ const list=$("scheduledAnnouncementsList");if(!list)return;
+ refreshScheduledRoomSelect();setScheduledDateMinimum();
+ list.textContent="Cargando mensajes programados...";
+ try{
+  const {data,error}=await db.rpc("admin_list_scheduled_announcements",{pin_input:adminPin});
+  if(error)throw error;
+  list.innerHTML="";
+  if(!data||!data.length){list.textContent="Todavía no hay mensajes programados.";return;}
+  data.forEach(item=>{
+   const card=document.createElement("div");card.className="banned-card";
+   const room=rooms.find(r=>String(r.id)===String(item.room_id));
+   const title=document.createElement("strong");title.className="banned-name";
+   title.textContent=(item.status==="pending"?"⏳ ":item.status==="sent"?"✅ ":"✖️ ")+(room?.name||("Sala "+item.room_id));
+   const detail=document.createElement("p");detail.className="banned-details";
+   const date=item.scheduled_at?new Date(item.scheduled_at).toLocaleString("es-AR"):"Fecha no disponible";
+   detail.textContent=date+" · "+item.message;
+   card.append(title,detail);
+   if(item.status==="pending"){
+    const cancel=document.createElement("button");cancel.className="danger";cancel.textContent="Cancelar programación";
+    cancel.onclick=()=>cancelScheduledAnnouncement(item.id);
+    card.appendChild(cancel);
+   }else{
+    const state=document.createElement("p");state.className="muted";
+    state.textContent=item.status==="sent"?"Publicado":"Cancelado";card.appendChild(state);
+   }
+   list.appendChild(card);
+  });
+ }catch(error){list.textContent="Error al cargar la lista: "+(error.message||String(error));}
+}
+async function cancelScheduledAnnouncement(id){
+ if(!isAdmin||!confirm("¿Querés cancelar este mensaje programado?"))return;
+ const status=$("scheduledAnnouncementStatus");
+ try{
+  const {data,error}=await db.rpc("admin_cancel_scheduled_announcement",{pin_input:adminPin,announcement_id_input:id});
+  if(error)throw error;
+  status.textContent=data?"Programación cancelada.":"El mensaje ya fue publicado o cancelado.";
+  await loadScheduledAnnouncements();
+ }catch(error){status.textContent="No se pudo cancelar: "+(error.message||String(error));}
+}
+
 async function loadRoomTopic(roomId){
 const bar=$("roomTopic");if(!bar)return;
 const {data,error}=await db.from("chat_room_topics").select("topic").eq("room_id",roomId).maybeSingle();
@@ -1665,6 +1749,7 @@ function openAdmin(){
   renderModerationUsers();
   loadBannedUsers();
   loadBots();
+  loadScheduledAnnouncements();
   startAdminStatsLive();
 }
 function closeAdmin(){stopAdminStatsLive();$("adminPanel").classList.add("hidden");}

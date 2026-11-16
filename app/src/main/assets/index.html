@@ -105,56 +105,93 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 .user-menu-card .kick-action{background:#344361}
 .user-menu-card .ban-action{background:#bd394d}
 
-/* PANEL ADMIN UNIX: fuera del contenedor del chat y con scroll propio */
-#adminPanel {
-  display:block;
-  position:fixed !important;
-  z-index:5000 !important;
-  top:calc(env(safe-area-inset-top) + 8px) !important;
-  bottom:auto !important;
-  left:8px !important;
-  right:8px !important;
-  width:auto !important;
+/* PANEL ADMIN: scroll independiente y cómodo en celulares */
+#adminPanel{
+  position:fixed;
+  z-index:5000;
+  top:calc(env(safe-area-inset-top) + 8px);
+  bottom:calc(env(safe-area-inset-bottom) + 8px);
+  left:8px;
+  right:8px;
+  width:auto;
   max-width:680px;
-  height:calc(100vh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
-  height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
-  max-height:none !important;
-  margin:0 auto !important;
-  padding:16px 13px 45px !important;
+  height:auto;
+  max-height:none;
+  margin:0 auto;
+  padding:16px;
   background:#141e35;
   border:1px solid #d99b35;
   border-radius:15px;
-  overflow-x:hidden !important;
-  overflow-y:auto !important;
+  overflow-y:scroll;
+  overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
   overscroll-behavior-y:contain;
   touch-action:pan-y;
   scrollbar-width:thin;
   scrollbar-color:#52749d #141e35;
 }
-#adminPanel .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-#adminPanel .row input { flex:1 1 180px; min-width:0; }
-#adminPanel .row button { flex:1 1 120px; min-height:46px; }
+#adminPanel .row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#adminPanel .row input{
+  flex:1 1 180px;
+  min-width:0;
+}
+#adminPanel .row button{
+  flex:1 1 auto;
+  min-height:44px;
+}
 #adminPanel input,
 #adminPanel select,
-#adminPanel textarea {
-  width:100%; min-height:46px; font-size:16px; margin:8px 0;
+#adminPanel textarea{
+  width:100%;
+  min-height:45px;
+  font-size:16px;
+  margin:8px 0;
 }
-#adminPanel textarea { min-height:120px; resize:vertical; line-height:1.45; }
-#adminPanel button { min-height:46px; white-space:normal; overflow-wrap:anywhere; }
-#adminPanel h3 { color:#ffd34d; font-size:18px; }
-#adminPanel h4 { color:#8ecbff; font-size:15px; margin-top:22px; margin-bottom:7px; }
-#adminPanel .muted { line-height:1.5; }
+#adminPanel textarea{
+  min-height:120px;
+  resize:vertical;
+  line-height:1.45;
+}
+#adminPanel button{
+  min-height:44px;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+#adminPanel h3{color:#ffd34d;font-size:18px}
+#adminPanel h4{
+  color:#8ecbff;
+  font-size:15px;
+  margin-top:22px;
+  margin-bottom:7px;
+}
+#adminPanel .muted{line-height:1.5}
 #adminPanel .bot-card,
-#adminPanel .banned-card { width:100%; overflow-wrap:anywhere; }
-#adminPanel .bot-card .bot-actions { display:flex; flex-wrap:wrap; gap:8px; }
-#adminPanel .bot-card .bot-actions button { flex:1 1 120px; min-height:46px; }
-#adminPanel::-webkit-scrollbar { width:7px; }
-#adminPanel::-webkit-scrollbar-thumb { background:#52749d; border-radius:10px; }
-@media(max-width:420px) {
-  #adminPanel { left:5px !important; right:5px !important; padding:13px 11px 45px !important; }
-  #adminPanel .row button,
-  #adminPanel .bot-card .bot-actions button { flex:1 1 100%; }
+#adminPanel .banned-card{
+  width:100%;
+  overflow-wrap:anywhere;
+}
+#adminPanel .bot-card .bot-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+#adminPanel .bot-card .bot-actions button{
+  flex:1 1 120px;
+  min-height:45px;
+}
+#adminPanel::-webkit-scrollbar{width:7px}
+#adminPanel::-webkit-scrollbar-thumb{background:#52749d;border-radius:10px}
+
+@media(max-width:420px){
+  #adminPanel{left:5px;right:5px;padding:13px}
+  #adminPanel .row{flex-wrap:wrap}
+  #adminPanel .row button{flex:1 1 100%}
+  #adminPanel .bot-card .bot-actions button{flex:1 1 100%}
 }
 @media(min-width:701px){body.chat-active .container{max-width:850px;margin:auto}}
 body.chat-active #chatView,body.chat-active #privateView{display:flex;flex-direction:column;flex:1 1 0;min-height:0;overflow:hidden}
@@ -217,7 +254,6 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <button id="adminOpenBtn" class="nav-btn hidden" onclick="openAdmin()"><span class="nav-icon">⭐</span><span>ADMIN</span></button>
 <button id="navExit" class="nav-btn exit" onclick="exitChat()"><span class="nav-icon">✕</span><span>Salir</span></button>
 </nav>
-</section></div>
 <div id="adminPanel" class="panel admin-box hidden">
 <div class="row" style="justify-content:space-between"><h3 style="margin:0">Administración UNIX ⭐</h3><button class="secondary" onclick="closeAdmin()">Cerrar</button></div>
 <hr style="border-color:#344361;margin:20px 0">
@@ -243,8 +279,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <p id="botAdminStatus" class="muted"></p>
 <div id="botsList" style="margin-top:12px"><p class="muted">Presioná actualizar para ver los bots.</p></div>
 
-</div>
-
+</div></section></div>
 
 <script>
 const SUPABASE_URL="https://pqnnzkqxkndzelsbtxvv.supabase.co";
@@ -495,32 +530,116 @@ if(String(currentRoom)!==String(roomId))return;(data||[]).forEach(addMessage);if
 }
 }
 
-/* ENVÍO DE MENSAJES + CONEXIÓN CON MILI */
+/* ENVÍO DE MENSAJES + CONEXIÓN CON LOS BOTS */
 async function sendMessage(){
-const input=$("messageInput"),btn=$("sendBtn"),value=input.value.trim();
-if(!value||!nickname||!currentRoom||btn.disabled)return;
-btn.disabled=true;
-const roomId=currentRoom,senderNickname=nickname;
-try{
-const {error}=await db.from("messages").insert({nickname:senderNickname,message:value,room_id:roomId,sender_id:senderId});
-if(error)throw error;
-input.value="";
-/* Evita que Mili se responda a sí misma y genere un ciclo. */
-if(senderNickname.trim().toLowerCase()==="mili")return;
-/* El nombre debe coincidir con el slug desplegado: Chat-Bot. */
-const {data,error:botError}=await db.functions.invoke("Chat-Bot",{body:{message:value,nickname:senderNickname,room_id:roomId}});
-if(botError){
-console.error("ERROR AL ACTIVAR LOS BOTS:",botError);let detail=botError.message||"Error desconocido";
-try{if(botError.context&&typeof botError.context.json==="function"){const response=await botError.context.json();detail=response?.error||response?.message||detail;}}catch(_){}
-alert("Tu mensaje se publicó, pero los bots no pudieron responder:\n\n"+detail);return;
-}
-if(!data||data.success!==true){
-console.error("RESPUESTA DE MILI:",data);
-alert("Tu mensaje se publicó, pero los bots no pudieron responder:\n\n"+(data?.error||data?.message||"Respuesta inválida del servidor."));return;
-}
-console.log("RESPUESTA DE LOS BOTS:",data);
-}catch(error){console.error("ERROR EN SENDMESSAGE:",error);alert("No se pudo completar el envío:\n"+(error.message||String(error)));}
-finally{btn.disabled=false;input.focus();}
+  const input=$("messageInput");
+  const btn=$("sendBtn");
+  const value=input.value.trim();
+
+  if(!value||!nickname||!currentRoom||btn.disabled)return;
+
+  btn.disabled=true;
+
+  const roomId=String(currentRoom).trim();
+  const senderNickname=String(nickname).trim();
+  const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+  try{
+    if(!uuidPattern.test(roomId)){
+      throw new Error("El ID de la sala no es un UUID válido: "+roomId);
+    }
+
+    /* Confirma que seguimos usando la sesión anónima correcta. */
+    const {data:authData,error:authError}=await db.auth.getSession();
+    if(authError)throw authError;
+
+    const session=authData?.session;
+    if(!session?.user?.id)throw new Error("No hay una sesión activa. Salí y volvé a ingresar al chat.");
+    if(String(session.user.id)!==String(senderId)){
+      throw new Error("La sesión cambió. Salí y volvé a ingresar al chat.");
+    }
+
+    /* No se usa .select() después del INSERT para no exigir una política SELECT adicional. */
+    const {error:insertError}=await db.from("messages").insert({
+      nickname:senderNickname,
+      message:value,
+      room_id:roomId,
+      sender_id:senderId
+    });
+    if(insertError)throw insertError;
+
+    input.value="";
+    console.log("MENSAJE PUBLICADO:",{
+      room_id:roomId,
+      sender_id:senderId,
+      nickname:senderNickname
+    });
+
+    /* Evita que un bot se dispare a sí mismo. */
+    if(senderNickname.toLowerCase()==="mili")return;
+
+    const requestBody={
+      message:value,
+      nickname:senderNickname,
+      room_id:roomId
+    };
+
+    console.log("ACTIVANDO CHAT-BOT:",requestBody);
+
+    const {data,error:botError}=await db.functions.invoke("Chat-Bot",{
+      body:requestBody
+    });
+
+    if(botError){
+      console.error("ERROR EDGE FUNCTION CHAT-BOT:",botError);
+
+      let detail=botError.message||"Error desconocido.";
+      try{
+        const response=botError.context;
+        if(response&&typeof response.clone==="function"){
+          const responseCopy=response.clone();
+          let responseBody;
+          try{
+            responseBody=await responseCopy.json();
+          }catch(_){
+            responseBody={message:await responseCopy.text()};
+          }
+          detail=responseBody?.error||responseBody?.message||detail;
+          console.error("RESPUESTA HTTP DE CHAT-BOT:",responseBody);
+        }
+      }catch(readError){
+        console.error("No se pudo leer el detalle de Chat-Bot:",readError);
+      }
+
+      alert("Tu mensaje se publicó, pero los bots no pudieron responder:\n\n"+detail);
+      return;
+    }
+
+    console.log("RESPUESTA COMPLETA DE CHAT-BOT:",data);
+
+    if(!data||data.success!==true){
+      const detail=data?.error||data?.message||"Respuesta inválida del servidor.";
+      alert("Tu mensaje se publicó, pero los bots no pudieron responder:\n\n"+detail);
+      return;
+    }
+
+    if(Array.isArray(data.errors)&&data.errors.length){
+      console.error("ERRORES INDIVIDUALES DE LOS BOTS:",data.errors);
+      const details=data.errors.map(item=>(item.bot||"Bot")+": "+(item.error||"Error desconocido")).join("\n");
+      if(!data.replied){
+        alert("El servidor recibió el mensaje, pero ningún bot pudo responder:\n\n"+details);
+      }
+    }else if(!data.replied){
+      console.warn("Chat-Bot se ejecutó, pero no hubo respuestas:",data);
+    }
+
+  }catch(error){
+    console.error("ERROR EN SENDMESSAGE:",error);
+    alert("No se pudo completar el envío:\n\n"+(error.message||String(error)));
+  }finally{
+    btn.disabled=false;
+    input.focus();
+  }
 }
 
 /* EMOJIS */
@@ -644,7 +763,6 @@ function openAdmin(){
   const panel=$("adminPanel");
   panel.classList.remove("hidden");
   panel.scrollTop=0;
-  requestAnimationFrame(()=>{ panel.scrollTop=0; });
   if(currentRoom)loadRoomTopic(currentRoom);
   renderRoomDelete();
   renderModerationUsers();

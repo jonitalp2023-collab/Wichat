@@ -281,7 +281,6 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 </head>
 <body>
 <div id="privateNotice" role="status" aria-live="polite"></div>
-<button id="notificationSoundToggle" class="notification-settings" onclick="toggleNotificationSound()">🔔 Sonido: sí</button>
 <div id="profileModal" onclick="if(event.target===this)closeMyProfile()">
 <div class="profile-card">
 <h2>✏️ Mi perfil</h2>
@@ -530,7 +529,7 @@ let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activ
 let reactionChannel=null,reactionContext="";
 const reactionCache=new Map();
 const reactionEmojis=["👍","❤️","😂","😮","😢","👏","🔥"];
-let privateChats=[],privateUnread=new Map(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null,notificationSoundEnabled=true;
+let privateChats=[],privateUnread=new Map(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
 let authMode="home";
 let isRegisteredAccount=false;
 const registeredUsers=new Set();
@@ -1373,12 +1372,7 @@ input.value=input.value.slice(0,start)+emoji+input.value.slice(end);input.focus(
 
 /* NOTIFICACIONES Y MENSAJES SIN LEER */
 function playChatNotificationSound(){
- if(!notificationSoundEnabled)return;
- try{const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;const ctx=new AudioCtx(),osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="sine";osc.frequency.value=880;gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.12,ctx.currentTime+.02);gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.22);osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.23);osc.onended=()=>ctx.close();}catch(_){}
-}
-function toggleNotificationSound(){
- notificationSoundEnabled=!notificationSoundEnabled;
- $("notificationSoundToggle").textContent=notificationSoundEnabled?"🔔 Sonido: sí":"🔕 Sonido: no";
+ return;
 }
 function showChatNotification(message,action){
  const notice=$("privateNotice");notice.textContent=message;notice.style.display="block";notice.onclick=typeof action==="function"?action:null;

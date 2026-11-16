@@ -240,3 +240,33 @@ else 'Principiante' end as medal
 from public.chat_profiles p left join public.chat_points_ledger l on l.user_id=p.user_id
 group by p.user_id,p.nickname;
 grant select on public.chat_points_ranking to authenticated;
+-- Salas VIP y membresías. El acceso se valida en check_chat_access, servidor-side.
+alter table public.rooms add column if not exists is_vip boolean not null default false;
+create table if not exists public.chat_vip_members(user_id uuid primary key,granted_at timestamptz not null default now(),granted_by text,note text);
+alter table public.chat_vip_members enable row level security;
+revoke all on public.chat_vip_members from anon,authenticated;
+grant select on public.chat_vip_members to authenticated;
+drop policy if exists chat_vip_members_read_own on public.chat_vip_members;
+create policy chat_vip_members_read_own on public.chat_vip_members for select to authenticated using(user_id=auth.uid());
+-- check_chat_access conserva bloqueos globales, por sala e IP, y además exige membresía VIP.
+create or replace function public.check_chat_access(sender_id_input text,room_id_input bigint)
+returns boolean language plpgsql security definer set search_path to 'public' as $function$
+declare headers json; ip_text text; user_ip inet; sender_uuid uuid;
+begin
+ headers:=coalesce(nullif(current_setting('request.headers',true),'')::json,'{}'::json);
+ ip_text:=nullif(trim(headers->>'cf-connecting-ip'),'');
+ if ip_text is null then ip_text:=nullif(trim(split_part(coalesce(headers->>'x-forwarded-for',''),',',1)),''); end if;
+ if ip_text is not null then begin user_ip:=ip_text::inet; exception when others then user_ip:=null; end; end if;
+ if user_ip is not null then insert into public.wichat_user_ips(sender_id,client_ip,updated_at) values(sender_id_input,user_ip,now()) on conflict(sender_id) do update set client_ip=excluded.client_ip,updated_at=now(); end if;
+ if exists(select 1 from public.wichat_bans where sender_id=sender_id_input and (expires_at is null or expires_at>now())) then return false; end if;
+ if exists(select 1 from public.wichat_room_bans where sender_id=sender_id_input and room_id=room_id_input and expires_at>now()) then return false; end if;
+ if user_ip is not null and exists(select 1 from public.wichat_ip_bans where client_ip=user_ip and room_id=room_id_input and expires_at>now()) then return false; end if;
+ if exists(select 1 from public.rooms where id=room_id_input and is_vip=true) then
+  if sender_id_input !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then return false; end if;
+  sender_uuid:=sender_id_input::uuid;
+  if not exists(select 1 from public.chat_vip_members where user_id=sender_uuid) then return false; end if;
+ end if;
+ return true;
+end;$function$;
+revoke all on function public.check_chat_access(text,bigint) from public;
+grant execute on function public.check_chat_access(text,bigint) to anon,authenticated;

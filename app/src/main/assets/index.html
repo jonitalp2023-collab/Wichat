@@ -77,6 +77,7 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .admin-star{color:#ffd34d;margin-right:4px}
 .registered-plus{color:#20d66b;font-weight:900;margin-right:5px;font-size:17px;text-shadow:0 0 6px rgba(32,214,107,.35)}
 .msgtext{color:#f4f4f4;white-space:pre-wrap;min-width:0;overflow-wrap:anywhere;font-size:15px;line-height:1.35}
+.message-reactions{display:flex;flex-basis:100%;flex-wrap:wrap;gap:5px;margin:3px 0 0 0}.reaction-btn{padding:3px 7px;border:1px solid #3b4658;border-radius:14px;background:#252f40;color:#fff;font-size:12px;line-height:1.5;min-width:30px}.reaction-btn.mine{border-color:#2698ed;background:#123e63}.private-message .message-reactions{margin-top:5px}
 .composer{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;background:#222}
 .composer input{margin:0;min-width:0;flex:1;padding:15px 17px;background:#303030;border:0;border-radius:30px;color:white;font-size:16px}
 .send-button{width:53px;height:53px;min-width:53px;border-radius:50%;background:#08a9ed;font-size:25px;padding:0}
@@ -485,6 +486,9 @@ let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;let accountSessionHeartbeatTimer=null,accountSessionLeaseActive=false,accountDeviceId=null;
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
+let reactionChannel=null,reactionContext="";
+const reactionCache=new Map();
+const reactionEmojis=["👍","❤️","😂","😮","😢","👏","🔥"];
 let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
 let authMode="home";
 let isRegisteredAccount=false;
@@ -870,7 +874,7 @@ if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
 currentRoom=id;showMainTab("chat");$("roomTopic").style.display="flex";$("roomTopicText").textContent="Cargando tópico...";$("roomTopic").classList.add("empty");await loadRoomTopic(id);
 topicChannel=db.channel("wichat-room-topic-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id)).subscribe();
-receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();renderUsers();
+receivedIds.clear();roomUsers.clear();reactionCache.clear();$("messages").innerHTML="";subscribeMessageReactions("public");renderTabs();renderUsers();
 const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";
 messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new)).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
 presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
@@ -950,6 +954,73 @@ roomUsers.forEach(u=>{if(u.id===senderId)return;const o=document.createElement("
 if(Array.from(s.options).some(o=>o.value===old))s.value=old;
 }
 
+/* REACCIONES A MENSAJES PÚBLICOS Y PRIVADOS */
+function reactionKey(isPrivate,id){return (isPrivate?"private:":"public:")+String(id);}
+function renderReactionBar(container,messageId,isPrivate){
+  const key=reactionKey(isPrivate,messageId);
+  let bar=container.querySelector(".message-reactions");
+  if(!bar){bar=document.createElement("div");bar.className="message-reactions";container.appendChild(bar);}
+  bar.innerHTML="";
+  const rows=reactionCache.get(key)||[];
+  reactionEmojis.forEach(emoji=>{
+    const matching=rows.filter(row=>row.reaction===emoji);
+    const mine=matching.some(row=>String(row.user_id)===String(senderId));
+    const button=document.createElement("button");
+    button.type="button";button.className="reaction-btn"+(mine?" mine":"");
+    button.textContent=emoji+(matching.length?" "+matching.length:"");
+    button.title=mine?"Quitar tu reacción":"Reaccionar";
+    button.onclick=()=>toggleMessageReaction(messageId,isPrivate,emoji);
+    bar.appendChild(button);
+  });
+}
+async function loadMessageReactions(messageId,isPrivate){
+  if(!messageId||!senderId)return;
+  const column=isPrivate?"private_message_id":"message_id";
+  const {data,error}=await db.from("chat_message_reactions").select("id,user_id,reaction").eq(column,messageId);
+  if(error){console.warn("No se pudieron cargar las reacciones:",error.message);return;}
+  reactionCache.set(reactionKey(isPrivate,messageId),data||[]);
+  const selector=isPrivate?"#privateMessages":"#messages";
+  const container=$(isPrivate?"privateMessages":"messages");
+  const messageNode=container?.querySelector('[data-reaction-message="'+String(messageId)+'"]');
+  if(messageNode)renderReactionBar(messageNode,messageId,isPrivate);
+}
+async function toggleMessageReaction(messageId,isPrivate,emoji){
+  if(!senderId||!reactionEmojis.includes(emoji))return;
+  const column=isPrivate?"private_message_id":"message_id";
+  try{
+    const {data:existing,error:findError}=await db.from("chat_message_reactions").select("id").eq(column,messageId).eq("user_id",senderId).eq("reaction",emoji).maybeSingle();
+    if(findError)throw findError;
+    if(existing){
+      const {error}=await db.from("chat_message_reactions").delete().eq("id",existing.id).eq("user_id",senderId);
+      if(error)throw error;
+    }else{
+      const payload={user_id:senderId,reaction:emoji};
+      payload[column]=messageId;
+      const {error}=await db.from("chat_message_reactions").insert(payload);
+      if(error)throw error;
+    }
+    await loadMessageReactions(messageId,isPrivate);
+  }catch(error){
+    console.error("No se pudo guardar la reacción:",error);
+    alert("No se pudo guardar la reacción: "+(error.message||"Error desconocido"));
+  }
+}
+function subscribeMessageReactions(context){
+  if(reactionChannel){db.removeChannel(reactionChannel);reactionChannel=null;}
+  reactionContext=context;
+  reactionChannel=db.channel("wichat-reactions-"+context+"-"+(context==="private"?(activePrivateUser?.id||""):(currentRoom||"")))
+    .on("postgres_changes",{event:"*",schema:"public",table:"chat_message_reactions"},payload=>{
+      const row=payload.new&&Object.keys(payload.new).length?payload.new:payload.old;
+      if(!row)return;
+      if(reactionContext==="private"&&row.private_message_id&&activePrivateUser){
+        const other=String(activePrivateUser.id);
+        if((String(row.user_id)===String(senderId))||true)loadMessageReactions(row.private_message_id,true);
+      }else if(reactionContext==="public"&&row.message_id){
+        loadMessageReactions(row.message_id,false);
+      }
+    }).subscribe();
+}
+
 /* MENSAJES PÚBLICOS */
 function addMessage(m){
 if(!m||receivedIds.has(m.id))return;receivedIds.add(m.id);
@@ -961,7 +1032,7 @@ if(nick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.c
 n.appendChild(document.createTextNode(nick));
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,n);
-const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";div.append(n,t);$("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
+const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";div.dataset.reactionMessage=String(m.id);div.append(n,t);$("messages").appendChild(div);renderReactionBar(div,m.id,false);loadMessageReactions(m.id,false);$("messages").scrollTop=$("messages").scrollHeight;
 }
 async function loadRoomMessages(roomId){
 const cutoff=new Date(Date.now()-12*60*60*1000).toISOString();let from=0;const pageSize=500;
@@ -1143,6 +1214,7 @@ const user=privateChats.find(u=>String(u.id)===String(userId));if(!user)return;a
 $("chatView").classList.add("hidden");$("usersView").classList.add("hidden");$("roomsView").classList.add("hidden");$("privateView").classList.remove("hidden");$("roomTopic").style.display="none";
 $("navUsers").classList.remove("active");$("navRooms").classList.remove("active");$("navChat").classList.remove("active");
 $("privateMessages").innerHTML='<p class="muted">Cargando conversación...</p>';
+reactionCache.clear();subscribeMessageReactions("private");
 if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
 await loadPrivateMessages();if(!activePrivateUser||String(activePrivateUser.id)!==String(userId))return;
 privateChannel=db.channel("wichat-private-"+senderId+"-"+userId).on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages"},payload=>{
@@ -1177,7 +1249,7 @@ const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c5
 if(m.sender_id&&registeredUsers.has(String(m.sender_id)))addRegisteredPlus(who);
 if(privateNick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";who.appendChild(star);}
 who.appendChild(document.createTextNode(privateNick+": "));
-if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);box.appendChild(div);box.scrollTop=box.scrollHeight;
+if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.dataset.reactionMessage=String(m.id);div.append(who,msg);box.appendChild(div);renderReactionBar(div,m.id,true);loadMessageReactions(m.id,true);box.scrollTop=box.scrollHeight;
 }
 async function sendPrivateMessage(){
 if(!activePrivateUser)return;const input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();if(!value)return;btn.disabled=true;
@@ -1421,6 +1493,7 @@ async function deleteBot(id,name){
 async function exitChat(){
 closeUserMenu();selectedMenuUser=null;await releaseNickname();await releaseAccountDeviceSession();
 if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
+if(reactionChannel){await db.removeChannel(reactionChannel);reactionChannel=null;}reactionContext="";reactionCache.clear();
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
 currentRoomTopic="";$("roomTopic").style.display="none";$("roomTopicText").textContent="Sin tópico";
 if(privateNoticeChannel){await db.removeChannel(privateNoticeChannel);privateNoticeChannel=null;}

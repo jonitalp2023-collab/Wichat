@@ -270,3 +270,35 @@ begin
 end;$function$;
 revoke all on function public.check_chat_access(text,bigint) from public;
 grant execute on function public.check_chat_access(text,bigint) to anon,authenticated;
+-- Administración segura de salas y membresías VIP: exige PIN UNIX validado en servidor.
+create or replace function public.admin_set_room_vip(pin_input text,room_id_input bigint,vip_enabled boolean)
+returns boolean language plpgsql security definer set search_path to 'public' as $function$
+declare pin_ok boolean;
+begin
+ select public.verify_admin_pin(pin_input) into pin_ok;
+ if coalesce(pin_ok,false) is not true then raise exception 'PIN de administrador incorrecto'; end if;
+ update public.rooms set is_vip=vip_enabled where id=room_id_input;
+ return found;
+end;$function$;
+create or replace function public.admin_set_vip_member(pin_input text,nickname_input text,vip_enabled boolean)
+returns boolean language plpgsql security definer set search_path to 'public' as $function$
+declare pin_ok boolean; target_user uuid; matches integer;
+begin
+ select public.verify_admin_pin(pin_input) into pin_ok;
+ if coalesce(pin_ok,false) is not true then raise exception 'PIN de administrador incorrecto'; end if;
+ if nickname_input is null or length(trim(nickname_input))<1 or length(trim(nickname_input))>24 then raise exception 'Nick no válido'; end if;
+ select count(*),min(user_id::text)::uuid into matches,target_user from public.chat_profiles where lower(nickname)=lower(trim(nickname_input));
+ if matches=0 then raise exception 'No se encontró ese usuario'; end if;
+ if matches>1 then raise exception 'Hay más de un usuario con ese nick; no se modificó ninguna membresía'; end if;
+ if vip_enabled then
+  insert into public.chat_vip_members(user_id,granted_by,note) values(target_user,'UNIX','Membresía otorgada desde el panel')
+  on conflict(user_id) do nothing;
+ else
+  delete from public.chat_vip_members where user_id=target_user;
+ end if;
+ return true;
+end;$function$;
+revoke all on function public.admin_set_room_vip(text,bigint,boolean) from public;
+revoke all on function public.admin_set_vip_member(text,text,boolean) from public;
+grant execute on function public.admin_set_room_vip(text,bigint,boolean) to anon,authenticated;
+grant execute on function public.admin_set_vip_member(text,text,boolean) to anon,authenticated;

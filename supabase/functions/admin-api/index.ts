@@ -120,6 +120,49 @@ Deno.serve(async (req: Request) => {
         break;
       }
 
+      case "set_room_topic": {
+        const roomId = Number(body.room_id_input);
+        const topic = body.topic_input == null ? null : String(body.topic_input).trim();
+        if (!Number.isSafeInteger(roomId) || roomId <= 0 ||
+            (topic !== null && topic.length > 180)) {
+          return respond({ success: false, message: "Datos del tópico no válidos." }, 400);
+        }
+        ({ data: result, error } = await adminDb.rpc("admin_set_room_topic", {
+          pin_input: pin,
+          room_id_input: roomId,
+          topic_input: topic,
+        }));
+        break;
+      }
+
+      case "set_room_vip": {
+        const roomId = Number(body.room_id_input);
+        const enabled = body.vip_enabled;
+        if (!Number.isSafeInteger(roomId) || roomId <= 0 || typeof enabled !== "boolean") {
+          return respond({ success: false, message: "Datos de sala VIP no válidos." }, 400);
+        }
+        ({ data: result, error } = await adminDb.rpc("admin_set_room_vip", {
+          pin_input: pin,
+          room_id_input: roomId,
+          vip_enabled: enabled,
+        }));
+        break;
+      }
+
+      case "set_vip_member": {
+        const nickname = String(body.nickname_input ?? "").trim();
+        const enabled = body.vip_enabled;
+        if (!nickname || nickname.length > 50 || typeof enabled !== "boolean") {
+          return respond({ success: false, message: "Datos de membresía VIP no válidos." }, 400);
+        }
+        ({ data: result, error } = await adminDb.rpc("admin_set_vip_member", {
+          pin_input: pin,
+          nickname_input: nickname,
+          vip_enabled: enabled,
+        }));
+        break;
+      }
+
       case "list_bans": {
         ({ data: result, error } = await adminDb.rpc("admin_list_bans", { pin_input: pin }));
         break;

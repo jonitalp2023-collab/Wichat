@@ -369,16 +369,12 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div class="chat-welcome"><strong>Conversación general</strong><span id="status">Conectando...</span></div>
 <div id="messages"></div>
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
-<div class="emoji-wrap"><button class="emoji-toggle" aria-label="Stickers" onclick="toggleStickerPicker()">🎭</button><div id="stickerPickerPublic" class="emoji-picker"></div></div>
-<button class="emoji-toggle" aria-label="Enviar GIF" title="Enviar GIF" onclick="sendGifByUrl()">GIF</button>
 <input id="messageInput" maxlength="1000" placeholder="Escribí aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
 <button id="sendBtn" class="send-button" onclick="sendMessage()">➤</button></div></div>
 <div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><div id="usersCountText" class="user-count">0 usuarios conectados</div><p class="muted">Tocá un Nick para ver sus opciones.</p><button class="secondary" style="width:100%;margin:0 0 12px" onclick="openMyProfile()">👤 Mi perfil</button><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
 <div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
 <div id="privateView" class="hidden"><div id="privateMessages"></div>
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
-<div class="emoji-wrap"><button class="emoji-toggle" aria-label="Stickers privados" onclick="toggleStickerPicker('privateInput')">🎭</button><div id="stickerPickerPrivate" class="emoji-picker"></div></div>
-<button class="emoji-toggle" aria-label="Enviar GIF privado" title="Enviar GIF" onclick="sendGifByUrl('privateInput')">GIF</button>
 <input id="privateInput" maxlength="1000" placeholder="Escribí un mensaje privado..." onkeydown="if(event.key==='Enter')sendPrivateMessage()">
 <button id="privateSendBtn" class="send-button" onclick="sendPrivateMessage()">➤</button></div></div>
 </div>

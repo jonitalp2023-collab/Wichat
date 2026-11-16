@@ -110,6 +110,15 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 #adminOpenBtn.active{background:#51400c;color:#facc15}
 #adminOpenBtn:active{background:#51400c}
 #privateNotice{display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 30px);max-width:500px;background:#168bea;color:white;padding:15px;border-radius:12px;z-index:9999;text-align:center;font-weight:bold;box-shadow:0 5px 20px #0008}
+#profileModal{display:none;position:fixed;inset:0;z-index:26000;background:rgba(0,0,0,.82);align-items:center;justify-content:center;padding:18px}
+#profileModal.show{display:flex}
+.profile-card{width:100%;max-width:410px;max-height:90dvh;overflow:auto;padding:22px;background:linear-gradient(155deg,#192b49,#101a30);border:1px solid #278bd2;border-radius:18px;box-shadow:0 12px 40px #000b}
+.profile-card h2{margin:0 0 8px;color:#70bdff;text-align:center}
+.profile-card label{display:block;margin:12px 0 5px;color:#b9cce5;font-size:13px}
+.profile-card input,.profile-card textarea{width:100%;padding:12px;border:1px solid #385477;border-radius:10px;background:#0b1528;color:white;font:inherit}
+.profile-card textarea{min-height:90px;resize:vertical}
+.profile-card .profile-actions{display:flex;gap:8px;margin-top:16px}
+.profile-card .profile-actions button{flex:1}
 #moderationModal{display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:20px}
 #moderationModal.show{display:flex}
 .moderation-card{width:100%;max-width:400px;padding:25px;background:#141e35;border:1px solid #278bd2;border-radius:16px;text-align:center;box-shadow:0 10px 35px #000b}
@@ -265,6 +274,22 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 </head>
 <body>
 <div id="privateNotice" role="status" aria-live="polite"></div>
+<div id="profileModal" onclick="if(event.target===this)closeMyProfile()">
+<div class="profile-card">
+<h2>✏️ Mi perfil</h2>
+<p class="muted" style="text-align:center">Personalizá cómo te ven en CHAT ARGENTINA.</p>
+<label for="myProfileAvatar">URL de tu foto (debe comenzar con https://)</label>
+<input id="myProfileAvatar" type="url" maxlength="2048" placeholder="https://...">
+<label for="myProfileStatus">Estado</label>
+<input id="myProfileStatus" maxlength="40" placeholder="Disponible, escuchando música...">
+<label for="myProfileBio">Sobre mí</label>
+<textarea id="myProfileBio" maxlength="160" placeholder="Contá algo sobre vos (máximo 160 caracteres)"></textarea>
+<div id="myProfileFeedback" class="muted" aria-live="polite"></div>
+<div class="profile-actions">
+<button class="secondary" onclick="closeMyProfile()">Cancelar</button>
+<button onclick="saveMyProfile()">Guardar</button>
+</div>
+</div></div>
 <div id="userMenuModal" onclick="if(event.target===this)closeUserMenu()">
 <div class="user-menu-card">
 <h3 id="userMenuTitle">Usuario</h3>
@@ -325,7 +350,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
 <input id="messageInput" maxlength="1000" placeholder="Escribí aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
 <button id="sendBtn" class="send-button" onclick="sendMessage()">➤</button></div></div>
-<div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><div id="usersCountText" class="user-count">0 usuarios conectados</div><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
+<div id="usersView" class="hidden"><div class="row" style="justify-content:space-between"><h3>👥 Usuarios en línea</h3><button onclick="openMyProfile()">✏️ Mi perfil</button></div><div id="usersCountText" class="user-count">0 usuarios conectados</div><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
 <div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
 <div id="privateView" class="hidden"><div id="privateMessages"></div>
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
@@ -715,6 +740,51 @@ async function saveChatProfile(){
   if(isRegisteredAccount)registeredUsers.add(String(senderId));
   else registeredUsers.delete(String(senderId));
 }
+async function openMyProfile(){
+  if(!senderId)return;
+  $("myProfileFeedback").textContent="Cargando perfil...";
+  $("profileModal").classList.add("show");
+  try{
+    const {data,error}=await db.from("chat_profiles").select("bio,avatar_url,status").eq("user_id",senderId).maybeSingle();
+    if(error)throw error;
+    $("myProfileAvatar").value=data?.avatar_url||"";
+    $("myProfileStatus").value=data?.status||"";
+    $("myProfileBio").value=data?.bio||"";
+    $("myProfileFeedback").textContent="Los campos son opcionales.";
+  }catch(error){
+    $("myProfileFeedback").textContent="No se pudo cargar el perfil: "+error.message;
+  }
+}
+function closeMyProfile(){$("profileModal").classList.remove("show");}
+async function saveMyProfile(){
+  if(!senderId)return;
+  const avatar=$("myProfileAvatar").value.trim();
+  const status=$("myProfileStatus").value.trim();
+  const bio=$("myProfileBio").value.trim();
+  if(avatar&&(!/^https:\/\//i.test(avatar)||avatar.length>2048)){
+    $("myProfileFeedback").textContent="La foto debe tener una dirección HTTPS válida.";
+    return;
+  }
+  if(status.length>40||bio.length>160){
+    $("myProfileFeedback").textContent="El estado admite 40 caracteres y la descripción 160.";
+    return;
+  }
+  const btn=$("profileModal").querySelector(".profile-actions button:last-child");
+  btn.disabled=true;$("myProfileFeedback").textContent="Guardando...";
+  try{
+    const {error}=await db.from("chat_profiles").upsert({
+      user_id:senderId,nickname:nickname,is_registered:isRegisteredAccount,
+      avatar_url:avatar||null,status:status||null,bio:bio||null,
+      updated_at:new Date().toISOString()
+    },{onConflict:"user_id"});
+    if(error)throw error;
+    $("myProfileFeedback").textContent="¡Perfil actualizado!";
+    setTimeout(closeMyProfile,650);
+  }catch(error){
+    $("myProfileFeedback").textContent="No se pudo guardar: "+error.message;
+  }finally{btn.disabled=false;}
+}
+
 async function loadRegisteredProfiles(){
   const {data,error}=await db.from("chat_profiles").select("user_id,is_registered").eq("is_registered",true);
   if(error){console.warn("No se pudieron cargar los perfiles registrados:",error.message);return;}

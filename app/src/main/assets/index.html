@@ -314,7 +314,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <button class="private-action" onclick="userMenuPrivate()">💬 Enviar mensaje privado</button>
 <div id="adminUserActions" class="hidden">
 <button class="kick-action" onclick="userMenuModerate('kick')">🚪 Echar usuario</button>
-<button class="ban-action" onclick="userMenuModerate('ban')">🚫 Banear usuario por 5 minutos</button>
+<button class="ban-action" onclick="userMenuModerate('ban')">🚫 Banear usuario</button>
 </div>
 <button class="secondary" onclick="closeUserMenu()">Cerrar</button>
 </div></div>
@@ -470,7 +470,12 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
     <div class="admin-section-heading"><div><span class="admin-eyebrow">SEGURIDAD</span><h3>Herramientas de moderación</h3></div><span class="admin-heading-icon">🛡️</span></div>
     <div class="admin-card">
       <h4>Acciones sobre usuarios</h4><p class="muted">Seleccioná primero un usuario en la sección Usuarios.</p>
-      <div class="row"><button class="secondary" onclick="moderateUser('kick')">🚪 Expulsar</button><button class="danger" onclick="moderateUser('ban')">🚫 Banear 5 minutos</button></div>
+      <div class="row"><button class="secondary" onclick="moderateUser('kick')">🚪 Expulsar</button><button class="danger" onclick="moderateUser('ban')">🚫 Banear</button></div>
+    </div>
+    <div class="admin-card">
+      <h4>📋 Historial de sanciones</h4><p class="muted">Últimas 100 advertencias, expulsiones y baneos registrados.</p>
+      <button class="secondary" onclick="loadModerationHistory()">↻ Ver historial</button>
+      <div id="moderationHistoryList" class="admin-list"><p class="muted">Presioná para consultar el historial.</p></div>
     </div>
     <div class="admin-card">
       <h4>🚫 Usuarios baneados</h4><p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
@@ -972,7 +977,8 @@ async function userMenuPrivate(){if(!selectedMenuUser)return;const user={...sele
 async function userMenuModerate(action){
 if(!isAdmin||!selectedMenuUser)return;
 const user={...selectedMenuUser};
-const actionText=action==="ban"?"banear por cinco minutos a ":"expulsar de la sala a ";
+const actionText=action==="ban"?"banear a ":"expulsar de la sala a ";
+const duration=askModerationDuration();if(duration===null)return;
 const reasonInput=prompt("Escribí el motivo que verá "+user.nick+" al recibir la expulsión o el baneo (máximo 500 caracteres):","Incumplimiento de las normas de convivencia");
 if(reasonInput===null)return;
 const reason=reasonInput.trim();
@@ -981,8 +987,9 @@ if(reason.length>500){alert("El motivo no puede superar los 500 caracteres.");re
 if(!confirm("¿Querés "+actionText+user.nick+"?\nMotivo: "+reason))return;
 closeUserMenu();
 try{
-await callAdminApi("moderate_user",{target_sender_id:user.id,room_id_input:currentRoom,action_name:action,reason_input:reason});
-$("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos.":"Usuario expulsado de la sala.";
+const result=await callAdminApi("moderate_user",{target_sender_id:user.id,room_id_input:currentRoom,action_name:action,reason_input:reason,duration_minutes_input:duration});
+$("adminStatus").textContent=(action==="ban"?"Usuario baneado":"Usuario expulsado")+" por "+formatModerationDuration(result?.duration_minutes||duration)+". Reincidencias: "+Number(result?.prior_sanctions||0)+".
+await loadModerationHistory();
 if(action==="ban")await loadBannedUsers();
 }catch(error){alert("No se pudo moderar al usuario: "+error.message);}
 }
@@ -1660,20 +1667,54 @@ try{
   status.textContent="No se pudo eliminar la sala: "+(error.message||String(error))+". La operación debe estar habilitada en la función admin-api de Supabase.";
 }
 }
+function askModerationDuration(){
+ const choice=prompt("Elegí la duración solicitada:\n1 - 5 minutos\n2 - 15 minutos\n3 - 1 hora\n4 - 24 horas","1");
+ if(choice===null)return null;
+ const minutes=({"1":5,"2":15,"3":60,"4":1440})[choice.trim()];
+ if(!minutes){alert("Opción no válida.");return askModerationDuration();}
+ return minutes;
+}
 async function moderateUser(action){
 if(!isAdmin)return;
 const target=$("userToModerate").value;
 if(!target){$("adminStatus").textContent="Elegí un usuario conectado.";return;}
+const duration=askModerationDuration();if(duration===null)return;
 const reasonInput=prompt("Escribí el motivo que verá el usuario (máximo 500 caracteres):","Incumplimiento de las normas de convivencia");
 if(reasonInput===null)return;
 const reason=reasonInput.trim();
 if(!reason){$("adminStatus").textContent="Tenés que escribir el motivo.";return;}
 if(reason.length>500){$("adminStatus").textContent="El motivo no puede superar los 500 caracteres.";return;}
 try{
-await callAdminApi("moderate_user",{target_sender_id:target,room_id_input:currentRoom,action_name:action,reason_input:reason});
-$("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos en esta sala.":"Usuario expulsado de esta sala.";
+const result=await callAdminApi("moderate_user",{target_sender_id:target,room_id_input:currentRoom,action_name:action,reason_input:reason,duration_minutes_input:duration});
+$("adminStatus").textContent=(action==="ban"?"Usuario baneado":"Usuario expulsado")+" por "+formatModerationDuration(result?.duration_minutes||duration)+" (incluye escalado por reincidencia si corresponde).";
+await loadModerationHistory();
 if(action==="ban")await loadBannedUsers();
 }catch(error){$("adminStatus").textContent="Error: "+error.message;}
+}
+function formatModerationDuration(minutes){
+ const value=Number(minutes);
+ if(value>=1440)return "24 horas";
+ if(value>=60)return (value/60)+" hora"+(value===60?"":"s");
+ return value+" minutos";
+}
+async function loadModerationHistory(){
+ if(!isAdmin)return;
+ const list=$("moderationHistoryList");if(!list)return;
+ list.innerHTML='<p class="muted">Cargando historial...</p>';
+ try{
+  const rows=await callAdminApi("list_moderation_history");list.innerHTML="";
+  if(!rows||!rows.length){list.innerHTML='<p class="muted">Todavía no hay sanciones registradas.</p>';return;}
+  rows.forEach(item=>{
+   const card=document.createElement("div");card.className="banned-card";
+   const title=document.createElement("strong");title.className="banned-name";
+   title.textContent=(item.action==="ban"?"🚫 Baneo":"🚪 Expulsión")+" · "+(item.nickname||"Usuario");
+   const detail=document.createElement("p");detail.className="banned-details";
+   const room=rooms.find(r=>String(r.id)===String(item.room_id));
+   const date=item.created_at?new Date(item.created_at).toLocaleString("es-AR"):"Fecha desconocida";
+   detail.textContent=(room?.name||("Sala "+item.room_id))+" · "+(item.duration_minutes?formatModerationDuration(item.duration_minutes):"Advertencia")+" · "+date+" · Motivo: "+(item.reason||"Sin detalle");
+   card.append(title,detail);list.appendChild(card);
+  });
+ }catch(error){list.textContent="Error al cargar el historial: "+error.message;}
 }
 async function loadBannedUsers(){
 if(!isAdmin)return;const list=$("bannedUsersList");list.innerHTML='<p class="muted">Cargando baneos...</p>';

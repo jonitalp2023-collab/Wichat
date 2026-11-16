@@ -78,6 +78,10 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .registered-plus{color:#20d66b;font-weight:900;margin-right:5px;font-size:17px;text-shadow:0 0 6px rgba(32,214,107,.35)}
 .msgtext{color:#f4f4f4;white-space:pre-wrap;min-width:0;overflow-wrap:anywhere;font-size:15px;line-height:1.35}
 .message-reactions{display:flex;flex-basis:100%;flex-wrap:wrap;gap:5px;margin:3px 0 0 0}.reaction-btn{padding:3px 7px;border:1px solid #3b4658;border-radius:14px;background:#252f40;color:#fff;font-size:12px;line-height:1.5;min-width:30px}.reaction-btn.mine{border-color:#2698ed;background:#123e63}.private-message .message-reactions{margin-top:5px}
+.chat-media{display:block;max-width:min(260px,75vw);max-height:240px;object-fit:contain;border-radius:12px;margin:5px 0;background:#111}.media-kind{font-size:11px;color:#8fbbe8;margin:3px 0}
+.media-action{flex:0 0 auto;padding:9px 10px;border-radius:12px;background:#263b56;color:#eaf4ff;font-size:18px}
+.media-modal{display:none;position:fixed;inset:0;background:#000b;z-index:1200;align-items:center;justify-content:center;padding:18px}.media-modal.show{display:flex}.media-dialog{width:min(440px,100%);background:#172235;border:1px solid #385579;border-radius:16px;padding:18px;box-shadow:0 14px 45px #0009}.media-dialog h3{margin:0 0 8px}.media-dialog p{color:#aebed2;font-size:13px;line-height:1.4}.media-dialog input{width:100%;box-sizing:border-box;margin:10px 0;background:#0e1725;color:#fff;border:1px solid #435976;border-radius:10px;padding:12px}.media-dialog-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+
 .composer{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;background:#222}
 .composer input{margin:0;min-width:0;flex:1;padding:15px 17px;background:#303030;border:0;border-radius:30px;color:white;font-size:16px}
 .send-button{width:53px;height:53px;min-width:53px;border-radius:50%;background:#08a9ed;font-size:25px;padding:0}
@@ -349,13 +353,13 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="chatView">
 <div class="chat-welcome"><strong>Conversación general</strong><span id="status">Conectando...</span></div>
 <div id="messages"></div>
-<div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
+<div class="composer"><button class="media-action" title="Enviar sticker" onclick="openMediaComposer('public','sticker')">🧸</button><button class="media-action" title="Enviar GIF" onclick="openMediaComposer('public','gif')">GIF</button><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
 <input id="messageInput" maxlength="1000" placeholder="Escribí aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
 <button id="sendBtn" class="send-button" onclick="sendMessage()">➤</button></div></div>
 <div id="usersView" class="hidden"><div class="row" style="justify-content:space-between"><h3>👥 Usuarios en línea</h3><button onclick="openMyProfile()">✏️ Mi perfil</button></div><div id="usersCountText" class="user-count">0 usuarios conectados</div><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
 <div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
 <div id="privateView" class="hidden"><div id="privateMessages"></div>
-<div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
+<div class="composer"><button class="media-action" title="Enviar sticker" onclick="openMediaComposer('private','sticker')">🧸</button><button class="media-action" title="Enviar GIF" onclick="openMediaComposer('private','gif')">GIF</button><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
 <input id="privateInput" maxlength="1000" placeholder="Escribí un mensaje privado..." onkeydown="if(event.key==='Enter')sendPrivateMessage()">
 <button id="privateSendBtn" class="send-button" onclick="sendPrivateMessage()">➤</button></div></div>
 </div>
@@ -1031,6 +1035,52 @@ function subscribeMessageReactions(context){
     }).subscribe();
 }
 
+/* STICKERS Y GIF */
+let pendingMediaContext=null,pendingMediaType=null;
+function openMediaComposer(context,type){
+  if(!["public","private"].includes(context)||!["sticker","gif"].includes(type))return;
+  if(context==="public"&&!currentRoom){alert("Primero entrá a una sala.");return;}
+  if(context==="private"&&!activePrivateUser){alert("Primero abrí una conversación privada.");return;}
+  pendingMediaContext=context;pendingMediaType=type;
+  $("mediaComposerTitle").textContent=type==="gif"?"Enviar GIF":"Enviar sticker";
+  $("mediaComposerHelp").textContent="Pegá el enlace directo de una imagen o GIF con HTTPS. Debe terminar en .png, .jpg, .jpeg, .webp o .gif.";
+  $("mediaComposerUrl").value="";
+  $("mediaComposerModal").classList.add("show");
+  setTimeout(()=>$("mediaComposerUrl").focus(),50);
+}
+function closeMediaComposer(){
+  $("mediaComposerModal").classList.remove("show");
+  pendingMediaContext=null;pendingMediaType=null;
+}
+async function sendMediaMessage(){
+  const url=$("mediaComposerUrl").value.trim(),context=pendingMediaContext,type=pendingMediaType,btn=$("mediaComposerSend");
+  if(!context||!type)return;
+  let parsed;
+  try{parsed=new URL(url);}catch(_){alert("Pegá un enlace válido.");return;}
+  if(parsed.protocol!=="https:"){alert("Por seguridad, el enlace debe comenzar con HTTPS.");return;}
+  if(!/\.(png|jpe?g|webp|gif)$/i.test(parsed.pathname)){alert("El enlace debe ser directo a un archivo .png, .jpg, .webp o .gif.");return;}
+  btn.disabled=true;
+  try{
+    if(context==="public"){
+      if(!currentRoom||!nickname||!senderId)throw new Error("No hay una sala activa.");
+      const roomId=String(currentRoom).trim();
+      const roomIdPattern=/^(?:[1-9][0-9]*|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+      if(!roomIdPattern.test(roomId))throw new Error("El ID de la sala no es válido.");
+      const {data:authData,error:authError}=await db.auth.getSession();if(authError)throw authError;
+      if(!authData?.session?.user?.id||String(authData.session.user.id)!==String(senderId))throw new Error("La sesión cambió. Volvé a ingresar al chat.");
+      const {error}=await db.from("messages").insert({nickname:String(nickname).trim(),message:"",room_id:roomId,sender_id:senderId,message_type:type,media_url:parsed.href});
+      if(error)throw error;
+    }else{
+      if(!activePrivateUser)throw new Error("La conversación privada ya no está abierta.");
+      const {data,error}=await db.from("private_messages").insert({sender_id:senderId,recipient_id:activePrivateUser.id,sender_nickname:nickname,content:"",message_type:type,media_url:parsed.href}).select().single();
+      if(error)throw error;
+      addPrivateMessage(data);
+    }
+    closeMediaComposer();
+  }catch(error){alert("No se pudo enviar el contenido: "+(error.message||String(error)));}
+  finally{btn.disabled=false;}
+}
+
 /* MENSAJES PÚBLICOS */
 function addMessage(m,deferReactionLoad=false){
 if(!m||receivedIds.has(m.id))return;receivedIds.add(m.id);
@@ -1540,5 +1590,16 @@ document.addEventListener("focusout",function(){setTimeout(updateScreen,300);});
 updateScreen();
 })();
 </script>
+<div id="mediaComposerModal" class="media-modal" role="dialog" aria-modal="true" aria-labelledby="mediaComposerTitle">
+  <div class="media-dialog">
+    <h3 id="mediaComposerTitle">Enviar contenido</h3>
+    <p id="mediaComposerHelp">Pegá el enlace directo de una imagen o GIF que use HTTPS.</p>
+    <input id="mediaComposerUrl" type="url" inputmode="url" placeholder="https://..." autocomplete="off">
+    <div class="media-dialog-actions">
+      <button type="button" onclick="closeMediaComposer()">Cancelar</button>
+      <button type="button" id="mediaComposerSend" onclick="sendMediaMessage()">Enviar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

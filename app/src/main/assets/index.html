@@ -112,6 +112,13 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 .banned-details{color:#9baac5;font-size:13px;line-height:1.6;margin:5px 0 10px}
 .unban-button{width:100%;background:#168b65;margin-top:5px}
 .unban-button:disabled{opacity:.5}
+.bot-card{background:#172844;border:1px solid #344361;border-radius:10px;padding:12px;margin:10px 0}
+.bot-card strong{color:#8ecbff}
+.bot-card textarea{width:100%;min-height:100px;margin:8px 0;padding:10px;border:1px solid #344361;border-radius:8px;background:#0c1427;color:white;font:14px Arial;resize:vertical}
+.bot-card .bot-actions{display:flex;gap:7px;flex-wrap:wrap}
+.bot-card .bot-actions button{flex:1;min-width:100px}
+.bot-active{color:#70dca1}.bot-inactive{color:#ffb0b0}
+
 @media(max-width:420px){#adminPanel{left:6px;right:6px;padding:13px}#adminPanel .row{flex-wrap:wrap}#adminPanel .row button{flex:1}}
 @media(min-width:701px){body.chat-active .container{max-width:850px;margin:auto}}
 body.chat-active #chatView,body.chat-active #privateView{display:flex;flex-direction:column;flex:1 1 0;min-height:0;overflow:hidden}
@@ -190,6 +197,15 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <h4>🚫 Usuarios baneados</h4><p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
 <button class="secondary" onclick="loadBannedUsers()">🔄 Actualizar lista</button>
 <div id="bannedUsersList" style="margin-top:12px"><p class="muted">Presioná actualizar para ver los baneados.</p></div>
+<hr style="border-color:#344361;margin:20px 0">
+<h4>🤖 Administración de bots</h4>
+<p class="muted">Los bots activos participan automáticamente en cada mensaje de la sala. Cada uno tiene una intervención por mensaje humano y leen las respuestas anteriores para conversar entre ellos. Máximo 5 bots activos.</p>
+<input id="botName" maxlength="25" placeholder="Nombre del nuevo bot">
+<textarea id="botInstructions" maxlength="4000" rows="5" style="width:100%;padding:12px;border:1px solid #344361;border-radius:10px;background:#0c1427;color:white;font:16px Arial" placeholder="Personalidad e instrucciones del bot"></textarea>
+<div class="row"><button onclick="saveBot()">➕ Crear bot</button><button class="secondary" onclick="loadBots()">🔄 Actualizar</button></div>
+<p id="botAdminStatus" class="muted"></p>
+<div id="botsList" style="margin-top:12px"><p class="muted">Presioná actualizar para ver los bots.</p></div>
+
 </div></section></div>
 
 <script>
@@ -456,15 +472,15 @@ if(senderNickname.trim().toLowerCase()==="mili")return;
 /* El nombre debe coincidir con el slug desplegado: Chat-Bot. */
 const {data,error:botError}=await db.functions.invoke("Chat-Bot",{body:{message:value,nickname:senderNickname,room_id:roomId}});
 if(botError){
-console.error("ERROR AL ACTIVAR MILI:",botError);let detail=botError.message||"Error desconocido";
+console.error("ERROR AL ACTIVAR LOS BOTS:",botError);let detail=botError.message||"Error desconocido";
 try{if(botError.context&&typeof botError.context.json==="function"){const response=await botError.context.json();detail=response?.error||response?.message||detail;}}catch(_){}
-alert("Tu mensaje se publicó, pero Mili no pudo responder:\n\n"+detail);return;
+alert("Tu mensaje se publicó, pero los bots no pudieron responder:\n\n"+detail);return;
 }
 if(!data||data.success!==true){
 console.error("RESPUESTA DE MILI:",data);
-alert("Tu mensaje se publicó, pero Mili no pudo responder:\n\n"+(data?.error||data?.message||"Respuesta inválida del servidor."));return;
+alert("Tu mensaje se publicó, pero los bots no pudieron responder:\n\n"+(data?.error||data?.message||"Respuesta inválida del servidor."));return;
 }
-console.log("MILI RESPONDIÓ:",data.message);
+console.log("RESPUESTA DE LOS BOTS:",data);
 }catch(error){console.error("ERROR EN SENDMESSAGE:",error);alert("No se pudo completar el envío:\n"+(error.message||String(error)));}
 finally{btn.disabled=false;input.focus();}
 }
@@ -584,7 +600,7 @@ renderTabs();if(currentRoom)await switchRoom(currentRoom);
 /* ADMINISTRACIÓN */
 function openAdmin(){
 if(!isAdmin){alert("No tenés permisos de administrador.");return;}
-$("adminPanel").classList.remove("hidden");if(currentRoom)loadRoomTopic(currentRoom);renderRoomDelete();renderModerationUsers();loadBannedUsers();
+$("adminPanel").classList.remove("hidden");if(currentRoom)loadRoomTopic(currentRoom);renderRoomDelete();renderModerationUsers();loadBannedUsers();loadBots();
 }
 function closeAdmin(){$("adminPanel").classList.add("hidden");}
 async function createRoom(){
@@ -652,6 +668,90 @@ try{
 const data=await callAdminApi("unban_user",{target_sender_id:target});
 $("adminStatus").textContent=data?.message||"Usuario desbloqueado correctamente.";await loadBannedUsers();
 }catch(error){$("adminStatus").textContent="Error al desbanear: "+error.message;}
+}
+
+
+/* ADMINISTRACIÓN DE BOTS */
+let editingBotId = null;
+async function loadBots(){
+  if(!isAdmin)return;
+  const list=$("botsList");
+  if(!list)return;
+  list.innerHTML='<p class="muted">Cargando bots...</p>';
+  try{
+    const bots=await callAdminApi("list_bots");
+    list.innerHTML="";
+    if(!bots||!bots.length){
+      list.innerHTML='<p class="muted">No hay bots configurados.</p>';
+      return;
+    }
+    bots.forEach(bot=>{
+      const card=document.createElement("div");
+      card.className="bot-card";
+      const title=document.createElement("strong");
+      title.textContent="🤖 "+bot.name+" ";
+      const state=document.createElement("span");
+      state.className=bot.active?"bot-active":"bot-inactive";
+      state.textContent=bot.active?"● ACTIVO":"● INACTIVO";
+      const instructions=document.createElement("textarea");
+      instructions.value=bot.instructions||"";
+      instructions.maxLength=4000;
+      instructions.setAttribute("aria-label","Instrucciones de "+bot.name);
+      const nameInput=document.createElement("input");
+      nameInput.value=bot.name;
+      nameInput.maxLength=25;
+      nameInput.placeholder="Nombre del bot";
+      const actions=document.createElement("div");
+      actions.className="bot-actions";
+      const save=document.createElement("button");
+      save.textContent="Guardar cambios";
+      save.onclick=()=>updateBot(bot.id,nameInput.value,instructions.value,bot.active);
+      const toggle=document.createElement("button");
+      toggle.className="secondary";
+      toggle.textContent=bot.active?"Desactivar":"Activar";
+      toggle.onclick=()=>updateBot(bot.id,bot.name,bot.instructions,!bot.active);
+      const remove=document.createElement("button");
+      remove.className="danger";
+      remove.textContent="Eliminar";
+      remove.onclick=()=>deleteBot(bot.id,bot.name);
+      actions.append(save,toggle,remove);
+      card.append(title,state,nameInput,instructions,actions);
+      list.appendChild(card);
+    });
+  }catch(error){
+    list.textContent="Error al cargar los bots: "+error.message;
+  }
+}
+async function saveBot(){
+  if(!isAdmin)return;
+  const name=$("botName").value.trim();
+  const instructions=$("botInstructions").value.trim();
+  const status=$("botAdminStatus");
+  if(!name||!instructions){status.textContent="Completá el nombre y las instrucciones.";return;}
+  try{
+    await callAdminApi("create_bot",{bot_name:name,bot_instructions:instructions});
+    $("botName").value="";
+    $("botInstructions").value="";
+    status.textContent="Bot creado correctamente.";
+    await loadBots();
+  }catch(error){status.textContent="No se pudo crear el bot: "+error.message;}
+}
+async function updateBot(id,name,instructions,active){
+  if(!isAdmin)return;
+  try{
+    await callAdminApi("update_bot",{bot_id:id,bot_name:String(name||"").trim(),bot_instructions:String(instructions||"").trim(),bot_active:Boolean(active)});
+    $("botAdminStatus").textContent="Bot actualizado correctamente.";
+    await loadBots();
+  }catch(error){$("botAdminStatus").textContent="No se pudo actualizar: "+error.message;}
+}
+async function deleteBot(id,name){
+  if(!isAdmin)return;
+  if(!confirm('¿Seguro que querés eliminar el bot "'+name+'"?'))return;
+  try{
+    await callAdminApi("delete_bot",{bot_id:id});
+    $("botAdminStatus").textContent="Bot eliminado.";
+    await loadBots();
+  }catch(error){$("botAdminStatus").textContent="No se pudo eliminar: "+error.message;}
 }
 
 /* SALIR */

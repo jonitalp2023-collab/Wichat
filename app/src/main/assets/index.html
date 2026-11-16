@@ -852,7 +852,7 @@ function showMainTab(which){
 $("chatView").classList.toggle("hidden",which!=="chat");$("usersView").classList.toggle("hidden",which!=="users");$("roomsView").classList.toggle("hidden",which!=="rooms");$("privateView").classList.add("hidden");
 $("navUsers").classList.toggle("active",which==="users");$("navRooms").classList.toggle("active",which==="rooms");$("navChat").classList.toggle("active",which==="chat");
 $("roomTopic").style.display=(which==="chat"&&document.body.classList.contains("chat-active"))?"flex":"none";activePrivateUser=null;
-if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}closeEmojiPickers();
+if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}if(reactionContext==="private"&&reactionChannel){db.removeChannel(reactionChannel);reactionChannel=null;reactionContext="";reactionCache.clear();}closeEmojiPickers();
 }
 
 /* PESTAÑAS DE SALAS Y PRIVADOS */
@@ -1269,7 +1269,7 @@ try{const {data,error}=await db.from("private_messages").insert({sender_id:sende
 catch(e){alert("No se pudo enviar el mensaje privado: "+e.message);}finally{btn.disabled=false;input.focus();}
 }
 async function backToUsers(){
-if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}activePrivateUser=null;privateReceivedIds.clear();
+if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}if(reactionContext==="private"&&reactionChannel){await db.removeChannel(reactionChannel);reactionChannel=null;reactionContext="";reactionCache.clear();}activePrivateUser=null;privateReceivedIds.clear();
 $("privateView").classList.add("hidden");$("usersView").classList.remove("hidden");$("roomsView").classList.add("hidden");$("chatView").classList.add("hidden");$("roomTopic").style.display="none";
 $("navUsers").classList.add("active");$("navRooms").classList.remove("active");$("navChat").classList.remove("active");$("privateInput").value="";closeEmojiPickers();renderPrivateTabs();
 }

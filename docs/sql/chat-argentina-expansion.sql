@@ -302,3 +302,10 @@ revoke all on function public.admin_set_room_vip(text,bigint,boolean) from publi
 revoke all on function public.admin_set_vip_member(text,text,boolean) from public;
 grant execute on function public.admin_set_room_vip(text,bigint,boolean) to anon,authenticated;
 grant execute on function public.admin_set_vip_member(text,text,boolean) to anon,authenticated;
+-- Vista pública limitada a insignias y puntos para perfiles del chat.
+create or replace view public.chat_public_profile_badges as
+select p.user_id,exists(select 1 from public.chat_vip_members v where v.user_id=p.user_id) as is_vip,
+ coalesce(sum(l.points_delta),0)::bigint as points,
+ case when coalesce(sum(l.points_delta),0)>=500 then 'Diamante' when coalesce(sum(l.points_delta),0)>=250 then 'Oro' when coalesce(sum(l.points_delta),0)>=100 then 'Plata' when coalesce(sum(l.points_delta),0)>=25 then 'Bronce' else 'Principiante' end as medal
+from public.chat_profiles p left join public.chat_points_ledger l on l.user_id=p.user_id group by p.user_id;
+grant select on public.chat_public_profile_badges to authenticated;

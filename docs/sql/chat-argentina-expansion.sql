@@ -443,3 +443,36 @@ begin
 end; $$;
 revoke all on function public.admin_set_room_welcome(text,bigint,text,boolean) from public;
 grant execute on function public.admin_set_room_welcome(text,bigint,text,boolean) to authenticated;
+
+-- =========================================================
+-- MENSAJES AUTOMÁTICOS PROGRAMADOS POR SALA
+-- Requiere pg_cron habilitado en Supabase.
+-- El frontend llama estas RPC con el PIN de UNIX.
+-- =========================================================
+create table if not exists public.chat_scheduled_announcements (
+ id uuid primary key default gen_random_uuid(),
+ room_id bigint not null references public.rooms(id) on delete cascade,
+ message text not null check (char_length(btrim(message)) between 1 and 500),
+ scheduled_at timestamptz not null,
+ status text not null default 'pending' check (status in ('pending','sent','cancelled')),
+ created_at timestamptz not null default now(),
+ sent_at timestamptz,
+ created_by uuid
+);
+create index if not exists chat_scheduled_announcements_due_idx
+ on public.chat_scheduled_announcements (scheduled_at) where status='pending';
+alter table public.chat_scheduled_announcements enable row level security;
+revoke all on public.chat_scheduled_announcements from anon, authenticated;
+
+-- RPC administrativas con validación del PIN.
+-- Definiciones completas de las funciones y permisos desplegados en la migración
+-- chat_scheduled_announcements del proyecto Supabase.
+
+-- Procesador ejecutado automáticamente por cron cada minuto.
+-- Publica en messages como UNIX (sender_id NULL) para que todos los clientes
+-- reciban el anuncio por el canal realtime existente.
+select cron.schedule(
+ 'chat-argentina-scheduled-announcements',
+ '* * * * *',
+ 'select public.process_chat_scheduled_announcements();'
+);

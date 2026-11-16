@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -25,9 +24,25 @@ button:disabled{opacity:.5}
 .secondary{background:#344361}
 .admin-box{border:1px solid #d99b35}
 .hidden{display:none!important}
-.brand-logo{display:block;width:145px;height:115px;object-fit:contain;margin:0 auto 18px}
-#login{text-align:center}
+.brand-logo{display:block;width:115px;height:100px;object-fit:contain;margin:0 auto 12px;filter:drop-shadow(0 5px 12px #168bea55)}
+#login{width:100%;max-width:440px;margin:20px auto;padding:27px 22px;text-align:center;background:linear-gradient(155deg,#192b49,#101a30);border:1px solid #29476c;border-radius:24px;box-shadow:0 18px 55px #0009}
+#login h1{font-size:27px;margin:5px 0;letter-spacing:1px}
+#login .login-subtitle{color:#a9bad4;font-size:14px;margin:8px 0 23px;line-height:1.5}
+#login .login-choice{width:100%;min-height:66px;margin:9px 0;display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:13px 17px;border:1px solid #36577f;border-radius:14px;background:#1c3150;color:white;text-align:left;font-size:15px;transition:.2s}
+#login .login-choice:active{transform:scale(.98);background:#24558a}
+#login .choice-icon{font-size:27px;width:35px;text-align:center;flex:0 0 35px}
+#login .login-choice small{display:block;color:#a9bfdc;font-size:12px;font-weight:normal;margin-top:4px}
+#login .login-form{text-align:left;margin-top:15px}
+#login .login-form h2{text-align:center;font-size:21px;margin:12px 0 18px;color:#70bdff}
+#login .login-form label{display:block;color:#b9cce5;font-size:13px;margin-top:12px}
+#login .login-form input{width:100%;height:49px;margin:6px 0;padding:13px;background:#0b1528;border:1px solid #385477;border-radius:11px;color:white}
+#login .login-main-button{width:100%;min-height:49px;margin-top:17px;background:linear-gradient(110deg,#0879d0,#16a9ef);border-radius:12px;font-size:15px}
+#login .login-back{width:100%;margin-top:10px;background:#344361}
+#login .login-footer{color:#7189a8;font-size:11px;margin-top:23px}
+#login #error{display:block;margin-top:13px;line-height:1.5;overflow-wrap:anywhere}
+#login .hidden{display:none!important}
 #login input,#login select{text-align:left}
+@media(max-width:480px){#login{margin:20px auto;padding:24px 19px}}
 body.chat-active{overflow:hidden}
 body.chat-active .container{position:fixed;inset:0;max-width:850px;width:100%;height:var(--app-height,100dvh);padding:0;margin:auto}
 #chat{display:none;height:100dvh;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
@@ -106,59 +121,90 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 .user-menu-card .kick-action{background:#344361}
 .user-menu-card .ban-action{background:#bd394d}
 
-/* PANEL ADMIN - CORREGIDO PARA ANDROID */
-body.admin-open{
-  overflow:hidden!important;
-  overscroll-behavior:none!important;
-}
-body.admin-open .container{
-  overflow:visible!important;
-}
-body.admin-open #chat{
-  overflow:visible!important;
-}
+/* PANEL ADMIN: scroll independiente y cómodo en celulares */
 #adminPanel{
-  position:fixed!important;
-  z-index:30000!important;
-  top:0!important;
-  bottom:0!important;
-  left:0!important;
-  right:0!important;
-  width:100%!important;
-  max-width:760px!important;
-  height:100vh!important;
-  height:100dvh!important;
-  max-height:100dvh!important;
-  margin:0 auto!important;
-  padding:calc(18px + env(safe-area-inset-top)) 16px calc(35px + env(safe-area-inset-bottom))!important;
-  background:#141e35!important;
-  border:1px solid #d99b35!important;
-  border-radius:0!important;
-  overflow-y:auto!important;
-  overflow-x:hidden!important;
-  -webkit-overflow-scrolling:touch!important;
-  overscroll-behavior-y:contain!important;
-  touch-action:pan-y!important;
-  scrollbar-width:thin!important;
-  scrollbar-color:#55b8ff #141e35!important;
+  position:fixed;
+  z-index:5000;
+  top:calc(env(safe-area-inset-top) + 8px);
+  bottom:calc(env(safe-area-inset-bottom) + 8px);
+  left:8px;
+  right:8px;
+  width:auto;
+  max-width:680px;
+  height:auto;
+  max-height:none;
+  margin:0 auto;
+  padding:16px;
+  background:#141e35;
+  border:1px solid #d99b35;
+  border-radius:15px;
+  overflow-y:scroll;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  touch-action:pan-y;
+  scrollbar-width:thin;
+  scrollbar-color:#52749d #141e35;
 }
-#adminPanel.hidden{display:none!important}
-#adminPanel .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-#adminPanel .row input{flex:1 1 180px;min-width:0}
-#adminPanel .row button{flex:1 1 auto;min-height:44px}
-#adminPanel input,#adminPanel select,#adminPanel textarea{width:100%;min-height:45px;font-size:16px;margin:8px 0}
-#adminPanel textarea{min-height:120px;resize:vertical;line-height:1.45}
-#adminPanel button{min-height:44px;white-space:normal;overflow-wrap:anywhere}
+#adminPanel .row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#adminPanel .row input{
+  flex:1 1 180px;
+  min-width:0;
+}
+#adminPanel .row button{
+  flex:1 1 auto;
+  min-height:44px;
+}
+#adminPanel input,
+#adminPanel select,
+#adminPanel textarea{
+  width:100%;
+  min-height:45px;
+  font-size:16px;
+  margin:8px 0;
+}
+#adminPanel textarea{
+  min-height:120px;
+  resize:vertical;
+  line-height:1.45;
+}
+#adminPanel button{
+  min-height:44px;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
 #adminPanel h3{color:#ffd34d;font-size:18px}
-#adminPanel h4{color:#8ecbff;font-size:15px;margin-top:22px;margin-bottom:7px}
+#adminPanel h4{
+  color:#8ecbff;
+  font-size:15px;
+  margin-top:22px;
+  margin-bottom:7px;
+}
 #adminPanel .muted{line-height:1.5}
-#adminPanel .bot-card,#adminPanel .banned-card{width:100%;overflow-wrap:anywhere}
-#adminPanel .bot-card .bot-actions{display:flex;flex-wrap:wrap;gap:8px}
-#adminPanel .bot-card .bot-actions button{flex:1 1 120px;min-height:45px}
+#adminPanel .bot-card,
+#adminPanel .banned-card{
+  width:100%;
+  overflow-wrap:anywhere;
+}
+#adminPanel .bot-card .bot-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+#adminPanel .bot-card .bot-actions button{
+  flex:1 1 120px;
+  min-height:45px;
+}
 #adminPanel::-webkit-scrollbar{width:7px}
 #adminPanel::-webkit-scrollbar-thumb{background:#52749d;border-radius:10px}
+
 @media(max-width:420px){
-  #adminPanel{padding-left:13px!important;padding-right:13px!important}
+  #adminPanel{left:5px;right:5px;padding:13px}
   #adminPanel .row{flex-wrap:wrap}
   #adminPanel .row button{flex:1 1 100%}
   #adminPanel .bot-card .bot-actions button{flex:1 1 100%}
@@ -172,9 +218,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 </style>
 </head>
 <body>
-
 <div id="privateNotice" role="status" aria-live="polite"></div>
-
 <div id="userMenuModal" onclick="if(event.target===this)closeUserMenu()">
 <div class="user-menu-card">
 <h3 id="userMenuTitle">Usuario</h3>
@@ -185,78 +229,64 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 </div>
 <button class="secondary" onclick="closeUserMenu()">Cerrar</button>
 </div></div>
-
 <div id="moderationModal" role="alertdialog" aria-modal="true">
 <div class="moderation-card">
-<h2 id="moderationTitle">Aviso de moderación</h2>
-<p id="moderationMessage"></p>
+<h2 id="moderationTitle">Aviso de moderación</h2><p id="moderationMessage"></p>
 <button onclick="closeModerationModal()">ENTENDIDO</button>
 </div></div>
-
 <div class="container">
-
 <section id="login" class="panel">
-<img class="brand-logo" src="https://raw.githubusercontent.com/jonitalp2023-collab/Wichat/main/app/src/main/res/drawable/ic_launcher_logo.png" alt="WiChat">
-<p>Elegí tu Nick y la sala a la que querés entrar.</p>
-<input id="nickname" maxlength="25" placeholder="Escribí tu Nick" autocomplete="nickname">
-<div id="adminPinWrap" class="hidden">
-<input id="adminPin" type="password" placeholder="PIN de administrador UNIX">
-<p class="muted">El Nick UNIX está reservado para el administrador.</p>
+<img class="brand-logo" src="https://raw.githubusercontent.com/jonitalp2023-collab/Wichat/main/app/src/main/res/drawable/ic_launcher_logo.png" alt="CHAT ARGENTINA">
+<h1>CHAT ARGENTINA 🇦🇷</h1>
+<p class="login-subtitle">Conectate, conocé gente y disfrutá de conversar.</p>
+<div id="loginChoices">
+<button class="login-choice" onclick="showLoginMode('register')"><span class="choice-icon">👤</span><span><strong>CREAR CUENTA</strong><small>Registrate gratis en CHAT ARGENTINA</small></span></button>
+<button class="login-choice" onclick="showLoginMode('login')"><span class="choice-icon">🔐</span><span><strong>INICIAR SESIÓN</strong><small>Ya tengo una cuenta</small></span></button>
+<button class="login-choice" onclick="showLoginMode('guest')"><span class="choice-icon">💬</span><span><strong>ENTRAR COMO INVITADO</strong><small>Ingresá sin registrarte</small></span></button>
 </div>
-<label class="muted" for="initialRoom">Elegí una sala</label>
-<select id="initialRoom"><option value="">Cargando salas...</option></select>
-<button id="enterBtn" onclick="enterChat()">ENTRAR AL CHAT</button>
+<div id="registerForm" class="login-form hidden">
+<h2>✨ Crear mi cuenta</h2>
+<label for="registerNickname">Tu Nick</label><input id="registerNickname" maxlength="25" placeholder="Elegí tu nombre" autocomplete="nickname">
+<label for="registerEmail">Correo electrónico</label><input id="registerEmail" type="email" placeholder="correo@ejemplo.com" autocomplete="email">
+<label for="registerPassword">Contraseña</label><input id="registerPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+<button id="registerBtn" class="login-main-button" onclick="registerAccount()">CREAR CUENTA</button>
+<button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
+</div>
+<div id="emailLoginForm" class="login-form hidden">
+<h2>🔐 Bienvenido nuevamente</h2>
+<label for="accountNickname">Tu Nick</label><input id="accountNickname" maxlength="25" placeholder="Tu nombre en el chat" autocomplete="nickname">
+<label for="loginEmail">Correo electrónico</label><input id="loginEmail" type="email" placeholder="correo@ejemplo.com" autocomplete="email">
+<label for="loginPassword">Contraseña</label><input id="loginPassword" type="password" placeholder="Tu contraseña" autocomplete="current-password">
+<button id="accountLoginBtn" class="login-main-button" onclick="loginAccount()">INGRESAR</button>
+<button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
+</div>
+<div id="guestForm" class="login-form hidden">
+<h2>💬 Entrar como invitado</h2>
+<label for="nickname">Elegí tu Nick</label><input id="nickname" maxlength="25" placeholder="Escribí tu Nick" autocomplete="nickname">
+<div id="adminPinWrap" class="hidden"><label for="adminPin">PIN de administrador UNIX</label><input id="adminPin" type="password" placeholder="PIN de administrador UNIX"><p class="muted">El Nick UNIX está reservado para el administrador.</p></div>
+<label class="muted" for="initialRoom">Elegí una sala</label><select id="initialRoom"><option value="">Cargando salas...</option></select>
+<button id="enterBtn" class="login-main-button" onclick="enterChat()">ENTRAR AL CHAT</button>
+<button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
+</div>
 <p id="error"></p>
+<p class="login-footer">CHAT ARGENTINA · Un lugar para todos 🇦🇷</p>
 </section>
-
-<section id="chat">
-<div class="panel">
+<section id="chat"><div class="panel">
 <div id="roomPills" class="room-pills"></div>
-<div id="roomTopic" class="empty">
-<span class="topic-label">📌 Tópico</span>
-<span id="roomTopicText" class="topic-text">Sin tópico</span>
-</div>
-
+<div id="roomTopic" class="empty"><span class="topic-label">📌 Tópico</span><span id="roomTopicText" class="topic-text">Sin tópico</span></div>
 <div id="chatView">
 <div class="chat-welcome"><strong>Conversación general</strong><span id="status">Conectando...</span></div>
 <div id="messages"></div>
-<div class="composer">
-<div class="emoji-wrap">
-<button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button>
-<div id="emojiPickerPublic" class="emoji-picker"></div>
-</div>
+<div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
 <input id="messageInput" maxlength="1000" placeholder="Escribí aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
-<button id="sendBtn" class="send-button" onclick="sendMessage()">➤</button>
-</div>
-</div>
-
-<div id="usersView" class="hidden">
-<h3>👥 Usuarios en línea</h3>
-<div id="usersCountText" class="user-count">0 usuarios conectados</div>
-<p class="muted">Tocá un Nick para ver sus opciones.</p>
-<div id="usersList"><p class="muted">Esperando usuarios...</p></div>
-</div>
-
-<div id="roomsView" class="hidden">
-<h3>💬 Salas disponibles</h3>
-<p class="muted">Elegí la sala a la que querés entrar.</p>
-<div id="roomTabs"></div>
-</div>
-
-<div id="privateView" class="hidden">
-<div id="privateMessages"></div>
-<div class="composer">
-<div class="emoji-wrap">
-<button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button>
-<div id="emojiPickerPrivate" class="emoji-picker"></div>
-</div>
+<button id="sendBtn" class="send-button" onclick="sendMessage()">➤</button></div></div>
+<div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><div id="usersCountText" class="user-count">0 usuarios conectados</div><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
+<div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
+<div id="privateView" class="hidden"><div id="privateMessages"></div>
+<div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
 <input id="privateInput" maxlength="1000" placeholder="Escribí un mensaje privado..." onkeydown="if(event.key==='Enter')sendPrivateMessage()">
-<button id="privateSendBtn" class="send-button" onclick="sendPrivateMessage()">➤</button>
+<button id="privateSendBtn" class="send-button" onclick="sendPrivateMessage()">➤</button></div></div>
 </div>
-</div>
-
-</div>
-
 <nav id="bottomNav">
 <button id="navRooms" class="nav-btn active" onclick="showMainTab('rooms')"><span class="nav-icon">☰</span><span>Salas</span></button>
 <button id="navUsers" class="nav-btn" onclick="showMainTab('users')"><span class="nav-icon">♧</span><span>Usuarios</span></button>
@@ -264,228 +294,157 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <button id="adminOpenBtn" class="nav-btn hidden" onclick="openAdmin()"><span class="nav-icon">⭐</span><span>ADMIN</span></button>
 <button id="navExit" class="nav-btn exit" onclick="exitChat()"><span class="nav-icon">✕</span><span>Salir</span></button>
 </nav>
-
 <div id="adminPanel" class="panel admin-box hidden">
-<div class="row" style="justify-content:space-between">
-<h3 style="margin:0">Administración UNIX ⭐</h3>
-<button class="secondary" onclick="closeAdmin()">Cerrar</button>
-</div>
-
+<div class="row" style="justify-content:space-between"><h3 style="margin:0">Administración UNIX ⭐</h3><button class="secondary" onclick="closeAdmin()">Cerrar</button></div>
 <hr style="border-color:#344361;margin:20px 0">
-
-<h4>📌 Tópico de la sala actual</h4>
-<p class="muted">Solo UNIX puede cambiar o borrar el tópico de esta sala.</p>
+<h4>📌 Tópico de la sala actual</h4><p class="muted">Solo UNIX puede cambiar o borrar el tópico de esta sala.</p>
 <input id="roomTopicInput" maxlength="180" placeholder="Escribí el tópico de esta sala">
-<div class="row">
-<button onclick="saveRoomTopic()">Guardar tópico</button>
-<button class="secondary" onclick="deleteRoomTopic()">Borrar</button>
-</div>
-<p id="topicAdminStatus" class="muted"></p>
-
-<hr style="border-color:#344361;margin:20px 0">
-
-<h4>Crear una sala</h4>
-<div class="row">
-<input id="newRoomName" maxlength="30" placeholder="Nombre de la sala">
-<button onclick="createRoom()">Crear</button>
-</div>
-
-<h4>Eliminar una sala</h4>
-<select id="roomToDelete"><option value="">Elegí una sala</option></select>
-<button class="danger" onclick="deleteRoom()">Eliminar sala</button>
-
-<h4>Expulsar o banear usuarios</h4>
-<p class="muted">Elegí un usuario conectado en esta sala.</p>
+<div class="row"><button onclick="saveRoomTopic()">Guardar tópico</button><button class="secondary" onclick="deleteRoomTopic()">Borrar</button></div>
+<p id="topicAdminStatus" class="muted"></p><hr style="border-color:#344361;margin:20px 0">
+<h4>Crear una sala</h4><div class="row"><input id="newRoomName" maxlength="30" placeholder="Nombre de la sala"><button onclick="createRoom()">Crear</button></div>
+<h4>Eliminar una sala</h4><select id="roomToDelete"><option value="">Elegí una sala</option></select><button class="danger" onclick="deleteRoom()">Eliminar sala</button>
+<h4>Expulsar o banear usuarios</h4><p class="muted">Elegí un usuario conectado en esta sala.</p>
 <select id="userToModerate"><option value="">Usuarios de esta sala</option></select>
-<div class="row">
-<button class="secondary" onclick="moderateUser('kick')">Expulsar de esta sala</button>
-<button class="danger" onclick="moderateUser('ban')">Banear</button>
-</div>
-<p id="adminStatus" class="muted"></p>
-
-<hr style="border-color:#344361;margin:20px 0">
-
-<h4>🚫 Usuarios baneados</h4>
-<p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
+<div class="row"><button class="secondary" onclick="moderateUser('kick')">Expulsar de esta sala</button><button class="danger" onclick="moderateUser('ban')">Banear</button></div>
+<p id="adminStatus" class="muted"></p><hr style="border-color:#344361;margin:20px 0">
+<h4>🚫 Usuarios baneados</h4><p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
 <button class="secondary" onclick="loadBannedUsers()">🔄 Actualizar lista</button>
 <div id="bannedUsersList" style="margin-top:12px"><p class="muted">Presioná actualizar para ver los baneados.</p></div>
-
 <hr style="border-color:#344361;margin:20px 0">
-
 <h4>🤖 Administración de bots</h4>
 <p class="muted">Los bots activos participan automáticamente en cada mensaje de la sala. Cada uno tiene una intervención por mensaje humano y leen las respuestas anteriores para conversar entre ellos. Máximo 5 bots activos.</p>
 <input id="botName" maxlength="25" placeholder="Nombre del nuevo bot">
 <textarea id="botInstructions" maxlength="4000" rows="5" style="width:100%;padding:12px;border:1px solid #344361;border-radius:10px;background:#0c1427;color:white;font:16px Arial" placeholder="Personalidad e instrucciones del bot"></textarea>
-<div class="row">
-<button onclick="saveBot()">➕ Crear bot</button>
-<button class="secondary" onclick="loadBots()">🔄 Actualizar</button>
-</div>
+<div class="row"><button onclick="saveBot()">➕ Crear bot</button><button class="secondary" onclick="loadBots()">🔄 Actualizar</button></div>
 <p id="botAdminStatus" class="muted"></p>
 <div id="botsList" style="margin-top:12px"><p class="muted">Presioná actualizar para ver los bots.</p></div>
-</div>
-</section>
-</div>
+
+</div></section></div>
 
 <script>
 const SUPABASE_URL="https://pqnnzkqxkndzelsbtxvv.supabase.co";
 const SUPABASE_KEY="sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
 const $=id=>document.getElementById(id);
-
 let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null;
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
 let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
+let authMode="home";
+
+function showLoginMode(mode){
+authMode=mode;
+$("loginChoices").classList.toggle("hidden",mode!=="home");
+$("registerForm").classList.toggle("hidden",mode!=="register");
+$("emailLoginForm").classList.toggle("hidden",mode!=="login");
+$("guestForm").classList.toggle("hidden",mode!=="guest");
+showError("");
+}
 
 async function ensureAuthUser(){
 let {data:{session},error}=await db.auth.getSession();
 if(error)throw error;
-if(!session){
-const result=await db.auth.signInAnonymously();
-if(result.error)throw result.error;
-session=result.data.session;
-}
+if(authMode==="guest"&&session&&!session.user.is_anonymous){const {error:signOutError}=await db.auth.signOut();if(signOutError)throw signOutError;session=null;}
+if(authMode==="account"&&(!session||session.user.is_anonymous))throw new Error("No hay una sesión de cuenta activa. Iniciá sesión nuevamente.");
+if(!session){if(authMode!=="guest")throw new Error("No hay una sesión activa. Iniciá sesión nuevamente.");const result=await db.auth.signInAnonymously();if(result.error)throw result.error;session=result.data.session;}
 if(!session?.user?.id)throw new Error("No se pudo identificar al usuario.");
 return session.user.id;
 }
 
-/* ADMIN API */
+async function registerAccount(){
+showError("");
+const name=$("registerNickname").value.trim(),email=$("registerEmail").value.trim(),password=$("registerPassword").value,btn=$("registerBtn");
+if(!name||!email||!password){showError("Completá tu Nick, correo y contraseña.");return;}
+if(name.toUpperCase()==="UNIX"){showError("El Nick UNIX está reservado para el administrador.");return;}
+if(password.length<6){showError("La contraseña debe tener al menos 6 caracteres.");return;}
+btn.disabled=true;
+try{
+const {data,error}=await db.auth.signUp({email,password});if(error)throw error;
+if(!data?.session){showError("Cuenta creada. Revisá tu correo para confirmar el registro y después iniciá sesión.");return;}
+$("nickname").value=name;authMode="account";await enterChat();
+}catch(e){showError("No se pudo crear la cuenta: "+(e.message||String(e)));}
+finally{btn.disabled=false;}
+}
+
+async function loginAccount(){
+showError("");
+const name=$("accountNickname").value.trim(),email=$("loginEmail").value.trim(),password=$("loginPassword").value,btn=$("accountLoginBtn");
+if(!name||!email||!password){showError("Completá tu Nick, correo y contraseña.");return;}
+if(name.toUpperCase()==="UNIX"){showError("El Nick UNIX está reservado para el administrador.");return;}
+btn.disabled=true;
+try{
+const {data,error}=await db.auth.signInWithPassword({email,password});if(error)throw error;
+if(!data?.session?.user?.id)throw new Error("No se pudo iniciar la sesión.");
+$("nickname").value=name;authMode="account";await enterChat();
+}catch(e){showError("No se pudo iniciar sesión: "+(e.message||String(e)));}
+finally{btn.disabled=false;}
+}
+
+/* TODAS LAS ACCIONES ADMINISTRATIVAS PASAN POR LA EDGE FUNCTION admin-api */
 async function callAdminApi(action,extra={}){
 if(!isAdmin||!adminPin)throw new Error("No tenés permisos de administrador.");
 const {data,error}=await db.functions.invoke("admin-api",{body:{action,pin_input:adminPin,...extra}});
 if(error){
 let message=error.message||"Error al comunicarse con Admin API.";
-try{
-if(error.context&&typeof error.context.json==="function"){
-const response=await error.context.json();
-if(response?.message)message=response.message;
-}
-}catch(_){}
+try{if(error.context&&typeof error.context.json==="function"){const response=await error.context.json();if(response?.message)message=response.message;}}catch(_){}
 throw new Error(message);
 }
 if(!data||data.success!==true)throw new Error(data?.message||"La Admin API no respondió correctamente.");
 return data.data;
 }
 
-/* NICKS ÚNICOS */
+/* SISTEMA DE NICKS ÚNICOS EN LÍNEA */
 function normalizeNickname(name){return String(name||"").trim().toLowerCase();}
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
-
 async function claimNickname(name){
 const nicknameKey=normalizeNickname(name);
 if(!nicknameKey)return false;
 if(nicknameChannel)await releaseNickname();
-
 const channel=db.channel("wichat-online-nicknames",{config:{presence:{key:senderId}}});
 nicknameChannel=channel;
-
 return new Promise((resolve,reject)=>{
 let finished=false;
-
-const timeout=setTimeout(async()=>{
-if(finished)return;
-finished=true;
-if(nicknameChannel===channel)nicknameChannel=null;
-await db.removeChannel(channel);
-reject(new Error("No se pudo comprobar la disponibilidad del Nick. Intentá nuevamente."));
-},15000);
-
+const timeout=setTimeout(async()=>{if(finished)return;finished=true;if(nicknameChannel===channel)nicknameChannel=null;await db.removeChannel(channel);reject(new Error("No se pudo comprobar la disponibilidad del Nick. Intentá nuevamente."));},15000);
 channel.subscribe(async status=>{
 if(status==="SUBSCRIBED"&&!finished){
 try{
 const {error}=await channel.track({sender_id:senderId,nickname:name,nickname_key:nicknameKey});
 if(error)throw error;
-await wait(1200);
-if(finished)return;
-
+await wait(1200);if(finished)return;
 const state=channel.presenceState(),duplicates=[];
-Object.values(state).forEach(entries=>(entries||[]).forEach(user=>{
-if(String(user.nickname_key||normalizeNickname(user.nickname))===nicknameKey)duplicates.push(String(user.sender_id||""));
-}));
-
+Object.values(state).forEach(entries=>(entries||[]).forEach(user=>{if(String(user.nickname_key||normalizeNickname(user.nickname))===nicknameKey)duplicates.push(String(user.sender_id||""));}));
 const uniqueIds=[...new Set(duplicates)].sort();
-
-if(uniqueIds.length>1&&uniqueIds[0]!==String(senderId)){
-finished=true;
-clearTimeout(timeout);
-if(nicknameChannel===channel)nicknameChannel=null;
-await db.removeChannel(channel);
-resolve(false);
-return;
+if(uniqueIds.length>1&&uniqueIds[0]!==String(senderId)){finished=true;clearTimeout(timeout);if(nicknameChannel===channel)nicknameChannel=null;await db.removeChannel(channel);resolve(false);return;}
+finished=true;clearTimeout(timeout);resolve(true);
+}catch(error){if(finished)return;finished=true;clearTimeout(timeout);if(nicknameChannel===channel)nicknameChannel=null;await db.removeChannel(channel);reject(error);}
 }
-
-finished=true;
-clearTimeout(timeout);
-resolve(true);
-
-}catch(error){
-if(finished)return;
-finished=true;
-clearTimeout(timeout);
-if(nicknameChannel===channel)nicknameChannel=null;
-await db.removeChannel(channel);
-reject(error);
-}
-}
-
-if((status==="CHANNEL_ERROR"||status==="TIMED_OUT")&&!finished){
-finished=true;
-clearTimeout(timeout);
-if(nicknameChannel===channel)nicknameChannel=null;
-db.removeChannel(channel);
-reject(new Error("No se pudo conectar para comprobar el Nick."));
-}
+if((status==="CHANNEL_ERROR"||status==="TIMED_OUT")&&!finished){finished=true;clearTimeout(timeout);if(nicknameChannel===channel)nicknameChannel=null;db.removeChannel(channel);reject(new Error("No se pudo conectar para comprobar el Nick."));}
 });
 });
 }
-
-async function releaseNickname(){
-if(nicknameChannel){
-const channel=nicknameChannel;
-nicknameChannel=null;
-try{await db.removeChannel(channel);}
-catch(e){console.log("Error liberando Nick:",e);}
-}
-}
-
+async function releaseNickname(){if(nicknameChannel){const channel=nicknameChannel;nicknameChannel=null;try{await db.removeChannel(channel);}catch(e){console.log("Error liberando Nick:",e);}}}
 function showError(s){$("error").textContent=s;}
 
-/* TÓPICOS */
+/* TÓPICOS POR SALA */
 async function loadRoomTopic(roomId){
-const bar=$("roomTopic");
-if(!bar)return;
-
+const bar=$("roomTopic");if(!bar)return;
 const {data,error}=await db.from("chat_room_topics").select("topic").eq("room_id",roomId).maybeSingle();
-
-if(error){
-console.error("Error cargando tópico:",error);
-$("roomTopicText").textContent="No se pudo cargar el tópico";
-bar.classList.add("empty");
-return;
-}
-
+if(error){console.error("Error cargando tópico:",error);$("roomTopicText").textContent="No se pudo cargar el tópico";bar.classList.add("empty");return;}
 if(String(currentRoom)!==String(roomId))return;
-
-currentRoomTopic=data?.topic||"";
-$("roomTopicText").textContent=currentRoomTopic||"Sin tópico";
-bar.classList.toggle("empty",!currentRoomTopic);
-
+currentRoomTopic=data?.topic||"";$("roomTopicText").textContent=currentRoomTopic||"Sin tópico";bar.classList.toggle("empty",!currentRoomTopic);
 if(isAdmin&&$("roomTopicInput"))$("roomTopicInput").value=currentRoomTopic;
 }
-
 async function saveRoomTopic(){
 if(!isAdmin||!currentRoom)return;
 const input=$("roomTopicInput"),status=$("topicAdminStatus"),topic=input.value.trim();
-const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:Number(currentRoom),topic_input:topic||null});
+const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:currentRoom,topic_input:topic||null});
 status.textContent=error?"Error: "+error.message:"Tópico guardado correctamente.";
 if(!error)await loadRoomTopic(currentRoom);
 }
-
 async function deleteRoomTopic(){
 if(!isAdmin||!currentRoom)return;
-const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:Number(currentRoom),topic_input:null});
+const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:currentRoom,topic_input:null});
 $("topicAdminStatus").textContent=error?"Error: "+error.message:"Tópico borrado.";
 if(!error){$("roomTopicInput").value="";await loadRoomTopic(currentRoom);}
 }
@@ -493,675 +452,276 @@ if(!error){$("roomTopicInput").value="";await loadRoomTopic(currentRoom);}
 /* MODERACIÓN */
 function showModerationModal(action,roomName,blocked=false){
 const title=$("moderationTitle"),message=$("moderationMessage"),button=$("moderationModal").querySelector("button");
-
-if(blocked){
-title.textContent="⛔ Acceso restringido";
-message.textContent="No podés entrar a la sala "+roomName+". Tu expulsión o baneo sigue vigente. Podrás volver cuando termine el plazo.";
-}else if(action==="warning_1"){
-title.textContent="⚠️ Primera advertencia";
-message.textContent="El bot de CHAT ARGENTINA te avisa que está prohibido escribir insultos. Por favor, respetá a los demás usuarios. A la tercera infracción serás expulsado durante cinco minutos.";
-}else if(action==="warning_2"){
-title.textContent="🚨 Segunda advertencia";
-message.textContent="Esta es tu segunda advertencia por utilizar insultos. Si volvés a hacerlo, serás expulsado automáticamente durante cinco minutos.";
-}else if(action==="ban"){
-title.textContent="🚫 Expulsión automática";
-message.textContent="El bot detectó tu tercera infracción por insultos. Fuiste expulsado de la sala "+roomName+" durante cinco minutos.";
-}else if(action==="kick"){
-title.textContent="🚪 Fuiste expulsado";
-message.textContent="UNIX te expulsó de la sala "+roomName+".";
-}else{
-title.textContent="🚫 Fuiste baneado";
-message.textContent="Tu acceso a la sala "+roomName+" fue restringido durante cinco minutos.";
+if(blocked){title.textContent="⛔ Acceso restringido";message.textContent="No podés entrar a la sala "+roomName+". Tu expulsión o baneo sigue vigente. Podrás volver cuando termine el plazo.";}
+else if(action==="warning_1"){title.textContent="⚠️ Primera advertencia";message.textContent="El bot de CHAT ARGENTINA te avisa que está prohibido escribir insultos. Por favor, respetá a los demás usuarios. A la tercera infracción serás expulsado durante cinco minutos.";}
+else if(action==="warning_2"){title.textContent="🚨 Segunda advertencia";message.textContent="Esta es tu segunda advertencia por utilizar insultos. Si volvés a hacerlo, serás expulsado automáticamente durante cinco minutos.";}
+else if(action==="ban"){title.textContent="🚫 Expulsión automática";message.textContent="El bot detectó tu tercera infracción por insultos. Fuiste expulsado de la sala "+roomName+" durante cinco minutos.";}
+else if(action==="kick"){title.textContent="🚪 Fuiste expulsado";message.textContent="UNIX te expulsó de la sala "+roomName+".";}
+else{title.textContent="🚫 Fuiste baneado";message.textContent="Tu acceso a la sala "+roomName+" fue restringido durante cinco minutos.";}
+button.textContent=(action==="warning_1"||action==="warning_2")?"ENTENDIDO":"CERRAR";$("moderationModal").classList.add("show");
 }
-
-button.textContent=(action==="warning_1"||action==="warning_2")?"ENTENDIDO":"CERRAR";
-$("moderationModal").classList.add("show");
-}
-
 function closeModerationModal(){$("moderationModal").classList.remove("show");}
-
 function subscribeModerationEvents(){
 if(moderationChannel){db.removeChannel(moderationChannel);moderationChannel=null;}
 if(!senderId)return;
-
-moderationChannel=db.channel("wichat-moderation-"+senderId)
-.on("postgres_changes",{event:"INSERT",schema:"public",table:"wichat_moderation_events",filter:"sender_id=eq."+senderId},async payload=>{
-const event=payload.new;
-if(!event||String(event.sender_id)!==String(senderId))return;
-if(String(event.room_id)!==String(currentRoom))return;
-
-const room=rooms.find(r=>String(r.id)===String(event.room_id));
-const roomName=room?.name||"esta sala";
-const action=String(event.action||"");
-
-if(action==="warning_1"||action==="warning_2"){
-showModerationModal(action,roomName);
-return;
-}
-
-if(action==="ban"||action==="kick"){
-await exitChat();
-showModerationModal(action,roomName);
-}
+moderationChannel=db.channel("wichat-moderation-"+senderId).on("postgres_changes",{event:"INSERT",schema:"public",table:"wichat_moderation_events",filter:"sender_id=eq."+senderId},async payload=>{
+const event=payload.new;if(!event||String(event.sender_id)!==String(senderId))return;if(String(event.room_id)!==String(currentRoom))return;
+const room=rooms.find(r=>String(r.id)===String(event.room_id)),roomName=room?.name||"esta sala",action=String(event.action||"");
+if(action==="warning_1"||action==="warning_2"){showModerationModal(action,roomName);return;}
+if(action==="ban"||action==="kick"){await exitChat();showModerationModal(action,roomName);}
 }).subscribe();
 }
+$("nickname").addEventListener("input",()=>{const admin=$("nickname").value.trim().toUpperCase()==="UNIX";$("adminPinWrap").classList.toggle("hidden",!admin);});
 
-$("nickname").addEventListener("input",()=>{
-const admin=$("nickname").value.trim().toUpperCase()==="UNIX";
-$("adminPinWrap").classList.toggle("hidden",!admin);
-});
-
-/* SALAS */
 async function fetchRooms(){
-const {data,error}=await db.from("rooms").select("id,name");
-if(error)throw error;
-
+const {data,error}=await db.from("rooms").select("id,name");if(error)throw error;
 rooms=(data||[]).slice().sort((a,b)=>{
-const ag=String(a.name).trim().toLowerCase()==="general";
-const bg=String(b.name).trim().toLowerCase()==="general";
-if(ag&&!bg)return -1;
-if(bg&&!ag)return 1;
-return String(a.name).localeCompare(String(b.name),"es");
+const ag=String(a.name).trim().toLowerCase()==="general",bg=String(b.name).trim().toLowerCase()==="general";
+if(ag&&!bg)return -1;if(bg&&!ag)return 1;return String(a.name).localeCompare(String(b.name),"es");
 });
-
-const select=$("initialRoom"),previous=select.value;
-select.innerHTML="";
-
-rooms.forEach(r=>{
-const o=document.createElement("option");
-o.value=String(r.id);
-o.textContent=r.name;
-select.appendChild(o);
-});
-
+const select=$("initialRoom"),previous=select.value;select.innerHTML="";
+rooms.forEach(r=>{const o=document.createElement("option");o.value=r.id;o.textContent=r.name;select.appendChild(o);});
 const general=rooms.find(r=>String(r.name).trim().toLowerCase()==="general");
-
-if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
-else if(general)select.value=String(general.id);
-else if(rooms.length)select.value=String(rooms[0].id);
-
-if(isAdmin)renderRoomDelete();
-if(!rooms.length)throw new Error("No hay salas. Creá una desde Administración.");
+if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;else if(general)select.value=general.id;else if(rooms.length)select.value=rooms[0].id;
+if(isAdmin)renderRoomDelete();if(!rooms.length)throw new Error("No hay salas. Creá una desde Administración.");
 }
-
-/* INGRESO */
 async function enterChat(){
-showError("");
-const name=$("nickname").value.trim();
-const btn=$("enterBtn");
-
+if(authMode==="home")authMode="guest";
+showError("");const name=$("nickname").value.trim(),btn=$("enterBtn");
 if(!name){showError("Escribí tu Nick.");return;}
-
-nickname=name;
-isAdmin=false;
-adminPin="";
-btn.disabled=true;
-
+nickname=name;isAdmin=false;adminPin="";btn.disabled=true;
 try{
 senderId=await ensureAuthUser();
-
 if(name.trim().toUpperCase()==="UNIX"){
-const pin=$("adminPin").value.trim();
-if(!pin)throw new Error("Ingresá el PIN de administrador UNIX.");
-
+const pin=$("adminPin").value.trim();if(!pin)throw new Error("Ingresá el PIN de administrador UNIX.");
 const {data,error}=await db.rpc("verify_admin_pin",{pin_input:pin});
-
-console.log("Resultado de verificación UNIX:",data);
-console.log("Error de verificación UNIX:",error);
-
+console.log("Resultado de verificación UNIX:",data);console.log("Error de verificación UNIX:",error);
 if(error)throw new Error("Supabase no pudo verificar el PIN: "+error.message);
-
-const pinValido=data===true||data==="true";
-if(!pinValido)throw new Error("El servidor respondió que el PIN es incorrecto.");
-
-isAdmin=true;
-adminPin=pin;
+const pinValido=data===true||data==="true";if(!pinValido)throw new Error("El servidor respondió que el PIN es incorrecto.");
+isAdmin=true;adminPin=pin;
 }
-
-await fetchRooms();
-
-currentRoom=Number($("initialRoom").value||rooms[0]?.id);
-
-if(!Number.isSafeInteger(currentRoom)||currentRoom<1){
-throw new Error("El ID numérico de la sala no es válido.");
-}
-
-const selectedRoom=rooms.find(r=>Number(r.id)===currentRoom);
-
-const {data:allowed,error}=await db.rpc("check_chat_access",{
-sender_id_input:senderId,
-room_id_input:currentRoom
-});
-
+await fetchRooms();currentRoom=$("initialRoom").value||rooms[0]?.id;if(!currentRoom)throw new Error("No hay salas disponibles.");
+const selectedRoom=rooms.find(r=>String(r.id)===String(currentRoom));
+const {data:allowed,error}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:currentRoom});
 if(error)throw error;
-
-if(!allowed){
-currentRoom=null;
-showModerationModal("blocked",selectedRoom?.name||"esta sala",true);
-btn.disabled=false;
-return;
+if(!allowed){currentRoom=null;showModerationModal("blocked",selectedRoom?.name||"esta sala",true);btn.disabled=false;return;}
+const available=await claimNickname(nickname);if(!available){currentRoom=null;throw new Error("Este Nick ya está en uso. Elegí otro.");}
+$("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
+$("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom);
+subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
+}catch(e){await releaseNickname();currentRoom=null;console.error("Error al ingresar al chat:",e);showError("No se pudo ingresar: "+(e.message||String(e)));btn.disabled=false;}
 }
-
-const available=await claimNickname(nickname);
-if(!available){
-currentRoom=null;
-throw new Error("Este Nick ya está en uso. Elegí otro.");
-}
-
-$("login").style.display="none";
-$("chat").style.display="block";
-document.body.classList.add("chat-active");
-
-$("adminOpenBtn").classList.toggle("hidden",!isAdmin);
-
-renderTabs();
-await switchRoom(currentRoom);
-
-subscribeRooms();
-subscribePrivateNotifications();
-subscribeModerationEvents();
-
-}catch(e){
-await releaseNickname();
-currentRoom=null;
-console.error("Error al ingresar al chat:",e);
-showError("No se pudo ingresar: "+(e.message||String(e)));
-btn.disabled=false;
-}
-}
-
-function closeEmojiPickers(){
-$("emojiPickerPublic").classList.remove("open");
-$("emojiPickerPrivate").classList.remove("open");
-}
+function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");}
 
 /* NAVEGACIÓN */
 function showMainTab(which){
-$("chatView").classList.toggle("hidden",which!=="chat");
-$("usersView").classList.toggle("hidden",which!=="users");
-$("roomsView").classList.toggle("hidden",which!=="rooms");
-$("privateView").classList.add("hidden");
-
-$("navUsers").classList.toggle("active",which==="users");
-$("navRooms").classList.toggle("active",which==="rooms");
-$("navChat").classList.toggle("active",which==="chat");
-
-$("roomTopic").style.display=(which==="chat"&&document.body.classList.contains("chat-active"))?"flex":"none";
-
-activePrivateUser=null;
-
-if(privateChannel){
-db.removeChannel(privateChannel);
-privateChannel=null;
+$("chatView").classList.toggle("hidden",which!=="chat");$("usersView").classList.toggle("hidden",which!=="users");$("roomsView").classList.toggle("hidden",which!=="rooms");$("privateView").classList.add("hidden");
+$("navUsers").classList.toggle("active",which==="users");$("navRooms").classList.toggle("active",which==="rooms");$("navChat").classList.toggle("active",which==="chat");
+$("roomTopic").style.display=(which==="chat"&&document.body.classList.contains("chat-active"))?"flex":"none";activePrivateUser=null;
+if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}closeEmojiPickers();
 }
 
-closeEmojiPickers();
-}
-
-/* PESTAÑAS */
+/* PESTAÑAS DE SALAS Y PRIVADOS */
 function renderTabs(){
-const list=$("roomTabs"),pills=$("roomPills");
-list.innerHTML="";
-pills.innerHTML="";
-
+const list=$("roomTabs"),pills=$("roomPills");list.innerHTML="";pills.innerHTML="";
 rooms.forEach(r=>{
-const active=Number(r.id)===Number(currentRoom);
-const roomName=String(r.name).trim().toLowerCase()==="general"?"General":"#"+String(r.name).replace(/^#/,"");
-
-const pill=document.createElement("button");
-pill.className="room-pill"+(active?" active":"");
-pill.textContent=roomName;
-pill.onclick=()=>switchRoom(Number(r.id));
-pills.appendChild(pill);
-
-const b=document.createElement("button");
-b.className="room-tab"+(active?" active":"");
-b.textContent=roomName;
-b.onclick=()=>switchRoom(Number(r.id));
-list.appendChild(b);
+const active=String(r.id)===String(currentRoom),roomName=String(r.name).trim().toLowerCase()==="general"?"General":"#"+String(r.name).replace(/^#/,"");
+const pill=document.createElement("button");pill.className="room-pill"+(active?" active":"");pill.textContent=roomName;pill.onclick=()=>switchRoom(r.id);pills.appendChild(pill);
+const b=document.createElement("button");b.className="room-tab"+(active?" active":"");b.textContent=roomName;b.onclick=()=>switchRoom(r.id);list.appendChild(b);
 });
-
 renderPrivateTabs();
 }
-
 async function switchRoom(id){
-
-// Todos los IDs de salas son BIGINT.
-id=Number(id);
-
-if(!Number.isSafeInteger(id)||id<1){
-$("status").textContent="El ID numérico de la sala no es válido.";
-return;
-}
-
-const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{
-sender_id_input:senderId,
-room_id_input:id
-});
-
-if(accessError){
-$("status").textContent="Error de acceso: "+accessError.message;
-return;
-}
-
-if(!allowed){
-const room=rooms.find(r=>Number(r.id)===id);
-$("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";
-return;
-}
-
+const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:id});
+if(accessError){$("status").textContent="Error de acceso: "+accessError.message;return;}
+if(!allowed){const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";return;}
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
-
-currentRoom=id;
-
-showMainTab("chat");
-$("roomTopic").style.display="flex";
-$("roomTopicText").textContent="Cargando tópico...";
-$("roomTopic").classList.add("empty");
-
-await loadRoomTopic(id);
-
-topicChannel=db.channel("wichat-room-topic-"+id)
-.on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id))
-.subscribe();
-
-receivedIds.clear();
-roomUsers.clear();
-$("messages").innerHTML="";
-renderTabs();
-renderUsers();
-
-const room=rooms.find(r=>Number(r.id)===id);
-$("status").textContent="Cargando "+(room?.name||"sala")+"...";
-
-messageChannel=db.channel("wichat-messages-"+id)
-.on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new))
-.subscribe(s=>{
-if(s==="SUBSCRIBED"){
-$("status").textContent="● Conectado";
-loadRoomMessages(id);
-}
-});
-
+currentRoom=id;showMainTab("chat");$("roomTopic").style.display="flex";$("roomTopicText").textContent="Cargando tópico...";$("roomTopic").classList.add("empty");await loadRoomTopic(id);
+topicChannel=db.channel("wichat-room-topic-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id)).subscribe();
+receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();renderUsers();
+const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";
+messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new)).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
 presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
-
-presenceChannel
-.on("presence",{event:"sync"},updatePresenceList)
-.on("presence",{event:"join"},updatePresenceList)
-.on("presence",{event:"leave"},updatePresenceList)
-.subscribe(async state=>{
-if(state==="SUBSCRIBED"){
-await presenceChannel.track({
-nickname,
-sender_id:senderId,
-is_admin:isAdmin,
-online_at:new Date().toISOString()
-});
-updatePresenceList();
-}
+presenceChannel.on("presence",{event:"sync"},updatePresenceList).on("presence",{event:"join"},updatePresenceList).on("presence",{event:"leave"},updatePresenceList).subscribe(async state=>{
+if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,online_at:new Date().toISOString()});updatePresenceList();}
 });
 }
-
 function updatePresenceList(){
-if(!presenceChannel)return;
-
-const state=presenceChannel.presenceState(),next=new Map();
-
-Object.keys(state).forEach(key=>{
-const entries=state[key]||[];
-if(entries.length){
-const p=entries[entries.length-1],id=p.sender_id||key;
-next.set(id,{id,nick:p.nickname||"Usuario",admin:p.is_admin===true});
-}
-});
-
-roomUsers=next;
-renderUsers();
-renderModerationUsers();
+if(!presenceChannel)return;const state=presenceChannel.presenceState(),next=new Map();
+Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length){const p=entries[entries.length-1],id=p.sender_id||key;next.set(id,{id,nick:p.nickname||"Usuario",admin:p.is_admin===true});}});
+roomUsers=next;renderUsers();renderModerationUsers();
 }
 
-/* MENÚ USUARIO */
+/* MENÚ DE USUARIO */
 function openUserMenu(user){
 if(!user||!user.id||String(user.id)===String(senderId))return;
-
-selectedMenuUser={id:user.id,nick:user.nick||"Usuario"};
-$("userMenuTitle").textContent=selectedMenuUser.nick;
-$("adminUserActions").classList.toggle("hidden",!isAdmin);
-$("userMenuModal").classList.add("show");
+selectedMenuUser={id:user.id,nick:user.nick||"Usuario"};$("userMenuTitle").textContent=selectedMenuUser.nick;
+$("adminUserActions").classList.toggle("hidden",!isAdmin);$("userMenuModal").classList.add("show");
 }
-
 function closeUserMenu(){$("userMenuModal").classList.remove("show");}
-
-async function userMenuPrivate(){
-if(!selectedMenuUser)return;
-const user={...selectedMenuUser};
-closeUserMenu();
-await openPrivateChat(user);
-}
-
+async function userMenuPrivate(){if(!selectedMenuUser)return;const user={...selectedMenuUser};closeUserMenu();await openPrivateChat(user);}
 async function userMenuModerate(action){
-if(!isAdmin||!selectedMenuUser)return;
-
-const user={...selectedMenuUser};
+if(!isAdmin||!selectedMenuUser)return;const user={...selectedMenuUser};
 const actionText=action==="ban"?"banear por cinco minutos a ":"echar de la sala a ";
-
 if(!confirm("¿Querés "+actionText+user.nick+"?"))return;
-
 closeUserMenu();
-
 try{
-await callAdminApi("moderate_user",{
-target_sender_id:user.id,
-room_id_input:Number(currentRoom),
-action_name:action
-});
-
+await callAdminApi("moderate_user",{target_sender_id:user.id,room_id_input:currentRoom,action_name:action});
 $("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos.":"Usuario expulsado de la sala.";
-
 if(action==="ban")await loadBannedUsers();
-
-}catch(error){
-alert("No se pudo moderar al usuario: "+error.message);
+}catch(error){alert("No se pudo moderar al usuario: "+error.message);}
 }
-}
-
 function renderUsers(){
-const list=$("usersList");
-if(!list)return;
-
-const users=Array.from(roomUsers.values()).sort((a,b)=>{
-if(a.admin&&a.nick.toUpperCase()==="UNIX")return -1;
-if(b.admin&&b.nick.toUpperCase()==="UNIX")return 1;
-return a.nick.localeCompare(b.nick);
-});
-
-$("usersCountText").textContent=users.length+" "+(users.length===1?"usuario conectado":"usuarios conectados");
-list.innerHTML="";
-
-if(!users.length){
-list.innerHTML='<p class="muted">Todavía no hay usuarios conectados.</p>';
-return;
-}
-
+const list=$("usersList");if(!list)return;
+const users=Array.from(roomUsers.values()).sort((a,b)=>{if(a.admin&&a.nick.toUpperCase()==="UNIX")return -1;if(b.admin&&b.nick.toUpperCase()==="UNIX")return 1;return a.nick.localeCompare(b.nick);});
+$("usersCountText").textContent=users.length+" "+(users.length===1?"usuario conectado":"usuarios conectados");list.innerHTML="";
+if(!users.length){list.innerHTML='<p class="muted">Todavía no hay usuarios conectados.</p>';return;}
 users.forEach(u=>{
-const item=document.createElement("div");
-item.className="user-item";
-
-const dot=document.createElement("span");
-dot.className="online-dot";
-
-const name=document.createElement("span");
-name.className="user-name";
-
-if(u.admin&&u.nick.toUpperCase()==="UNIX"){
-const star=document.createElement("span");
-star.className="admin-star";
-star.textContent="⭐";
-name.appendChild(star);
-}
-
-name.appendChild(document.createTextNode(u.nick));
-item.append(dot,name);
-
-if(u.id!==senderId){
-item.onclick=()=>openUserMenu(u);
-}else{
-item.title="Vos";
-}
-
-list.appendChild(item);
+const item=document.createElement("div");item.className="user-item";const dot=document.createElement("span");dot.className="online-dot";
+const name=document.createElement("span");name.className="user-name";
+if(u.admin&&u.nick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";name.appendChild(star);}
+name.appendChild(document.createTextNode(u.nick));item.append(dot,name);
+if(u.id!==senderId){item.onclick=()=>openUserMenu(u);}else{item.title="Vos";}list.appendChild(item);
 });
 }
-
 function renderModerationUsers(){
-const s=$("userToModerate"),old=s.value;
-s.innerHTML='<option value="">Elegí un usuario conectado</option>';
-
-roomUsers.forEach(u=>{
-if(u.id===senderId)return;
-const o=document.createElement("option");
-o.value=u.id;
-o.textContent=u.nick;
-s.appendChild(o);
-});
-
+const s=$("userToModerate"),old=s.value;s.innerHTML='<option value="">Elegí un usuario conectado</option>';
+roomUsers.forEach(u=>{if(u.id===senderId)return;const o=document.createElement("option");o.value=u.id;o.textContent=u.nick;s.appendChild(o);});
 if(Array.from(s.options).some(o=>o.value===old))s.value=old;
 }
 
 /* MENSAJES PÚBLICOS */
 function addMessage(m){
-if(!m||receivedIds.has(m.id))return;
-receivedIds.add(m.id);
-
-const div=document.createElement("div");
-div.className="message";
-
-const n=document.createElement("strong");
-n.className="nickname";
-
-const nick=m.nickname||"Usuario";
-let hash=0;
-
+if(!m||receivedIds.has(m.id))return;receivedIds.add(m.id);
+const div=document.createElement("div");div.className="message";const n=document.createElement("strong");n.className="nickname";const nick=m.nickname||"Usuario";let hash=0;
 for(let i=0;i<nick.length;i++)hash=nick.charCodeAt(i)+((hash<<5)-hash);
-
-const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];
-n.style.color=colors[Math.abs(hash)%colors.length];
-
-if(nick.toUpperCase()==="UNIX"){
-const star=document.createElement("span");
-star.className="admin-star";
-star.textContent="⭐";
-n.appendChild(star);
-}
-
+const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];n.style.color=colors[Math.abs(hash)%colors.length];
+if(nick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";n.appendChild(star);}
 n.appendChild(document.createTextNode(nick));
-
-if(m.sender_id&&String(m.sender_id)!==String(senderId)){
-n.style.cursor="pointer";
-n.onclick=()=>openUserMenu({id:m.sender_id,nick});
+if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
+const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";div.append(n,t);$("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
 }
-
-const t=document.createElement("span");
-t.className="msgtext";
-t.textContent=m.message||m.content||"";
-
-div.append(n,t);
-$("messages").appendChild(div);
-$("messages").scrollTop=$("messages").scrollHeight;
-}
-
 async function loadRoomMessages(roomId){
-roomId=Number(roomId);
-
-const cutoff=new Date(Date.now()-12*60*60*1000).toISOString();
-let from=0;
-const pageSize=500;
-
+const cutoff=new Date(Date.now()-12*60*60*1000).toISOString();let from=0;const pageSize=500;
 while(true){
-const {data,error}=await db.from("messages")
-.select("*")
-.eq("room_id",roomId)
-.gte("created_at",cutoff)
-.order("created_at",{ascending:true})
-.range(from,from+pageSize-1);
-
-if(error){
-console.error("Error cargando historial:",error);
-$("status").textContent="Error cargando mensajes: "+error.message;
-return;
-}
-
-if(Number(currentRoom)!==roomId)return;
-
-(data||[]).forEach(addMessage);
-
-if(!data||data.length<pageSize)break;
-from+=pageSize;
+const {data,error}=await db.from("messages").select("*").eq("room_id",roomId).gte("created_at",cutoff).order("created_at",{ascending:true}).range(from,from+pageSize-1);
+if(error){console.error("Error cargando historial:",error);$("status").textContent="Error cargando mensajes: "+error.message;return;}
+if(String(currentRoom)!==String(roomId))return;(data||[]).forEach(addMessage);if(!data||data.length<pageSize)break;from+=pageSize;
 }
 }
 
-/* ENVÍO DE MENSAJES + BOTS */
+/* ENVÍO DE MENSAJES + CONEXIÓN CON LOS BOTS */
 async function sendMessage(){
+  const input=$("messageInput");
+  const btn=$("sendBtn");
+  const value=input.value.trim();
 
-const input=$("messageInput");
-const btn=$("sendBtn");
-const value=input.value.trim();
+  if(!value||!nickname||!currentRoom||btn.disabled)return;
 
-if(!value||!nickname||currentRoom===null||btn.disabled)return;
+  btn.disabled=true;
 
-btn.disabled=true;
+  const roomId=String(currentRoom).trim();
+  const senderNickname=String(nickname).trim();
+  const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const roomId=Number(currentRoom);
-const senderNickname=String(nickname).trim();
+  try{
+    if(!uuidPattern.test(roomId)){
+      throw new Error("El ID de la sala no es un UUID válido: "+roomId);
+    }
 
-try{
+    /* Confirma que seguimos usando la sesión anónima correcta. */
+    const {data:authData,error:authError}=await db.auth.getSession();
+    if(authError)throw authError;
 
-if(!Number.isSafeInteger(roomId)||roomId<1){
-throw new Error("El ID numérico de la sala no es válido: "+currentRoom);
-}
+    const session=authData?.session;
+    if(!session?.user?.id)throw new Error("No hay una sesión activa. Salí y volvé a ingresar al chat.");
+    if(String(session.user.id)!==String(senderId)){
+      throw new Error("La sesión cambió. Salí y volvé a ingresar al chat.");
+    }
 
-const {data:authData,error:authError}=await db.auth.getSession();
+    /* No se usa .select() después del INSERT para no exigir una política SELECT adicional. */
+    const {error:insertError}=await db.from("messages").insert({
+      nickname:senderNickname,
+      message:value,
+      room_id:roomId,
+      sender_id:senderId
+    });
+    if(insertError)throw insertError;
 
-if(authError)throw authError;
+    input.value="";
+    console.log("MENSAJE PUBLICADO:",{
+      room_id:roomId,
+      sender_id:senderId,
+      nickname:senderNickname
+    });
 
-const session=authData?.session;
+    /* Evita que un bot se dispare a sí mismo. */
+    if(senderNickname.toLowerCase()==="mili")return;
 
-if(!session?.user?.id){
-throw new Error("No hay una sesión activa. Salí y volvé a ingresar al chat.");
-}
+    const requestBody={
+      message:value,
+      nickname:senderNickname,
+      room_id:roomId
+    };
 
-if(String(session.user.id)!==String(senderId)){
-throw new Error("La sesión cambió. Salí y volvé a ingresar al chat.");
-}
+    console.log("ACTIVANDO CHAT-BOT:",requestBody);
 
-const {data:allowed,error:accessError}=await db.rpc(
-"check_chat_access",
-{
-sender_id_input:senderId,
-room_id_input:roomId
-}
-);
+    const {data,error:botError}=await db.functions.invoke("Chat-Bot",{
+      body:requestBody
+    });
 
-if(accessError)throw accessError;
+    if(botError){
+      console.error("ERROR EDGE FUNCTION CHAT-BOT:",botError);
 
-if(!allowed){
-throw new Error("No tenés permiso para escribir en esta sala.");
-}
+      let detail=botError.message||"Error desconocido.";
+      try{
+        const response=botError.context;
+        if(response&&typeof response.clone==="function"){
+          const responseCopy=response.clone();
+          let responseBody;
+          try{
+            responseBody=await responseCopy.json();
+          }catch(_){
+            responseBody={message:await responseCopy.text()};
+          }
+          detail=responseBody?.error||responseBody?.message||detail;
+          console.error("RESPUESTA HTTP DE CHAT-BOT:",responseBody);
+        }
+      }catch(readError){
+        console.error("No se pudo leer el detalle de Chat-Bot:",readError);
+      }
 
-const {error:insertError}=await db.from("messages").insert({
-nickname:senderNickname,
-message:value,
-room_id:roomId,
-sender_id:senderId
-});
+      alert("Tu mensaje se publicó, pero los bots no pudieron responder:\n\n"+detail);
+      return;
+    }
 
-if(insertError)throw insertError;
+    console.log("RESPUESTA COMPLETA DE CHAT-BOT:",data);
 
-input.value="";
+    if(!data||data.success!==true){
+      const detail=data?.error||data?.message||"Respuesta inválida del servidor.";
+      alert("Tu mensaje se publicó, pero los bots no pudieron responder:\n\n"+detail);
+      return;
+    }
 
-console.log("MENSAJE PUBLICADO:",{
-room_id:roomId,
-room_id_type:typeof roomId,
-sender_id:senderId,
-nickname:senderNickname
-});
+    if(Array.isArray(data.errors)&&data.errors.length){
+      console.error("ERRORES INDIVIDUALES DE LOS BOTS:",data.errors);
+      const details=data.errors.map(item=>(item.bot||"Bot")+": "+(item.error||"Error desconocido")).join("\n");
+      if(!data.replied){
+        alert("El servidor recibió el mensaje, pero ningún bot pudo responder:\n\n"+details);
+      }
+    }else if(!data.replied){
+      console.warn("Chat-Bot se ejecutó, pero no hubo respuestas:",data);
+    }
 
-if(senderNickname.toLowerCase()==="mili")return;
-
-const requestBody={
-message:value,
-nickname:senderNickname,
-room_id:roomId
-};
-
-console.log("ACTIVANDO CHAT-BOT:",requestBody);
-
-const {data,error:botError}=await db.functions.invoke(
-"Chat-Bot",
-{
-body:requestBody
-}
-);
-
-if(botError){
-
-console.error("ERROR EDGE FUNCTION CHAT-BOT:",botError);
-
-let detail=botError.message||"Error desconocido.";
-
-try{
-const response=botError.context;
-
-if(response&&typeof response.clone==="function"){
-
-const responseCopy=response.clone();
-let responseBody;
-
-try{
-responseBody=await responseCopy.json();
-}catch(_){
-responseBody={message:await responseCopy.text()};
-}
-
-detail=responseBody?.error||
-responseBody?.message||
-responseBody?.details||
-detail;
-
-console.error("RESPUESTA HTTP DE CHAT-BOT:",responseBody);
-}
-
-}catch(readError){
-console.error("No se pudo leer el detalle de Chat-Bot:",readError);
-}
-
-alert("Tu mensaje se publicó, pero los bots no pudieron responder:\n\n"+detail);
-return;
-}
-
-console.log("RESPUESTA COMPLETA CHAT-BOT:",data);
-
-if(!data||data.success!==true){
-
-const detail=data?.error||
-data?.details||
-data?.message||
-"Respuesta inválida del servidor.";
-
-alert("Tu mensaje se publicó, pero los bots no pudieron responder:\n\n"+detail);
-return;
-}
-
-if(Array.isArray(data.errors)&&data.errors.length){
-
-console.error("ERRORES INDIVIDUALES DE LOS BOTS:",data.errors);
-
-const details=data.errors.map(item=>
-(item.bot||"Bot")+": "+(item.error||"Error desconocido")
-).join("\n");
-
-if(!data.replied){
-alert("El servidor recibió el mensaje, pero ningún bot pudo responder:\n\n"+details);
-}
-
-}else if(!data.replied){
-console.warn("Chat-Bot se ejecutó, pero no hubo respuestas:",data);
-}
-
-}catch(error){
-
-console.error("ERROR EN SENDMESSAGE:",error);
-
-alert("No se pudo completar el envío:\n\n"+(error.message||String(error)));
-
-}finally{
-
-btn.disabled=false;
-input.focus();
-
-}
+  }catch(error){
+    console.error("ERROR EN SENDMESSAGE:",error);
+    alert("No se pudo completar el envío:\n\n"+(error.message||String(error)));
+  }finally{
+    btn.disabled=false;
+    input.focus();
+  }
 }
 
 /* EMOJIS */
@@ -1173,870 +733,312 @@ const emojiGroups={
 "🍕":["🍕","🍔","🍟","🌭","🍿","🍩","🍪","🎂","🍰","🍎","🍓","🍉","🍌","🍇","☕","🧉","🍻"],
 "🎉":["🎉","🎊","🎈","🎁","🎂","🥳","🎆","🎇","✨","🔥","💯","⭐","🌟","💥","🎵","🎶"]
 };
-
 let emojiTarget="messageInput";
-
-function toggleEmoji(target){
-emojiTarget=target;
-const picker=$(target==="privateInput"?"emojiPickerPrivate":"emojiPickerPublic");
-const wasOpen=picker.classList.contains("open");
-closeEmojiPickers();
-if(!wasOpen)renderEmojiPicker(picker);
-}
-
+function toggleEmoji(target){emojiTarget=target;const picker=$(target==="privateInput"?"emojiPickerPrivate":"emojiPickerPublic");const wasOpen=picker.classList.contains("open");closeEmojiPickers();if(!wasOpen)renderEmojiPicker(picker);}
 function renderEmojiPicker(picker){
-picker.innerHTML="";
-
-const cats=document.createElement("div");
-cats.className="emoji-cats";
-
-const grid=document.createElement("div");
-grid.className="emoji-grid";
-
-function draw(cat){
-grid.innerHTML="";
-emojiGroups[cat].forEach(emoji=>{
-const b=document.createElement("button");
-b.type="button";
-b.textContent=emoji;
-b.onclick=()=>insertEmoji(emoji);
-grid.appendChild(b);
-});
+picker.innerHTML="";const cats=document.createElement("div");cats.className="emoji-cats";const grid=document.createElement("div");grid.className="emoji-grid";
+function draw(cat){grid.innerHTML="";emojiGroups[cat].forEach(emoji=>{const b=document.createElement("button");b.type="button";b.textContent=emoji;b.onclick=()=>insertEmoji(emoji);grid.appendChild(b);});}
+Object.keys(emojiGroups).forEach((cat,index)=>{const b=document.createElement("button");b.type="button";b.textContent=cat;if(index===0)b.classList.add("active");b.onclick=()=>{cats.querySelectorAll("button").forEach(x=>x.classList.remove("active"));b.classList.add("active");draw(cat);};cats.appendChild(b);});
+picker.append(cats,grid);draw(Object.keys(emojiGroups)[0]);picker.classList.add("open");
 }
-
-Object.keys(emojiGroups).forEach((cat,index)=>{
-const b=document.createElement("button");
-b.type="button";
-b.textContent=cat;
-
-if(index===0)b.classList.add("active");
-
-b.onclick=()=>{
-cats.querySelectorAll("button").forEach(x=>x.classList.remove("active"));
-b.classList.add("active");
-draw(cat);
-};
-
-cats.appendChild(b);
-});
-
-picker.append(cats,grid);
-draw(Object.keys(emojiGroups)[0]);
-picker.classList.add("open");
-}
-
 function insertEmoji(emoji){
-const input=$(emojiTarget);
-if(!input)return;
-
-const start=input.selectionStart??input.value.length;
-const end=input.selectionEnd??input.value.length;
-
-input.value=input.value.slice(0,start)+emoji+input.value.slice(end);
-input.focus();
-
-const pos=start+emoji.length;
-input.setSelectionRange(pos,pos);
+const input=$(emojiTarget);if(!input)return;const start=input.selectionStart??input.value.length,end=input.selectionEnd??input.value.length;
+input.value=input.value.slice(0,start)+emoji+input.value.slice(end);input.focus();const pos=start+emoji.length;input.setSelectionRange(pos,pos);
 }
 
 /* NOTIFICACIONES PRIVADAS */
 function showPrivateNotification(senderNick){
-const notice=$("privateNotice");
-notice.textContent="🔔 "+senderNick+" te está hablando por privado";
-notice.style.display="block";
-
-if(privateNoticeTimer)clearTimeout(privateNoticeTimer);
-
-privateNoticeTimer=setTimeout(()=>{
-notice.style.display="none";
-},5000);
+const notice=$("privateNotice");notice.textContent="🔔 "+senderNick+" te está hablando por privado";notice.style.display="block";
+if(privateNoticeTimer)clearTimeout(privateNoticeTimer);privateNoticeTimer=setTimeout(()=>{notice.style.display="none";},5000);
 }
-
 function subscribePrivateNotifications(){
-if(privateNoticeChannel){
-db.removeChannel(privateNoticeChannel);
-privateNoticeChannel=null;
-}
-
-if(!senderId)return;
-
-privateNoticeChannel=db.channel("wichat-private-notifications-"+senderId)
-.on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages",filter:"recipient_id=eq."+senderId},async payload=>{
-
-const m=payload.new;
-
-if(!m||String(m.recipient_id)!==String(senderId))return;
-if(String(m.sender_id)===String(senderId))return;
-
+if(privateNoticeChannel){db.removeChannel(privateNoticeChannel);privateNoticeChannel=null;}if(!senderId)return;
+privateNoticeChannel=db.channel("wichat-private-notifications-"+senderId).on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages",filter:"recipient_id=eq."+senderId},async payload=>{
+const m=payload.new;if(!m||String(m.recipient_id)!==String(senderId))return;if(String(m.sender_id)===String(senderId))return;
 let user=privateChats.find(u=>String(u.id)===String(m.sender_id));
-
-if(!user){
-user={id:m.sender_id,nick:m.sender_nickname||"Usuario"};
-privateChats.push(user);
-}else if(m.sender_nickname){
-user.nick=m.sender_nickname;
-}
-
+if(!user){user={id:m.sender_id,nick:m.sender_nickname||"Usuario"};privateChats.push(user);}else if(m.sender_nickname){user.nick=m.sender_nickname;}
 const isActive=activePrivateUser&&String(activePrivateUser.id)===String(m.sender_id);
-
-if(!isActive){
-privateUnread.add(String(m.sender_id));
-renderPrivateTabs();
-showPrivateNotification(user.nick);
-await openPrivateChat(user);
-}else{
-addPrivateMessage(m);
-}
+if(!isActive){privateUnread.add(String(m.sender_id));renderPrivateTabs();showPrivateNotification(user.nick);await openPrivateChat(user);}else{addPrivateMessage(m);}
 }).subscribe();
 }
 
 /* PESTAÑAS PRIVADAS */
 function renderPrivateTabs(){
-const container=$("roomPills");
-if(!container)return;
-
-container.querySelectorAll(".private-tab").forEach(tab=>tab.remove());
-
+const container=$("roomPills");if(!container)return;container.querySelectorAll(".private-tab").forEach(tab=>tab.remove());
 privateChats.forEach(user=>{
-const tab=document.createElement("button");
-
-tab.className="private-tab"+(activePrivateUser&&String(activePrivateUser.id)===String(user.id)?" active":"");
-
-const name=document.createElement("span");
-name.className="private-tab-name";
-name.textContent="💬 "+user.nick;
-tab.appendChild(name);
-
-if(privateUnread.has(String(user.id))){
-const unread=document.createElement("span");
-unread.className="private-unread";
-unread.textContent="1";
-tab.appendChild(unread);
-}
-
-const close=document.createElement("span");
-close.className="private-tab-close";
-close.textContent="×";
-close.onclick=e=>{
-e.stopPropagation();
-closePrivateTab(user.id);
-};
-
-tab.appendChild(close);
-tab.onclick=()=>switchPrivateTab(user.id);
-container.appendChild(tab);
+const tab=document.createElement("button");tab.className="private-tab"+(activePrivateUser&&String(activePrivateUser.id)===String(user.id)?" active":"");
+const name=document.createElement("span");name.className="private-tab-name";name.textContent="💬 "+user.nick;tab.appendChild(name);
+if(privateUnread.has(String(user.id))){const unread=document.createElement("span");unread.className="private-unread";unread.textContent="1";tab.appendChild(unread);}
+const close=document.createElement("span");close.className="private-tab-close";close.textContent="×";close.onclick=e=>{e.stopPropagation();closePrivateTab(user.id);};tab.appendChild(close);
+tab.onclick=()=>switchPrivateTab(user.id);container.appendChild(tab);
 });
 }
-
 async function openPrivateChat(user){
-if(!user||String(user.id)===String(senderId))return;
-
-let existing=privateChats.find(u=>String(u.id)===String(user.id));
-
-if(!existing)privateChats.push({id:user.id,nick:user.nick});
-
-await switchPrivateTab(user.id);
+if(!user||String(user.id)===String(senderId))return;let existing=privateChats.find(u=>String(u.id)===String(user.id));if(!existing)privateChats.push({id:user.id,nick:user.nick});await switchPrivateTab(user.id);
 }
-
 async function switchPrivateTab(userId){
-const user=privateChats.find(u=>String(u.id)===String(userId));
-if(!user)return;
-
-activePrivateUser=user;
-privateUnread.delete(String(userId));
-renderPrivateTabs();
-privateReceivedIds.clear();
-
-$("chatView").classList.add("hidden");
-$("usersView").classList.add("hidden");
-$("roomsView").classList.add("hidden");
-$("privateView").classList.remove("hidden");
-$("roomTopic").style.display="none";
-
-$("navUsers").classList.remove("active");
-$("navRooms").classList.remove("active");
-$("navChat").classList.remove("active");
-
+const user=privateChats.find(u=>String(u.id)===String(userId));if(!user)return;activePrivateUser=user;privateUnread.delete(String(userId));renderPrivateTabs();privateReceivedIds.clear();
+$("chatView").classList.add("hidden");$("usersView").classList.add("hidden");$("roomsView").classList.add("hidden");$("privateView").classList.remove("hidden");$("roomTopic").style.display="none";
+$("navUsers").classList.remove("active");$("navRooms").classList.remove("active");$("navChat").classList.remove("active");
 $("privateMessages").innerHTML='<p class="muted">Cargando conversación...</p>';
-
-if(privateChannel){
-await db.removeChannel(privateChannel);
-privateChannel=null;
-}
-
-await loadPrivateMessages();
-
-if(!activePrivateUser||String(activePrivateUser.id)!==String(userId))return;
-
-privateChannel=db.channel("wichat-private-"+senderId+"-"+userId)
-.on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages"},payload=>{
-const m=payload.new;
-if(!m)return;
-
-if(
-(String(m.sender_id)===String(senderId)&&String(m.recipient_id)===String(userId))||
-(String(m.sender_id)===String(userId)&&String(m.recipient_id)===String(senderId))
-)addPrivateMessage(m);
-
+if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
+await loadPrivateMessages();if(!activePrivateUser||String(activePrivateUser.id)!==String(userId))return;
+privateChannel=db.channel("wichat-private-"+senderId+"-"+userId).on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages"},payload=>{
+const m=payload.new;if(!m)return;
+if((String(m.sender_id)===String(senderId)&&String(m.recipient_id)===String(userId))||(String(m.sender_id)===String(userId)&&String(m.recipient_id)===String(senderId)))addPrivateMessage(m);
 }).subscribe();
 }
-
 function closePrivateTab(userId){
-const index=privateChats.findIndex(u=>String(u.id)===String(userId));
-if(index===-1)return;
-
-const wasActive=activePrivateUser&&String(activePrivateUser.id)===String(userId);
-
-privateChats.splice(index,1);
-privateUnread.delete(String(userId));
-
+const index=privateChats.findIndex(u=>String(u.id)===String(userId));if(index===-1)return;
+const wasActive=activePrivateUser&&String(activePrivateUser.id)===String(userId);privateChats.splice(index,1);privateUnread.delete(String(userId));
 if(wasActive){
-
-if(privateChannel){
-db.removeChannel(privateChannel);
-privateChannel=null;
+if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}activePrivateUser=null;privateReceivedIds.clear();$("privateMessages").innerHTML="";
+if(privateChats.length){const next=privateChats[Math.max(0,index-1)]||privateChats[0];switchPrivateTab(next.id);}else{backToUsers();}
 }
-
-activePrivateUser=null;
-privateReceivedIds.clear();
-$("privateMessages").innerHTML="";
-
-if(privateChats.length){
-const next=privateChats[Math.max(0,index-1)]||privateChats[0];
-switchPrivateTab(next.id);
-}else{
-backToUsers();
-}
-}
-
 renderPrivateTabs();
 }
-
 async function loadPrivateMessages(){
-if(!activePrivateUser)return;
-
-const other=activePrivateUser.id;
-
+if(!activePrivateUser)return;const other=activePrivateUser.id;
 const filter="and(sender_id.eq."+senderId+",recipient_id.eq."+other+"),and(sender_id.eq."+other+",recipient_id.eq."+senderId+")";
-
-const {data,error}=await db.from("private_messages")
-.select("*")
-.or(filter)
-.order("created_at",{ascending:true});
-
-if(error){
-$("privateMessages").textContent="No se pudo cargar la conversación: "+error.message;
-return;
+const {data,error}=await db.from("private_messages").select("*").or(filter).order("created_at",{ascending:true});
+if(error){$("privateMessages").textContent="No se pudo cargar la conversación: "+error.message;return;}
+$("privateMessages").innerHTML="";privateReceivedIds.clear();(data||[]).forEach(addPrivateMessage);
+if(!(data||[]).length)$("privateMessages").innerHTML='<p class="muted">Todavía no hay mensajes. ¡Saludá!</p>';
 }
-
-$("privateMessages").innerHTML="";
-privateReceivedIds.clear();
-(data||[]).forEach(addPrivateMessage);
-
-if(!(data||[]).length){
-$("privateMessages").innerHTML='<p class="muted">Todavía no hay mensajes. ¡Saludá!</p>';
-}
-}
-
 function addPrivateMessage(m){
-if(!m||privateReceivedIds.has(m.id))return;
-
-privateReceivedIds.add(m.id);
-
-const box=$("privateMessages");
-const empty=box.querySelector(".muted");
-
-if(empty)box.innerHTML="";
-
-const div=document.createElement("div");
-
-div.className="private-message"+(String(m.sender_id)===String(senderId)?" mine":"");
-
-const who=document.createElement("strong");
-who.className="nickname";
-
-const privateNick=String(m.sender_id)===String(senderId)?nickname:(m.sender_nickname||"Usuario");
-
-let hash=0;
+if(!m||privateReceivedIds.has(m.id))return;privateReceivedIds.add(m.id);const box=$("privateMessages"),empty=box.querySelector(".muted");if(empty)box.innerHTML="";
+const div=document.createElement("div");div.className="private-message"+(String(m.sender_id)===String(senderId)?" mine":"");
+const who=document.createElement("strong");who.className="nickname";
+const privateNick=String(m.sender_id)===String(senderId)?nickname:(m.sender_nickname||"Usuario");let hash=0;
 for(let i=0;i<privateNick.length;i++)hash=privateNick.charCodeAt(i)+((hash<<5)-hash);
-
-const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];
-who.style.color=colors[Math.abs(hash)%colors.length];
-
-if(privateNick.toUpperCase()==="UNIX"){
-const star=document.createElement("span");
-star.className="admin-star";
-star.textContent="⭐";
-who.appendChild(star);
+const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];who.style.color=colors[Math.abs(hash)%colors.length];
+if(privateNick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";who.appendChild(star);}
+who.appendChild(document.createTextNode(privateNick+": "));const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);box.appendChild(div);box.scrollTop=box.scrollHeight;
 }
-
-who.appendChild(document.createTextNode(privateNick+": "));
-
-const msg=document.createElement("span");
-msg.className="msgtext";
-msg.textContent=m.content||"";
-
-div.append(who,msg);
-box.appendChild(div);
-box.scrollTop=box.scrollHeight;
-}
-
 async function sendPrivateMessage(){
-if(!activePrivateUser)return;
-
-const input=$("privateInput");
-const btn=$("privateSendBtn");
-const value=input.value.trim();
-
-if(!value)return;
-
-btn.disabled=true;
-
-try{
-const {data,error}=await db.from("private_messages").insert({
-sender_id:senderId,
-recipient_id:activePrivateUser.id,
-sender_nickname:nickname,
-content:value
-}).select().single();
-
-if(error)throw error;
-
-addPrivateMessage(data);
-input.value="";
-
-}catch(e){
-alert("No se pudo enviar el mensaje privado: "+e.message);
-}finally{
-btn.disabled=false;
-input.focus();
+if(!activePrivateUser)return;const input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();if(!value)return;btn.disabled=true;
+try{const {data,error}=await db.from("private_messages").insert({sender_id:senderId,recipient_id:activePrivateUser.id,sender_nickname:nickname,content:value}).select().single();if(error)throw error;addPrivateMessage(data);input.value="";}
+catch(e){alert("No se pudo enviar el mensaje privado: "+e.message);}finally{btn.disabled=false;input.focus();}
 }
-}
-
 async function backToUsers(){
-if(privateChannel){
-await db.removeChannel(privateChannel);
-privateChannel=null;
-}
-
-activePrivateUser=null;
-privateReceivedIds.clear();
-
-$("privateView").classList.add("hidden");
-$("usersView").classList.remove("hidden");
-$("roomsView").classList.add("hidden");
-$("chatView").classList.add("hidden");
-$("roomTopic").style.display="none";
-
-$("navUsers").classList.add("active");
-$("navRooms").classList.remove("active");
-$("navChat").classList.remove("active");
-
-$("privateInput").value="";
-closeEmojiPickers();
-renderPrivateTabs();
+if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}activePrivateUser=null;privateReceivedIds.clear();
+$("privateView").classList.add("hidden");$("usersView").classList.remove("hidden");$("roomsView").classList.add("hidden");$("chatView").classList.add("hidden");$("roomTopic").style.display="none";
+$("navUsers").classList.add("active");$("navRooms").classList.remove("active");$("navChat").classList.remove("active");$("privateInput").value="";closeEmojiPickers();renderPrivateTabs();
 }
 
 /* ACTUALIZAR SALAS */
 function subscribeRooms(){
 if(roomChannel)db.removeChannel(roomChannel);
-
-roomChannel=db.channel("wichat-rooms")
-.on("postgres_changes",{event:"*",schema:"public",table:"rooms"},async()=>{
-const previous=currentRoom;
-
-await fetchRooms();
-
-if(!rooms.some(r=>Number(r.id)===Number(previous))){
-currentRoom=Number(
-rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||
-rooms[0]?.id||
-0
-);
-}
-
-renderTabs();
-
-if(currentRoom)await switchRoom(currentRoom);
-
+roomChannel=db.channel("wichat-rooms").on("postgres_changes",{event:"*",schema:"public",table:"rooms"},async()=>{
+const previous=currentRoom;await fetchRooms();
+if(!rooms.some(r=>String(r.id)===String(previous)))currentRoom=rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||rooms[0]?.id||null;
+renderTabs();if(currentRoom)await switchRoom(currentRoom);
 }).subscribe();
 }
 
-/* ADMINISTRACIÓN - CORREGIDO */
+/* ADMINISTRACIÓN */
 function openAdmin(){
-if(!isAdmin){
-alert("No tenés permisos de administrador.");
-return;
+  if(!isAdmin){
+    alert("No tenés permisos de administrador.");
+    return;
+  }
+  const panel=$("adminPanel");
+  panel.classList.remove("hidden");
+  panel.scrollTop=0;
+  if(currentRoom)loadRoomTopic(currentRoom);
+  renderRoomDelete();
+  renderModerationUsers();
+  loadBannedUsers();
+  loadBots();
 }
-
-const panel=$("adminPanel");
-
-document.body.classList.add("admin-open");
-panel.classList.remove("hidden");
-
-requestAnimationFrame(()=>{
-panel.scrollTop=0;
-});
-
-if(currentRoom)loadRoomTopic(currentRoom);
-
-renderRoomDelete();
-renderModerationUsers();
-loadBannedUsers();
-loadBots();
-}
-
-function closeAdmin(){
-const panel=$("adminPanel");
-panel.classList.add("hidden");
-document.body.classList.remove("admin-open");
-panel.scrollTop=0;
-}
-
+function closeAdmin(){$("adminPanel").classList.add("hidden");}
 async function createRoom(){
-if(!isAdmin)return;
-
-const name=$("newRoomName").value.trim();
-
-if(!name){
-$("adminStatus").textContent="Escribí el nombre de la sala.";
-return;
-}
-
+if(!isAdmin)return;const name=$("newRoomName").value.trim();
+if(!name){$("adminStatus").textContent="Escribí el nombre de la sala.";return;}
 try{
 await callAdminApi("create_room",{room_name:name});
-
-$("adminStatus").textContent="Sala creada correctamente.";
-$("newRoomName").value="";
-
-await fetchRooms();
-renderTabs();
-renderRoomDelete();
-
-}catch(error){
-$("adminStatus").textContent="Error al crear sala: "+error.message;
+$("adminStatus").textContent="Sala creada correctamente.";$("newRoomName").value="";
+await fetchRooms();renderTabs();renderRoomDelete();
+}catch(error){$("adminStatus").textContent="Error al crear sala: "+error.message;}
 }
-}
-
 function renderRoomDelete(){
-const select=$("roomToDelete");
-if(!select)return;
-
-const previous=select.value;
-
+const select=$("roomToDelete");if(!select)return;const previous=select.value;
 select.innerHTML='<option value="">Elegí una sala</option>';
-
-rooms.forEach(r=>{
-const option=document.createElement("option");
-option.value=String(r.id);
-option.textContent=r.name;
-select.appendChild(option);
-});
-
+rooms.forEach(r=>{const option=document.createElement("option");option.value=r.id;option.textContent=r.name;select.appendChild(option);});
 if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
 }
-
 async function deleteRoom(){
-if(!isAdmin)return;
-
-const id=Number($("roomToDelete").value);
-
-if(!Number.isSafeInteger(id)||id<1){
-$("adminStatus").textContent="Elegí una sala válida.";
-return;
-}
-
-const room=rooms.find(r=>Number(r.id)===id);
-
+if(!isAdmin)return;const id=$("roomToDelete").value;
+if(!id){$("adminStatus").textContent="Elegí una sala.";return;}
+const room=rooms.find(r=>String(r.id)===String(id));
 if(!confirm('¿Seguro que querés eliminar la sala "'+(room?.name||"")+'"?'))return;
-
 try{
-
 await callAdminApi("delete_room",{room_id_input:id});
-
 $("adminStatus").textContent="Sala eliminada correctamente.";
-
-const wasCurrent=Number(currentRoom)===id;
-
-await fetchRooms();
-
+const wasCurrent=String(currentRoom)===String(id);await fetchRooms();
 if(wasCurrent){
-if(rooms.length){
-currentRoom=Number(
-rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||
-rooms[0].id
-);
-await switchRoom(currentRoom);
-}else{
-$("status").textContent="No quedan salas. Creá una nueva desde Administración.";
-$("messages").innerHTML="";
+if(rooms.length){currentRoom=rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||rooms[0].id;await switchRoom(currentRoom);}
+else{$("status").textContent="No quedan salas. Creá una nueva desde Administración.";$("messages").innerHTML="";}
 }
+renderTabs();renderRoomDelete();
+}catch(error){$("adminStatus").textContent="Error al eliminar sala: "+error.message;}
 }
-
-renderTabs();
-renderRoomDelete();
-
-}catch(error){
-$("adminStatus").textContent="Error al eliminar sala: "+error.message;
-}
-}
-
 async function moderateUser(action){
-if(!isAdmin)return;
-
-const target=$("userToModerate").value;
-
-if(!target){
-$("adminStatus").textContent="Elegí un usuario conectado.";
-return;
-}
-
+if(!isAdmin)return;const target=$("userToModerate").value;
+if(!target){$("adminStatus").textContent="Elegí un usuario conectado.";return;}
 try{
-await callAdminApi("moderate_user",{
-target_sender_id:target,
-room_id_input:Number(currentRoom),
-action_name:action
-});
-
+await callAdminApi("moderate_user",{target_sender_id:target,room_id_input:currentRoom,action_name:action});
 $("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos en esta sala.":"Usuario expulsado de esta sala.";
-
 if(action==="ban")await loadBannedUsers();
-
-}catch(error){
-$("adminStatus").textContent="Error: "+error.message;
+}catch(error){$("adminStatus").textContent="Error: "+error.message;}
 }
-}
-
 async function loadBannedUsers(){
-if(!isAdmin)return;
-
-const list=$("bannedUsersList");
-list.innerHTML='<p class="muted">Cargando baneos...</p>';
-
+if(!isAdmin)return;const list=$("bannedUsersList");list.innerHTML='<p class="muted">Cargando baneos...</p>';
 try{
-
-const data=await callAdminApi("list_bans");
-
-list.innerHTML="";
-
-if(!data||!data.length){
-list.innerHTML='<p class="muted">No hay usuarios baneados actualmente.</p>';
-return;
-}
-
+const data=await callAdminApi("list_bans");list.innerHTML="";
+if(!data||!data.length){list.innerHTML='<p class="muted">No hay usuarios baneados actualmente.</p>';return;}
 data.forEach(ban=>{
-
-const card=document.createElement("div");
-card.className="banned-card";
-
-const name=document.createElement("strong");
-name.className="banned-name";
-name.textContent="🚫 "+(ban.nickname||"Usuario");
-
-const details=document.createElement("p");
-details.className="banned-details";
-
-let roomText=ban.ban_type||"Baneo";
-
-if(ban.room_id){
-const room=rooms.find(r=>String(r.id)===String(ban.room_id));
-roomText+=": "+(room?.name||"Sala "+ban.room_id);
-}
-
+const card=document.createElement("div");card.className="banned-card";
+const name=document.createElement("strong");name.className="banned-name";name.textContent="🚫 "+(ban.nickname||"Usuario");
+const details=document.createElement("p");details.className="banned-details";let roomText=ban.ban_type||"Baneo";
+if(ban.room_id){const room=rooms.find(r=>String(r.id)===String(ban.room_id));roomText+=": "+(room?.name||"Sala "+ban.room_id);}
 const expiration=ban.expires_at?new Date(ban.expires_at).toLocaleString("es-AR"):"Sin vencimiento";
-
 details.textContent=roomText+" | IP: "+(ban.client_ip||"No disponible")+" | Vence: "+expiration;
-
-const button=document.createElement("button");
-button.className="unban-button";
-button.textContent="DESBANEAR";
-
-if(!ban.sender_id){
-button.disabled=true;
-button.textContent="No se puede identificar al usuario";
-}else{
-button.onclick=()=>unbanUser(ban.sender_id,ban.nickname);
-}
-
-card.append(name,details,button);
-list.appendChild(card);
-
+const button=document.createElement("button");button.className="unban-button";button.textContent="DESBANEAR";
+if(!ban.sender_id){button.disabled=true;button.textContent="No se puede identificar al usuario";}
+else{button.onclick=()=>unbanUser(ban.sender_id,ban.nickname);}
+card.append(name,details,button);list.appendChild(card);
 });
-
-}catch(error){
-list.textContent="Error al cargar baneos: "+error.message;
+}catch(error){list.textContent="Error al cargar baneos: "+error.message;}
 }
-}
-
 async function unbanUser(target,nick){
-if(!isAdmin)return;
-
-if(!confirm("¿Querés desbanear a "+(nick||"este usuario")+"?"))return;
-
+if(!isAdmin)return;if(!confirm("¿Querés desbanear a "+(nick||"este usuario")+"?"))return;
 try{
 const data=await callAdminApi("unban_user",{target_sender_id:target});
-$("adminStatus").textContent=data?.message||"Usuario desbloqueado correctamente.";
-await loadBannedUsers();
+$("adminStatus").textContent=data?.message||"Usuario desbloqueado correctamente.";await loadBannedUsers();
+}catch(error){$("adminStatus").textContent="Error al desbanear: "+error.message;}
+}
 
-}catch(error){
-$("adminStatus").textContent="Error al desbanear: "+error.message;
-}
-}
 
 /* ADMINISTRACIÓN DE BOTS */
-let editingBotId=null;
-
+let editingBotId = null;
 async function loadBots(){
-if(!isAdmin)return;
-
-const list=$("botsList");
-if(!list)return;
-
-list.innerHTML='<p class="muted">Cargando bots...</p>';
-
-try{
-
-const bots=await callAdminApi("list_bots");
-
-list.innerHTML="";
-
-if(!bots||!bots.length){
-list.innerHTML='<p class="muted">No hay bots configurados.</p>';
-return;
+  if(!isAdmin)return;
+  const list=$("botsList");
+  if(!list)return;
+  list.innerHTML='<p class="muted">Cargando bots...</p>';
+  try{
+    const bots=await callAdminApi("list_bots");
+    list.innerHTML="";
+    if(!bots||!bots.length){
+      list.innerHTML='<p class="muted">No hay bots configurados.</p>';
+      return;
+    }
+    bots.forEach(bot=>{
+      const card=document.createElement("div");
+      card.className="bot-card";
+      const title=document.createElement("strong");
+      title.textContent="🤖 "+bot.name+" ";
+      const state=document.createElement("span");
+      state.className=bot.active?"bot-active":"bot-inactive";
+      state.textContent=bot.active?"● ACTIVO":"● INACTIVO";
+      const instructions=document.createElement("textarea");
+      instructions.value=bot.instructions||"";
+      instructions.maxLength=4000;
+      instructions.setAttribute("aria-label","Instrucciones de "+bot.name);
+      const nameInput=document.createElement("input");
+      nameInput.value=bot.name;
+      nameInput.maxLength=25;
+      nameInput.placeholder="Nombre del bot";
+      const actions=document.createElement("div");
+      actions.className="bot-actions";
+      const save=document.createElement("button");
+      save.textContent="Guardar cambios";
+      save.onclick=()=>updateBot(bot.id,nameInput.value,instructions.value,bot.active);
+      const toggle=document.createElement("button");
+      toggle.className="secondary";
+      toggle.textContent=bot.active?"Desactivar":"Activar";
+      toggle.onclick=()=>updateBot(bot.id,bot.name,bot.instructions,!bot.active);
+      const remove=document.createElement("button");
+      remove.className="danger";
+      remove.textContent="Eliminar";
+      remove.onclick=()=>deleteBot(bot.id,bot.name);
+      actions.append(save,toggle,remove);
+      card.append(title,state,nameInput,instructions,actions);
+      list.appendChild(card);
+    });
+  }catch(error){
+    list.textContent="Error al cargar los bots: "+error.message;
+  }
 }
-
-bots.forEach(bot=>{
-
-const card=document.createElement("div");
-card.className="bot-card";
-
-const title=document.createElement("strong");
-title.textContent="🤖 "+bot.name+" ";
-
-const state=document.createElement("span");
-state.className=bot.active?"bot-active":"bot-inactive";
-state.textContent=bot.active?"● ACTIVO":"● INACTIVO";
-
-const instructions=document.createElement("textarea");
-instructions.value=bot.instructions||"";
-instructions.maxLength=4000;
-instructions.setAttribute("aria-label","Instrucciones de "+bot.name);
-
-const nameInput=document.createElement("input");
-nameInput.value=bot.name;
-nameInput.maxLength=25;
-nameInput.placeholder="Nombre del bot";
-
-const actions=document.createElement("div");
-actions.className="bot-actions";
-
-const save=document.createElement("button");
-save.textContent="Guardar cambios";
-save.onclick=()=>updateBot(bot.id,nameInput.value,instructions.value,bot.active);
-
-const toggle=document.createElement("button");
-toggle.className="secondary";
-toggle.textContent=bot.active?"Desactivar":"Activar";
-toggle.onclick=()=>updateBot(bot.id,bot.name,bot.instructions,!bot.active);
-
-const remove=document.createElement("button");
-remove.className="danger";
-remove.textContent="Eliminar";
-remove.onclick=()=>deleteBot(bot.id,bot.name);
-
-actions.append(save,toggle,remove);
-card.append(title,state,nameInput,instructions,actions);
-list.appendChild(card);
-
-});
-
-}catch(error){
-list.textContent="Error al cargar los bots: "+error.message;
-}
-}
-
 async function saveBot(){
-if(!isAdmin)return;
-
-const name=$("botName").value.trim();
-const instructions=$("botInstructions").value.trim();
-const status=$("botAdminStatus");
-
-if(!name||!instructions){
-status.textContent="Completá el nombre y las instrucciones.";
-return;
+  if(!isAdmin)return;
+  const name=$("botName").value.trim();
+  const instructions=$("botInstructions").value.trim();
+  const status=$("botAdminStatus");
+  if(!name||!instructions){status.textContent="Completá el nombre y las instrucciones.";return;}
+  try{
+    await callAdminApi("create_bot",{bot_name:name,bot_instructions:instructions});
+    $("botName").value="";
+    $("botInstructions").value="";
+    status.textContent="Bot creado correctamente.";
+    await loadBots();
+  }catch(error){status.textContent="No se pudo crear el bot: "+error.message;}
 }
-
-try{
-await callAdminApi("create_bot",{
-bot_name:name,
-bot_instructions:instructions
-});
-
-$("botName").value="";
-$("botInstructions").value="";
-status.textContent="Bot creado correctamente.";
-
-await loadBots();
-
-}catch(error){
-status.textContent="No se pudo crear el bot: "+error.message;
-}
-}
-
 async function updateBot(id,name,instructions,active){
-if(!isAdmin)return;
-
-try{
-await callAdminApi("update_bot",{
-bot_id:id,
-bot_name:String(name||"").trim(),
-bot_instructions:String(instructions||"").trim(),
-bot_active:Boolean(active)
-});
-
-$("botAdminStatus").textContent="Bot actualizado correctamente.";
-await loadBots();
-
-}catch(error){
-$("botAdminStatus").textContent="No se pudo actualizar: "+error.message;
+  if(!isAdmin)return;
+  try{
+    await callAdminApi("update_bot",{bot_id:id,bot_name:String(name||"").trim(),bot_instructions:String(instructions||"").trim(),bot_active:Boolean(active)});
+    $("botAdminStatus").textContent="Bot actualizado correctamente.";
+    await loadBots();
+  }catch(error){$("botAdminStatus").textContent="No se pudo actualizar: "+error.message;}
 }
-}
-
 async function deleteBot(id,name){
-if(!isAdmin)return;
-
-if(!confirm('¿Seguro que querés eliminar el bot "'+name+'"?'))return;
-
-try{
-await callAdminApi("delete_bot",{bot_id:id});
-
-$("botAdminStatus").textContent="Bot eliminado.";
-await loadBots();
-
-}catch(error){
-$("botAdminStatus").textContent="No se pudo eliminar: "+error.message;
-}
+  if(!isAdmin)return;
+  if(!confirm('¿Seguro que querés eliminar el bot "'+name+'"?'))return;
+  try{
+    await callAdminApi("delete_bot",{bot_id:id});
+    $("botAdminStatus").textContent="Bot eliminado.";
+    await loadBots();
+  }catch(error){$("botAdminStatus").textContent="No se pudo eliminar: "+error.message;}
 }
 
 /* SALIR */
 async function exitChat(){
-
-closeUserMenu();
-selectedMenuUser=null;
-
-closeAdmin();
-
-await releaseNickname();
-
+closeUserMenu();selectedMenuUser=null;await releaseNickname();
 if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
-
-currentRoomTopic="";
-$("roomTopic").style.display="none";
-$("roomTopicText").textContent="Sin tópico";
-
+currentRoomTopic="";$("roomTopic").style.display="none";$("roomTopicText").textContent="Sin tópico";
 if(privateNoticeChannel){await db.removeChannel(privateNoticeChannel);privateNoticeChannel=null;}
 if(moderationChannel){await db.removeChannel(moderationChannel);moderationChannel=null;}
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
-
-if(presenceChannel){
-await presenceChannel.untrack();
-await db.removeChannel(presenceChannel);
-presenceChannel=null;
-}
-
+if(presenceChannel){await presenceChannel.untrack();await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null;}
-
-if(privateNoticeTimer){
-clearTimeout(privateNoticeTimer);
-privateNoticeTimer=null;
-}
-
-$("privateNotice").style.display="none";
-
-receivedIds.clear();
-privateReceivedIds.clear();
-roomUsers.clear();
-activePrivateUser=null;
-privateChats=[];
-privateUnread.clear();
-
-adminPin="";
-isAdmin=false;
-currentRoom=null;
-nickname="";
-senderId="";
-
-renderTabs();
-
-$("chat").style.display="none";
-$("login").style.display="block";
-document.body.classList.remove("chat-active","admin-open");
-$("enterBtn").disabled=false;
-
-$("messages").innerHTML="";
-$("privateMessages").innerHTML="";
-$("privateInput").value="";
-$("messageInput").value="";
-
-$("adminPanel").classList.add("hidden");
-$("adminPanel").scrollTop=0;
-$("adminOpenBtn").classList.add("hidden");
-$("adminPin").value="";
-$("adminPinWrap").classList.add("hidden");
-$("error").textContent="";
-
-$("bannedUsersList").innerHTML='<p class="muted">Presioná actualizar para ver los baneados.</p>';
-
-showMainTab("chat");
-renderUsers();
+if(privateNoticeTimer){clearTimeout(privateNoticeTimer);privateNoticeTimer=null;}
+$("privateNotice").style.display="none";receivedIds.clear();privateReceivedIds.clear();roomUsers.clear();activePrivateUser=null;privateChats=[];privateUnread.clear();
+adminPin="";isAdmin=false;currentRoom=null;nickname="";senderId="";renderTabs();
+$("chat").style.display="none";$("login").style.display="block";document.body.classList.remove("chat-active");$("enterBtn").disabled=false;showLoginMode("home");
+$("messages").innerHTML="";$("privateMessages").innerHTML="";$("privateInput").value="";$("messageInput").value="";
+$("adminPanel").classList.add("hidden");$("adminOpenBtn").classList.add("hidden");$("adminPin").value="";$("adminPinWrap").classList.add("hidden");$("error").textContent="";
+$("bannedUsersList").innerHTML='<p class="muted">Presioná actualizar para ver los baneados.</p>';showMainTab("chat");renderUsers();
 }
 
 /* INICIO */
-(async()=>{
-try{
-await fetchRooms();
-}catch(e){
-$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';
-showError(e.message);
-}
-})();
+(async()=>{try{await fetchRooms();}catch(e){$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';showError(e.message);}})();
 
-/* TECLADO ANDROID */
+/* CONTROL DEL TECLADO ANDROID */
 (function(){
-
-const root=document.documentElement;
-const viewport=window.visualViewport;
-
+const root=document.documentElement,viewport=window.visualViewport;
 function updateScreen(){
 if(!document.body.classList.contains("chat-active"))return;
-
-if(viewport){
-const height=Math.round(viewport.height);
-root.style.setProperty("--app-height",height+"px");
-}else{
-root.style.setProperty("--app-height",window.innerHeight+"px");
+if(viewport){const height=Math.round(viewport.height);root.style.setProperty("--app-height",height+"px");}
+else{root.style.setProperty("--app-height",window.innerHeight+"px");}
 }
-}
-
-if(viewport){
-viewport.addEventListener("resize",updateScreen);
-viewport.addEventListener("scroll",updateScreen);
-}
-
+if(viewport){viewport.addEventListener("resize",updateScreen);viewport.addEventListener("scroll",updateScreen);}
 window.addEventListener("resize",updateScreen);
-
-document.addEventListener("focusin",function(event){
-if(event.target.matches("input,textarea"))setTimeout(updateScreen,50);
-});
-
-document.addEventListener("focusout",function(){
-setTimeout(updateScreen,300);
-});
-
+document.addEventListener("focusin",function(event){if(event.target.matches("input,textarea"))setTimeout(updateScreen,50);});
+document.addEventListener("focusout",function(){setTimeout(updateScreen,300);});
 updateScreen();
-
 })();
 </script>
 </body>

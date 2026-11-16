@@ -1586,9 +1586,11 @@ const reason=reasonInput.trim();
 if(!reason){$("adminStatus").textContent="Tenés que escribir el motivo.";return;}
 if(reason.length>500){$("adminStatus").textContent="El motivo no puede superar los 500 caracteres.";return;}
 try{
-await callAdminApi("moderate_user",{target_sender_id:target,room_id_input:currentRoom,action_name:action,reason_input:reason});
-$("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos en esta sala.":"Usuario expulsado de esta sala.";
-if(action==="ban")await loadBannedUsers();
+const moderationResult=await callAdminApi("moderate_user",{target_sender_id:target,room_id_input:currentRoom,action_name:action,reason_input:reason});
+const appliedMinutes=Number(moderationResult?.duration_minutes||5);
+const durationLabel=appliedMinutes>=1440?"24 horas":appliedMinutes>=60?(appliedMinutes/60)+" hora(s)":appliedMinutes+" minutos";
+$("adminStatus").textContent=action==="ban"?"Usuario baneado de todas las salas por "+durationLabel+".":"Usuario expulsado de esta sala por "+durationLabel+".";
+await loadBannedUsers();
 }catch(error){$("adminStatus").textContent="Error: "+error.message;}
 }
 async function loadBannedUsers(){

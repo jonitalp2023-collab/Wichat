@@ -453,7 +453,7 @@ const SUPABASE_KEY="sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 let nickname="",senderId="",currentRoom=null,rooms=[];
-let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;
+let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;let accountSessionHeartbeatTimer=null,accountSessionLeaseActive=false,accountDeviceId=null;
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
 let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
@@ -538,6 +538,48 @@ throw new Error(message);
 }
 if(!data||data.success!==true)throw new Error(data?.message||"La Admin API no respondió correctamente.");
 return data.data;
+}
+
+/* BLOQUEO DE UNA CUENTA POR DISPOSITIVO */
+function getAccountDeviceId(){
+if(accountDeviceId)return accountDeviceId;
+const key="chatargentina_device_id_v1";
+try{
+let id=localStorage.getItem(key);
+if(!id){
+id=(crypto&&crypto.randomUUID)?crypto.randomUUID():("dev-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2));
+localStorage.setItem(key,id);
+}
+accountDeviceId=id;
+return id;
+}catch(error){
+throw new Error("No se pudo identificar este dispositivo para proteger tu cuenta. Revisá el almacenamiento de la aplicación.");
+}
+}
+async function claimAccountDeviceSession(){
+if(!isRegisteredAccount)return true;
+const deviceId=getAccountDeviceId();
+const {data,error}=await db.rpc("wichat_claim_account_session",{p_device_id:deviceId});
+if(error)throw error;
+if(data!==true)throw new Error("Esta cuenta ya está abierta en otro dispositivo. Cerrá la sesión allí para poder ingresar acá.");
+accountSessionLeaseActive=true;
+if(accountSessionHeartbeatTimer)clearInterval(accountSessionHeartbeatTimer);
+accountSessionHeartbeatTimer=setInterval(async()=>{
+try{
+const {data:ok,error:refreshError}=await db.rpc("wichat_refresh_account_session",{p_device_id:deviceId});
+if(refreshError)throw refreshError;
+if(ok!==true)console.warn("No se pudo renovar la sesión exclusiva de esta cuenta.");
+}catch(error){console.error("Error renovando la sesión exclusiva:",error);}
+},45000);
+return true;
+}
+async function releaseAccountDeviceSession(){
+if(accountSessionHeartbeatTimer){clearInterval(accountSessionHeartbeatTimer);accountSessionHeartbeatTimer=null;}
+if(accountSessionLeaseActive){
+try{await db.rpc("wichat_release_account_session",{p_device_id:getAccountDeviceId()});}
+catch(error){console.warn("No se pudo liberar la sesión del dispositivo:",error);}
+}
+accountSessionLeaseActive=false;
 }
 
 /* SISTEMA DE NICKS ÚNICOS EN LÍNEA */
@@ -677,6 +719,7 @@ nickname=name;isAdmin=false;adminPin="";btn.disabled=true;
 try{
 senderId=await ensureAuthUser();
 isRegisteredAccount=authMode==="account";
+await claimAccountDeviceSession();
 if(name.trim().toUpperCase()==="UNIX"){
 const pin=$("adminPin").value.trim();if(!pin)throw new Error("Ingresá el PIN de administrador UNIX.");
 const {data,error}=await db.rpc("verify_admin_pin",{pin_input:pin});
@@ -696,7 +739,7 @@ await loadRegisteredProfiles();
 $("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
 $("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom);
 subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
-}catch(e){await releaseNickname();currentRoom=null;console.error("Error al ingresar al chat:",e);showError("No se pudo ingresar: "+(e.message||String(e)));btn.disabled=false;}
+}catch(e){await releaseNickname();await releaseAccountDeviceSession();currentRoom=null;console.error("Error al ingresar al chat:",e);showError("No se pudo ingresar: "+(e.message||String(e)));btn.disabled=false;}
 }
 function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");}
 
@@ -1255,7 +1298,7 @@ async function deleteBot(id,name){
 
 /* SALIR */
 async function exitChat(){
-closeUserMenu();selectedMenuUser=null;await releaseNickname();
+closeUserMenu();selectedMenuUser=null;await releaseNickname();await releaseAccountDeviceSession();
 if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
 currentRoomTopic="";$("roomTopic").style.display="none";$("roomTopicText").textContent="Sin tópico";

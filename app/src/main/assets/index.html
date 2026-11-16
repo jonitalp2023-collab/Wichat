@@ -421,6 +421,14 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <p id="topicAdminStatus" class="muted"></p>
     </div>
     <div class="admin-card">
+      <h4>👋 Bienvenida automática</h4>
+      <p class="muted">Configurá el saludo que recibirán los participantes al entrar a esta sala. Dejá el campo vacío para quitarlo.</p>
+      <textarea id="roomWelcomeInput" maxlength="300" rows="3" placeholder="¡Bienvenido/a a nuestra sala!"></textarea>
+      <label style="display:flex;align-items:center;gap:8px;margin:8px 0"><input id="roomWelcomeEnabled" type="checkbox" checked style="width:auto"> Activar bienvenida automática</label>
+      <div class="row"><button onclick="saveRoomWelcome()">Guardar bienvenida</button><button class="secondary" onclick="clearRoomWelcome()">Quitar</button></div>
+      <p id="roomWelcomeStatus" class="muted"></p>
+    </div>
+    <div class="admin-card">
       <h4>➕ Crear una sala</h4><p class="muted">Agregá un nuevo espacio de conversación.</p>
       <div class="row"><input id="newRoomName" maxlength="30" placeholder="Nombre de la sala"><button onclick="createRoom()">Crear sala</button></div>
     </div>
@@ -738,6 +746,35 @@ if(nicknameChannel){const channel=nicknameChannel;nicknameChannel=null;try{await
 function showError(s){$("error").textContent=s;}
 
 /* TÓPICOS POR SALA */
+const roomWelcomeShown=new Set();
+async function loadRoomWelcome(roomId,notify=true){
+ const {data,error}=await db.from("chat_room_welcome_messages").select("message,enabled").eq("room_id",roomId).maybeSingle();
+ if(error){console.warn("No se pudo cargar la bienvenida:",error.message);return;}
+ if(String(currentRoom)!==String(roomId))return;
+ if(isAdmin&&String(roomId)===String(currentRoom)){
+  if($("roomWelcomeInput"))$("roomWelcomeInput").value=data?.message||"";
+  if($("roomWelcomeEnabled"))$("roomWelcomeEnabled").checked=data?.enabled!==false;
+ }
+ const key=String(roomId);
+ if(notify&&data?.enabled&&data.message&&!roomWelcomeShown.has(key)){
+  roomWelcomeShown.add(key);
+  showChatNotification("👋 "+data.message);
+ }
+}
+async function saveRoomWelcome(){
+ if(!isAdmin||!currentRoom)return;
+ const message=$("roomWelcomeInput").value.trim(),enabled=$("roomWelcomeEnabled").checked,status=$("roomWelcomeStatus");
+ status.textContent="Guardando bienvenida...";
+ const {data,error}=await db.rpc("admin_set_room_welcome",{pin_input:adminPin,room_id_input:Number(currentRoom),message_input:message||null,enabled_input:enabled});
+ if(error||data!==true){status.textContent="No se pudo guardar: "+(error?.message||"Error del servidor.");return;}
+ status.textContent=message?"Bienvenida guardada para esta sala.":"Bienvenida quitada.";
+ roomWelcomeShown.delete(String(currentRoom));
+}
+async function clearRoomWelcome(){
+ if(!isAdmin||!currentRoom)return;
+ $("roomWelcomeInput").value="";
+ await saveRoomWelcome();
+}
 async function loadRoomTopic(roomId){
 const bar=$("roomTopic");if(!bar)return;
 const {data,error}=await db.from("chat_room_topics").select("topic").eq("room_id",roomId).maybeSingle();
@@ -936,7 +973,7 @@ if(!allowed){const room=rooms.find(r=>String(r.id)===String(id));$("status").tex
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
-currentRoom=id;showMainTab("chat");$("roomTopic").style.display="flex";$("roomTopicText").textContent="Cargando tópico...";$("roomTopic").classList.add("empty");await loadRoomTopic(id);
+currentRoom=id;showMainTab("chat");await loadRoomWelcome(id,true);$("roomTopic").style.display="flex";$("roomTopicText").textContent="Cargando tópico...";$("roomTopic").classList.add("empty");await loadRoomTopic(id);
 topicChannel=db.channel("wichat-room-topic-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id)).subscribe();
 receivedIds.clear();roomUsers.clear();reactionCache.clear();$("messages").innerHTML="";subscribeMessageReactions("public");renderTabs();renderUsers();
 const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";

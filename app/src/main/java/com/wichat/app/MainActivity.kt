@@ -14,6 +14,7 @@ class MainActivity : Activity() {
 
     private lateinit var web: WebView
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var pauseWebViewRunnable: Runnable? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,13 +42,16 @@ class MainActivity : Activity() {
                 "if(window.chatAppOnBackground){window.chatAppOnBackground();}",
                 null
             )
-            mainHandler.postDelayed({ if (::web.isInitialized) web.onPause() }, 400)
+            pauseWebViewRunnable = Runnable { if (::web.isInitialized) web.onPause() }
+            mainHandler.postDelayed(pauseWebViewRunnable!!, 400)
         }
         super.onPause()
     }
 
     override fun onResume() {
         super.onResume()
+        pauseWebViewRunnable?.let { mainHandler.removeCallbacks(it) }
+        pauseWebViewRunnable = null
         if (::web.isInitialized) {
             web.onResume()
             web.evaluateJavascript(

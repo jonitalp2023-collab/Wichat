@@ -284,13 +284,13 @@ if(isAdmin&&$("roomTopicInput"))$("roomTopicInput").value=currentRoomTopic;
 async function saveRoomTopic(){
 if(!isAdmin||!currentRoom)return;
 const input=$("roomTopicInput"),status=$("topicAdminStatus"),topic=input.value.trim();
-const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:Number(currentRoom),topic_input:topic||null});
+const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:currentRoom,topic_input:topic||null});
 status.textContent=error?"Error: "+error.message:"Tópico guardado correctamente.";
 if(!error)await loadRoomTopic(currentRoom);
 }
 async function deleteRoomTopic(){
 if(!isAdmin||!currentRoom)return;
-const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:Number(currentRoom),topic_input:null});
+const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:currentRoom,topic_input:null});
 $("topicAdminStatus").textContent=error?"Error: "+error.message:"Tópico borrado.";
 if(!error){$("roomTopicInput").value="";await loadRoomTopic(currentRoom);}
 }
@@ -413,7 +413,7 @@ const actionText=action==="ban"?"banear por cinco minutos a ":"echar de la sala 
 if(!confirm("¿Querés "+actionText+user.nick+"?"))return;
 closeUserMenu();
 try{
-await callAdminApi("moderate_user",{target_sender_id:user.id,room_id_input:Number(currentRoom),action_name:action});
+await callAdminApi("moderate_user",{target_sender_id:user.id,room_id_input:currentRoom,action_name:action});
 $("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos.":"Usuario expulsado de la sala.";
 if(action==="ban")await loadBannedUsers();
 }catch(error){alert("No se pudo moderar al usuario: "+error.message);}
@@ -462,7 +462,7 @@ async function sendMessage(){
 const input=$("messageInput"),btn=$("sendBtn"),value=input.value.trim();
 if(!value||!nickname||!currentRoom||btn.disabled)return;
 btn.disabled=true;
-const roomId=Number(currentRoom),senderNickname=nickname;
+const roomId=currentRoom,senderNickname=nickname;
 try{
 const {error}=await db.from("messages").insert({nickname:senderNickname,message:value,room_id:roomId,sender_id:senderId});
 if(error)throw error;
@@ -624,7 +624,7 @@ if(!id){$("adminStatus").textContent="Elegí una sala.";return;}
 const room=rooms.find(r=>String(r.id)===String(id));
 if(!confirm('¿Seguro que querés eliminar la sala "'+(room?.name||"")+'"?'))return;
 try{
-await callAdminApi("delete_room",{room_id_input:Number(id)});
+await callAdminApi("delete_room",{room_id_input:id});
 $("adminStatus").textContent="Sala eliminada correctamente.";
 const wasCurrent=String(currentRoom)===String(id);await fetchRooms();
 if(wasCurrent){
@@ -638,7 +638,7 @@ async function moderateUser(action){
 if(!isAdmin)return;const target=$("userToModerate").value;
 if(!target){$("adminStatus").textContent="Elegí un usuario conectado.";return;}
 try{
-await callAdminApi("moderate_user",{target_sender_id:target,room_id_input:Number(currentRoom),action_name:action});
+await callAdminApi("moderate_user",{target_sender_id:target,room_id_input:currentRoom,action_name:action});
 $("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos en esta sala.":"Usuario expulsado de esta sala.";
 if(action==="ban")await loadBannedUsers();
 }catch(error){$("adminStatus").textContent="Error: "+error.message;}

@@ -476,3 +476,52 @@ select cron.schedule(
  '* * * * *',
  'select public.process_chat_scheduled_announcements();'
 );
+
+-- =========================================================
+-- ENCUESTAS POR SALA
+-- Una persona autenticada puede votar una sola vez por encuesta.
+-- Los votos individuales no son legibles desde el cliente.
+-- =========================================================
+create table if not exists public.chat_room_polls (
+ id uuid primary key default gen_random_uuid(),
+ room_id bigint not null references public.rooms(id) on delete cascade,
+ question text not null check(char_length(btrim(question)) between 3 and 180),
+ options jsonb not null check(jsonb_typeof(options)='array' and jsonb_array_length(options) between 2 and 6),
+ is_closed boolean not null default false,
+ created_at timestamptz not null default now(),
+ created_by uuid,
+ updated_at timestamptz not null default now()
+);
+create table if not exists public.chat_room_poll_votes (
+ id uuid primary key default gen_random_uuid(),
+ poll_id uuid not null references public.chat_room_polls(id) on delete cascade,
+ user_id uuid not null,
+ option_index integer not null check(option_index between 0 and 5),
+ created_at timestamptz not null default now(),
+ unique(poll_id,user_id)
+);
+create index if not exists chat_room_polls_room_created_idx on public.chat_room_polls(room_id,created_at desc);
+create index if not exists chat_room_poll_votes_poll_idx on public.chat_room_poll_votes(poll_id);
+alter table public.chat_room_polls enable row level security;
+alter table public.chat_room_poll_votes enable row level security;
+drop policy if exists chat_room_polls_read on public.chat_room_polls;
+create policy chat_room_polls_read on public.chat_room_polls for select to anon,authenticated using(true);
+revoke all on public.chat_room_poll_votes from anon,authenticated;
+grant select on public.chat_room_polls to anon,authenticated;
+
+-- RPC desplegadas en Supabase:
+-- admin_create_room_poll(pin_input, room_id_input, question_input, options_input)
+-- get_chat_room_polls(room_id_input)
+-- vote_chat_room_poll(poll_id_input, option_index_input)
+-- admin_close_room_poll(pin_input, poll_id_input)
+-- admin_create_room_poll valida PIN, pregunta, 2-6 opciones no vacías ni repetidas.
+-- vote_chat_room_poll usa auth.uid() y una restricción UNIQUE(poll_id,user_id).
+-- get_chat_room_polls entrega opciones, recuentos y el voto del usuario actual.
+-- Los permisos de las RPC limitan creación/cierre a authenticated con PIN;
+-- el voto requiere authenticated. La tabla de votos no permite lectura directa.
+
+do $$ begin
+ if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='chat_room_polls') then
+  alter publication supabase_realtime add table public.chat_room_polls;
+ end if;
+end $$;

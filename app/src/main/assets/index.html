@@ -596,14 +596,15 @@ if(!error){$("roomTopicInput").value="";await loadRoomTopic(currentRoom);}
 }
 
 /* MODERACIÓN */
-function showModerationModal(action,roomName,blocked=false){
+function showModerationModal(action,roomName,blocked=false,reason=""){
 const title=$("moderationTitle"),message=$("moderationMessage"),button=$("moderationModal").querySelector("button");
 if(blocked){title.textContent="⛔ Acceso restringido";message.textContent="No podés entrar a la sala "+roomName+". Tu expulsión o baneo sigue vigente. Podrás volver cuando termine el plazo.";}
 else if(action==="warning_1"){title.textContent="⚠️ Primera advertencia";message.textContent="El bot de CHAT ARGENTINA te avisa que está prohibido escribir insultos. Por favor, respetá a los demás usuarios. A la tercera infracción serás expulsado durante cinco minutos.";}
 else if(action==="warning_2"){title.textContent="🚨 Segunda advertencia";message.textContent="Esta es tu segunda advertencia por utilizar insultos. Si volvés a hacerlo, serás expulsado automáticamente durante cinco minutos.";}
-else if(action==="ban"){title.textContent="🚫 Expulsión automática";message.textContent="El bot detectó tu tercera infracción por insultos. Fuiste expulsado de la sala "+roomName+" durante cinco minutos.";}
-else if(action==="kick"){title.textContent="🚪 Fuiste expulsado";message.textContent="UNIX te expulsó de la sala "+roomName+".";}
-else{title.textContent="🚫 Fuiste baneado";message.textContent="Tu acceso a la sala "+roomName+" fue restringido durante cinco minutos.";}
+else if(action==="ban"){title.textContent="🚫 Fuiste baneado";message.textContent="UNIX te baneó de CHAT ARGENTINA en la sala "+roomName+" durante cinco minutos.";}
+else if(action==="kick"){title.textContent="🚪 Fuiste expulsado";message.textContent="UNIX te expulsó de la sala "+roomName+" durante cinco minutos.";}
+else{title.textContent="🚫 Acceso restringido";message.textContent="Tu acceso a la sala "+roomName+" fue restringido durante cinco minutos.";}
+if(reason){message.textContent+="\n\nMotivo indicado por el administrador: "+reason;}
 button.textContent=(action==="warning_1"||action==="warning_2")?"ENTENDIDO":"CERRAR";$("moderationModal").classList.add("show");
 }
 function closeModerationModal(){$("moderationModal").classList.remove("show");}
@@ -614,7 +615,7 @@ moderationChannel=db.channel("wichat-moderation-"+senderId).on("postgres_changes
 const event=payload.new;if(!event||String(event.sender_id)!==String(senderId))return;if(String(event.room_id)!==String(currentRoom))return;
 const room=rooms.find(r=>String(r.id)===String(event.room_id)),roomName=room?.name||"esta sala",action=String(event.action||"");
 if(action==="warning_1"||action==="warning_2"){showModerationModal(action,roomName);return;}
-if(action==="ban"||action==="kick"){await exitChat();showModerationModal(action,roomName);}
+if(action==="ban"||action==="kick"){const reason=String(event.reason||"");await exitChat();showModerationModal(action,roomName,false,reason);}
 }).subscribe();
 }
 $("nickname").addEventListener("input",()=>{const admin=$("nickname").value.trim().toUpperCase()==="UNIX";$("adminPinWrap").classList.toggle("hidden",!admin);});
@@ -746,12 +747,18 @@ $("adminUserActions").classList.toggle("hidden",!isAdmin);$("userMenuModal").cla
 function closeUserMenu(){$("userMenuModal").classList.remove("show");}
 async function userMenuPrivate(){if(!selectedMenuUser)return;const user={...selectedMenuUser};closeUserMenu();await openPrivateChat(user);}
 async function userMenuModerate(action){
-if(!isAdmin||!selectedMenuUser)return;const user={...selectedMenuUser};
-const actionText=action==="ban"?"banear por cinco minutos a ":"echar de la sala a ";
-if(!confirm("¿Querés "+actionText+user.nick+"?"))return;
+if(!isAdmin||!selectedMenuUser)return;
+const user={...selectedMenuUser};
+const actionText=action==="ban"?"banear por cinco minutos a ":"expulsar de la sala a ";
+const reasonInput=prompt("Escribí el motivo que verá "+user.nick+" al recibir la expulsión o el baneo (máximo 500 caracteres):","Incumplimiento de las normas de convivencia");
+if(reasonInput===null)return;
+const reason=reasonInput.trim();
+if(!reason){alert("Tenés que escribir el motivo.");return;}
+if(reason.length>500){alert("El motivo no puede superar los 500 caracteres.");return;}
+if(!confirm("¿Querés "+actionText+user.nick+"?\nMotivo: "+reason))return;
 closeUserMenu();
 try{
-await callAdminApi("moderate_user",{target_sender_id:user.id,room_id_input:currentRoom,action_name:action});
+await callAdminApi("moderate_user",{target_sender_id:user.id,room_id_input:currentRoom,action_name:action,reason_input:reason});
 $("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos.":"Usuario expulsado de la sala.";
 if(action==="ban")await loadBannedUsers();
 }catch(error){alert("No se pudo moderar al usuario: "+error.message);}
@@ -1116,10 +1123,16 @@ try{
 }
 }
 async function moderateUser(action){
-if(!isAdmin)return;const target=$("userToModerate").value;
+if(!isAdmin)return;
+const target=$("userToModerate").value;
 if(!target){$("adminStatus").textContent="Elegí un usuario conectado.";return;}
+const reasonInput=prompt("Escribí el motivo que verá el usuario (máximo 500 caracteres):","Incumplimiento de las normas de convivencia");
+if(reasonInput===null)return;
+const reason=reasonInput.trim();
+if(!reason){$("adminStatus").textContent="Tenés que escribir el motivo.";return;}
+if(reason.length>500){$("adminStatus").textContent="El motivo no puede superar los 500 caracteres.";return;}
 try{
-await callAdminApi("moderate_user",{target_sender_id:target,room_id_input:currentRoom,action_name:action});
+await callAdminApi("moderate_user",{target_sender_id:target,room_id_input:currentRoom,action_name:action,reason_input:reason});
 $("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos en esta sala.":"Usuario expulsado de esta sala.";
 if(action==="ban")await loadBannedUsers();
 }catch(error){$("adminStatus").textContent="Error: "+error.message;}

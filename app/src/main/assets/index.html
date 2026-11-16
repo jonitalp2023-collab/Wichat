@@ -310,6 +310,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="profileReadOnly">
 <p id="profileStatus" class="profile-muted"></p>
 <p id="profileBio" style="white-space:pre-wrap;overflow-wrap:anywhere;text-align:center"></p>
+<p id="profileBadges" class="profile-muted"></p>
 </div>
 <div id="profileEditor" class="hidden">
 <label for="profileAvatarInput">URL de foto (opcional)</label><input id="profileAvatarInput" type="url" maxlength="500" placeholder="https://...">
@@ -429,6 +430,12 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <h4>➕ Crear una sala</h4><p class="muted">Agregá un nuevo espacio de conversación.</p>
       <div class="row"><input id="newRoomName" maxlength="30" placeholder="Nombre de la sala"><button onclick="createRoom()">Crear sala</button></div>
     </div>
+    <div class="admin-card">
+      <h4>🔒 Salas VIP</h4><p class="muted">Las salas VIP solo permiten el ingreso a usuarios con membresía VIP.</p>
+      <select id="vipRoomSelect"><option value="">Elegí una sala</option></select>
+      <select id="vipRoomMode"><option value="true">Convertir en sala VIP</option><option value="false">Hacer sala pública</option></select>
+      <button onclick="setRoomVip()">Guardar acceso de sala</button>
+    </div>
     <div class="admin-card admin-card-danger">
       <h4>🗑️ Eliminar una sala</h4><p class="muted">Esta acción elimina la sala seleccionada. Confirmá antes de continuar.</p>
       <select id="roomToDelete"><option value="">Elegí una sala</option></select>
@@ -443,6 +450,12 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <h4>👤 Seleccionar usuario</h4><p class="muted">Elegí un participante conectado en la sala actual.</p>
       <select id="userToModerate"><option value="">Usuarios de esta sala</option></select>
       <p class="muted">Para expulsar o aplicar un baneo, ingresá a la sección Moderación.</p>
+    </div>
+    <div class="admin-card">
+      <h4>⭐ Membresías VIP</h4><p class="muted">Otorgá o quitá el acceso VIP a una cuenta usando su Nick exacto.</p>
+      <input id="vipMemberNickname" maxlength="25" placeholder="Nick del usuario">
+      <select id="vipMemberMode"><option value="true">Otorgar membresía VIP</option><option value="false">Quitar membresía VIP</option></select>
+      <button onclick="setVipMember()">Guardar membresía</button>
     </div>
   </section>
 
@@ -743,7 +756,7 @@ if(action==="ban"||action==="kick"){const reason=String(event.reason||"");await 
 $("nickname").addEventListener("input",()=>{const admin=$("nickname").value.trim().toUpperCase()==="UNIX";$("adminPinWrap").classList.toggle("hidden",!admin);});
 
 async function fetchRooms(){
-const {data,error}=await db.from("rooms").select("id,name");if(error)throw error;
+const {data,error}=await db.from("rooms").select("id,name,is_vip");if(error)throw error;
 rooms=(data||[]).slice().sort((a,b)=>{
 const ag=String(a.name).trim().toLowerCase()==="general",bg=String(b.name).trim().toLowerCase()==="general";
 if(ag&&!bg)return -1;if(bg&&!ag)return 1;return String(a.name).localeCompare(String(b.name),"es");
@@ -832,9 +845,9 @@ if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}closeEm
 function renderTabs(){
 const list=$("roomTabs"),pills=$("roomPills");list.innerHTML="";pills.innerHTML="";
 rooms.forEach(r=>{
-const active=String(r.id)===String(currentRoom),roomName=String(r.name).trim().toLowerCase()==="general"?"General":"#"+String(r.name).replace(/^#/,"");
-const pill=document.createElement("button");pill.className="room-pill"+(active?" active":"");pill.textContent=roomName;pill.onclick=()=>switchRoom(r.id);pills.appendChild(pill);
-const b=document.createElement("button");b.className="room-tab"+(active?" active":"");b.textContent=roomName;b.onclick=()=>switchRoom(r.id);list.appendChild(b);
+const active=String(r.id)===String(currentRoom),roomName=String(r.name).trim().toLowerCase()==="general"?"General":"#"+String(r.name).replace(/^#/,""),displayRoomName=(r.is_vip?"🔒 ":"")+roomName;
+const pill=document.createElement("button");pill.className="room-pill"+(active?" active":"");pill.textContent=displayRoomName;pill.title=r.is_vip?"Sala VIP":"Sala pública";pill.onclick=()=>switchRoom(r.id);pills.appendChild(pill);
+const b=document.createElement("button");b.className="room-tab"+(active?" active":"");b.textContent=displayRoomName;b.title=r.is_vip?"Sala VIP":"Sala pública";b.onclick=()=>switchRoom(r.id);list.appendChild(b);
 });
 renderPrivateTabs();
 }
@@ -876,12 +889,17 @@ $("profileTitle").textContent=own?"Mi perfil":"Perfil de usuario";
 $("profileNickname").textContent=nick||"Usuario";
 $("profileFeedback").textContent="Cargando perfil...";
 $("profileReadOnly").classList.remove("hidden");$("profileEditor").classList.toggle("hidden",!own);
-$("profileAvatar").classList.add("hidden");$("profileStatus").textContent="";$("profileBio").textContent="";
+$("profileAvatar").classList.add("hidden");$("profileStatus").textContent="";$("profileBio").textContent="";$("profileBadges").textContent="";
 $("profileModal").classList.add("show");
 try{
-const {data,error}=await db.from("chat_profiles").select("nickname,bio,avatar_url,status").eq("user_id",userId).maybeSingle();
+const [{data,error},{data:badgeData,error:badgeError}]=await Promise.all([
+db.from("chat_profiles").select("nickname,bio,avatar_url,status").eq("user_id",userId).maybeSingle(),
+db.from("chat_public_profile_badges").select("is_vip,points,medal").eq("user_id",userId).maybeSingle()
+]);
 if(error)throw error;
-const p=data||{};
+if(badgeError)console.warn("No se pudieron cargar los puntos y medallas:",badgeError.message);
+const p=data||{},badge=badgeData||{is_vip:false,points:0,medal:"Principiante"};
+$("profileBadges").textContent=(badge.is_vip?"⭐ VIP · ":"")+String(badge.points||0)+" puntos · Medalla "+(badge.medal||"Principiante");
 $("profileNickname").textContent=p.nickname||nick||"Usuario";
 if(p.avatar_url&&(p.avatar_url.toLowerCase().startsWith("https://")||p.avatar_url.toLowerCase().startsWith("http://"))){$("profileAvatar").src=p.avatar_url;$("profileAvatar").classList.remove("hidden");}
 $("profileStatus").textContent=p.status||"Sin estado";
@@ -1416,10 +1434,33 @@ await fetchRooms();renderTabs();renderRoomDelete();
 }catch(error){$("adminStatus").textContent="Error al crear sala: "+error.message;}
 }
 function renderRoomDelete(){
-const select=$("roomToDelete");if(!select)return;const previous=select.value;
-select.innerHTML='<option value="">Elegí una sala</option>';
-rooms.forEach(r=>{const option=document.createElement("option");option.value=r.id;option.textContent=r.name;select.appendChild(option);});
-if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
+const select=$("roomToDelete"),vipSelect=$("vipRoomSelect");
+if(select){const previous=select.value;select.innerHTML='<option value="">Elegí una sala</option>';rooms.forEach(r=>{const option=document.createElement("option");option.value=r.id;option.textContent=r.name;select.appendChild(option);});if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;}
+if(vipSelect){const previous=vipSelect.value;vipSelect.innerHTML='<option value="">Elegí una sala</option>';rooms.forEach(r=>{const option=document.createElement("option");option.value=r.id;option.textContent=(r.is_vip?"🔒 ":"")+r.name;vipSelect.appendChild(option);});if(rooms.some(r=>String(r.id)===String(previous)))vipSelect.value=previous;}
+}
+async function setRoomVip(){
+if(!isAdmin)return;
+const roomId=$("vipRoomSelect").value,enabled=$("vipRoomMode").value==="true";
+if(!roomId){$("adminStatus").textContent="Elegí una sala.";return;}
+$("adminStatus").textContent="Actualizando acceso VIP...";
+try{
+const {data,error}=await db.rpc("admin_set_room_vip",{pin_input:adminPin,room_id_input:Number(roomId),vip_enabled:enabled});
+if(error)throw error;if(data!==true)throw new Error("No se pudo actualizar la sala.");
+await fetchRooms();renderTabs();renderRoomDelete();
+$("adminStatus").textContent=enabled?"La sala ahora es VIP.":"La sala ahora es pública.";
+}catch(error){$("adminStatus").textContent="No se pudo cambiar el acceso VIP: "+error.message;}
+}
+async function setVipMember(){
+if(!isAdmin)return;
+const targetNick=$("vipMemberNickname").value.trim(),enabled=$("vipMemberMode").value==="true";
+if(!targetNick){$("adminStatus").textContent="Escribí el Nick exacto del usuario.";return;}
+$("adminStatus").textContent="Actualizando membresía VIP...";
+try{
+const {data,error}=await db.rpc("admin_set_vip_member",{pin_input:adminPin,nickname_input:targetNick,vip_enabled:enabled});
+if(error)throw error;if(data!==true)throw new Error("No se pudo actualizar la membresía.");
+$("adminStatus").textContent=enabled?"Membresía VIP otorgada a "+targetNick+".":"Membresía VIP quitada a "+targetNick+".";
+$("vipMemberNickname").value="";
+}catch(error){$("adminStatus").textContent="No se pudo cambiar la membresía: "+error.message;}
 }
 async function deleteRoom(){
 if(!isAdmin)return;

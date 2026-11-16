@@ -813,7 +813,7 @@ $("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchR
 subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
 }catch(e){await releaseNickname();await releaseAccountDeviceSession();currentRoom=null;console.error("Error al ingresar al chat:",e);showError("No se pudo ingresar: "+(e.message||String(e)));btn.disabled=false;}
 }
-function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");}
+function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");const stickers=$("stickerPickerPublic");if(stickers)stickers.classList.remove("open");}
 
 /* NAVEGACIÓN */
 function showMainTab(which){

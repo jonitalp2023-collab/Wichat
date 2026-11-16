@@ -1032,7 +1032,7 @@ const now=Date.now(),normalized=String(body||"").trim().toLowerCase().replace(/\
 for(let i=localChatSendEvents.length-1;i>=0;i--)if(now-localChatSendEvents[i].time>60000)localChatSendEvents.splice(i,1);
 const recent=localChatSendEvents.filter(x=>now-x.time<10000);
 if(recent.length>=6)return "Estás enviando mensajes demasiado rápido. Esperá unos segundos.";
-if(recent.length&&now-recent[0].time<1200)return "Esperá un momento antes de enviar otro mensaje.";
+if(recent.length&&now-recent[recent.length-1].time<1200)return "Esperá un momento antes de enviar otro mensaje.";
 if(localChatSendEvents.filter(x=>x.body===normalized).length>=2)return "Detectamos mensajes repetidos. Cambiá el texto antes de volver a enviarlo.";
 return "";
 }

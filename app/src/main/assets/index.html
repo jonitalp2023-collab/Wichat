@@ -93,6 +93,7 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 #usersView h3,#roomsView h3{margin:8px 0 12px;color:#55b8ff}
 .user-item{display:flex;align-items:center;gap:9px;padding:13px;margin-bottom:8px;background:#292929;border:1px solid #383838;border-radius:10px;cursor:pointer}
 .user-item:hover{background:#363636}
+.user-avatar{width:38px;height:38px;flex:0 0 38px;border-radius:50%;object-fit:cover;background:#344361;border:1px solid #526887}.user-info{display:flex;flex-direction:column;gap:3px;min-width:0}.user-profile-status{font-size:12px;color:#8fc9ff;overflow-wrap:anywhere}.user-profile-bio{font-size:11px;color:#aab4c5;overflow-wrap:anywhere}
 .online-dot{width:9px;height:9px;background:#39d98a;border-radius:50%;flex:0 0 9px}
 .user-name{font-weight:bold;color:white;overflow-wrap:anywhere}
 .user-count{font-size:12px;color:#9baac5;margin-bottom:10px}
@@ -489,6 +490,8 @@ let authMode="home";
 let isRegisteredAccount=false;
 const registeredUsers=new Set();
 const checkedProfiles=new Set();
+const publicProfileCache=new Map();
+const publicProfilePending=new Set();
 
 function showLoginMode(mode){
 authMode=mode;
@@ -904,18 +907,39 @@ $("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos."
 if(action==="ban")await loadBannedUsers();
 }catch(error){alert("No se pudo moderar al usuario: "+error.message);}
 }
+async function loadPublicProfilesForUsers(users){
+  const missing=users.map(u=>String(u.id)).filter(id=>id&&!publicProfileCache.has(id)&&!publicProfilePending.has(id));
+  if(!missing.length)return;
+  missing.forEach(id=>publicProfilePending.add(id));
+  const {data,error}=await db.from("chat_profiles").select("user_id,avatar_url,status,bio").in("user_id",missing);
+  missing.forEach(id=>publicProfilePending.delete(id));
+  if(error){console.warn("No se pudieron cargar los perfiles públicos:",error.message);return;}
+  (data||[]).forEach(profile=>publicProfileCache.set(String(profile.user_id),profile));
+  missing.forEach(id=>{if(!publicProfileCache.has(id))publicProfileCache.set(id,null);});
+  renderUsers();
+}
 function renderUsers(){
 const list=$("usersList");if(!list)return;
 const users=Array.from(roomUsers.values()).sort((a,b)=>{if(a.admin&&a.nick.toUpperCase()==="UNIX")return -1;if(b.admin&&b.nick.toUpperCase()==="UNIX")return 1;return a.nick.localeCompare(b.nick);});
 $("usersCountText").textContent=users.length+" "+(users.length===1?"usuario conectado":"usuarios conectados");list.innerHTML="";
 if(!users.length){list.innerHTML='<p class="muted">Todavía no hay usuarios conectados.</p>';return;}
+loadPublicProfilesForUsers(users);
 users.forEach(u=>{
 const item=document.createElement("div");item.className="user-item";const dot=document.createElement("span");dot.className="online-dot";
+const profile=publicProfileCache.get(String(u.id));
+if(profile&&profile.avatar_url&&/^https:\/\//i.test(profile.avatar_url)){
+const avatar=document.createElement("img");avatar.className="user-avatar";avatar.src=profile.avatar_url;avatar.alt="Foto de "+u.nick;avatar.loading="lazy";avatar.onerror=()=>{avatar.remove();};item.appendChild(dot);item.appendChild(avatar);
+}else{item.appendChild(dot);}
+const info=document.createElement("div");info.className="user-info";
 const name=document.createElement("span");name.className="user-name";
 if(u.registered||registeredUsers.has(String(u.id)))addRegisteredPlus(name);
 if(u.admin&&u.nick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";name.appendChild(star);}
-name.appendChild(document.createTextNode(u.nick));item.append(dot,name);
-if(u.id!==senderId){item.onclick=()=>openUserMenu(u);}else{item.title="Vos";}list.appendChild(item);
+name.appendChild(document.createTextNode(u.nick));info.appendChild(name);
+if(profile&&profile.status){const status=document.createElement("span");status.className="user-profile-status";status.textContent=profile.status;info.appendChild(status);}
+if(profile&&profile.bio){const bio=document.createElement("span");bio.className="user-profile-bio";bio.textContent=profile.bio;info.appendChild(bio);}
+item.appendChild(info);
+if(u.id!==senderId){item.onclick=()=>openUserMenu(u);}else{item.title="Vos";}
+list.appendChild(item);
 });
 }
 function renderModerationUsers(){

@@ -1015,6 +1015,47 @@ await loadRoomReactions(currentRoom,[messageId]);
 }catch(error){console.error("No se pudo guardar la reacción:",error);alert("No se pudo guardar la reacción: "+error.message);}
 finally{button.disabled=false;}
 }
+function renderPrivateMessageReactions(messageId){
+const key=String(messageId),bar=document.querySelector('.private-message-reactions[data-message-id="'+key+'"]');
+if(!bar)return;
+const rows=privateReactionRows.get(key)||[],counts=new Map();
+rows.forEach(row=>{const item=counts.get(row.reaction)||{count:0,mine:false};item.count++;if(String(row.user_id)===String(senderId))item.mine=true;counts.set(row.reaction,item);});
+bar.innerHTML="";
+CHAT_REACTIONS.forEach(emoji=>{
+const item=counts.get(emoji),button=document.createElement("button");
+button.type="button";button.className="message-reaction"+(item&&item.mine?" mine":"");
+button.textContent=emoji+(item&&item.count>0?" "+item.count:"");
+button.title=item&&item.mine?"Quitar tu reacción":"Reaccionar";
+button.onclick=()=>togglePrivateMessageReaction(messageId,emoji,button);
+bar.appendChild(button);
+});
+}
+async function loadPrivateMessageReactions(messageIds){
+const ids=(messageIds||Array.from(document.querySelectorAll("#privateMessages .private-message[data-message-id]")).map(el=>el.dataset.messageId)).filter(Boolean);
+if(!ids.length)return;
+const {data,error}=await db.from("chat_message_reactions").select("id,private_message_id,user_id,reaction").in("private_message_id",ids);
+if(error){console.warn("No se pudieron cargar las reacciones privadas:",error.message);return;}
+ids.forEach(id=>privateReactionRows.set(String(id),[]));
+(data||[]).forEach(row=>{const key=String(row.private_message_id);if(!privateReactionRows.has(key))privateReactionRows.set(key,[]);privateReactionRows.get(key).push(row);});
+ids.forEach(renderPrivateMessageReactions);
+}
+async function togglePrivateMessageReaction(messageId,emoji,button){
+if(!senderId||!CHAT_REACTIONS.includes(emoji)||!activePrivateUser)return;
+button.disabled=true;
+try{
+const {data:existing,error:findError}=await db.from("chat_message_reactions").select("id").eq("private_message_id",messageId).eq("user_id",senderId).eq("reaction",emoji).maybeSingle();
+if(findError)throw findError;
+if(existing){
+const {error}=await db.from("chat_message_reactions").delete().eq("id",existing.id).eq("user_id",senderId);
+if(error)throw error;
+}else{
+const {error}=await db.from("chat_message_reactions").insert({private_message_id:messageId,user_id:senderId,reaction:emoji});
+if(error)throw error;
+}
+await loadPrivateMessageReactions([messageId]);
+}catch(error){console.error("No se pudo guardar la reacción privada:",error);alert("No se pudo guardar la reacción: "+error.message);}
+finally{button.disabled=false;}
+}
 function addMessage(m){
 if(!m||receivedIds.has(m.id))return;receivedIds.add(m.id);
 const div=document.createElement("div");div.className="message";div.dataset.messageId=String(m.id);
@@ -1301,7 +1342,7 @@ await loadPrivateMessages();if(!activePrivateUser||String(activePrivateUser.id)!
 privateChannel=db.channel("wichat-private-"+senderId+"-"+userId).on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages"},payload=>{
 const m=payload.new;if(!m)return;
 if((String(m.sender_id)===String(senderId)&&String(m.recipient_id)===String(userId))||(String(m.sender_id)===String(userId)&&String(m.recipient_id)===String(senderId)))addPrivateMessage(m);
-}).subscribe();
+}).on("postgres_changes",{event:"*",schema:"public",table:"chat_message_reactions"},()=>loadPrivateMessageReactions()).subscribe();
 }
 function closePrivateTab(userId){
 const index=privateChats.findIndex(u=>String(u.id)===String(userId));if(index===-1)return;
@@ -1317,8 +1358,9 @@ if(!activePrivateUser)return;const other=activePrivateUser.id;
 const filter="and(sender_id.eq."+senderId+",recipient_id.eq."+other+"),and(sender_id.eq."+other+",recipient_id.eq."+senderId+")";
 const {data,error}=await db.from("private_messages").select("*").or(filter).order("created_at",{ascending:true});
 if(error){$("privateMessages").textContent="No se pudo cargar la conversación: "+error.message;return;}
-$("privateMessages").innerHTML="";privateReceivedIds.clear();(data||[]).forEach(addPrivateMessage);
+$("privateMessages").innerHTML="";privateReceivedIds.clear();privateReactionRows.clear();(data||[]).forEach(addPrivateMessage);
 if(!(data||[]).length)$("privateMessages").innerHTML='<p class="muted">Todavía no hay mensajes. ¡Saludá!</p>';
+else await loadPrivateMessageReactions((data||[]).map(m=>m.id));
 }
 function addPrivateMessage(m){
 if(!m||privateReceivedIds.has(m.id))return;privateReceivedIds.add(m.id);const box=$("privateMessages"),empty=box.querySelector(".muted");if(empty)box.innerHTML="";
@@ -1338,7 +1380,9 @@ if(sticker){const card=document.createElement("div");card.className="chat-sticke
 }else if(m.message_type==="gif"&&m.media_url){
 try{const url=new URL(m.media_url);if(url.protocol==="https:"&&/\.gif(?:$|[?#])/i.test(url.href)){const img=document.createElement("img");img.className="chat-gif";img.src=url.href;img.alt="GIF";img.loading="lazy";img.onerror=()=>img.replaceWith(document.createTextNode("No se pudo cargar el GIF."));msg.appendChild(img);}else{msg.textContent="GIF no válido.";}}catch(_){msg.textContent="GIF no válido.";}
 }else{msg.textContent=m.content||"";}
-div.append(who,msg);box.appendChild(div);box.scrollTop=box.scrollHeight;
+div.dataset.messageId=String(m.id);
+const reactions=document.createElement("div");reactions.className="private-message-reactions";reactions.dataset.messageId=String(m.id);
+div.append(who,msg,reactions);box.appendChild(div);renderPrivateMessageReactions(m.id);box.scrollTop=box.scrollHeight;
 }
 async function sendPrivateMessage(){
 if(!activePrivateUser)return;const input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();if(!value)return;btn.disabled=true;

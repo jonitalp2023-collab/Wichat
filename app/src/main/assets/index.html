@@ -104,22 +104,95 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 .user-menu-card .private-action{background:#168bea}
 .user-menu-card .kick-action{background:#344361}
 .user-menu-card .ban-action{background:#bd394d}
-#adminPanel{position:fixed;z-index:800;left:10px;right:10px;top:10px;bottom:90px;overflow-y:auto;max-width:680px;margin:auto;background:#141e35}
-#adminPanel .row input{min-width:0}
-#adminPanel h4{margin-bottom:5px}
-.banned-card{background:#172844;border:1px solid #344361;border-radius:10px;padding:12px;margin-bottom:10px;overflow-wrap:anywhere}
-.banned-name{display:block;color:#ff8796;font-weight:bold;margin-bottom:7px}
-.banned-details{color:#9baac5;font-size:13px;line-height:1.6;margin:5px 0 10px}
-.unban-button{width:100%;background:#168b65;margin-top:5px}
-.unban-button:disabled{opacity:.5}
-.bot-card{background:#172844;border:1px solid #344361;border-radius:10px;padding:12px;margin:10px 0}
-.bot-card strong{color:#8ecbff}
-.bot-card textarea{width:100%;min-height:100px;margin:8px 0;padding:10px;border:1px solid #344361;border-radius:8px;background:#0c1427;color:white;font:14px Arial;resize:vertical}
-.bot-card .bot-actions{display:flex;gap:7px;flex-wrap:wrap}
-.bot-card .bot-actions button{flex:1;min-width:100px}
-.bot-active{color:#70dca1}.bot-inactive{color:#ffb0b0}
 
-@media(max-width:420px){#adminPanel{left:6px;right:6px;padding:13px}#adminPanel .row{flex-wrap:wrap}#adminPanel .row button{flex:1}}
+/* PANEL ADMIN: scroll independiente y cómodo en celulares */
+#adminPanel{
+  position:fixed;
+  z-index:5000;
+  top:calc(env(safe-area-inset-top) + 8px);
+  bottom:calc(env(safe-area-inset-bottom) + 8px);
+  left:8px;
+  right:8px;
+  width:auto;
+  max-width:680px;
+  height:auto;
+  max-height:none;
+  margin:0 auto;
+  padding:16px;
+  background:#141e35;
+  border:1px solid #d99b35;
+  border-radius:15px;
+  overflow-y:scroll;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  touch-action:pan-y;
+  scrollbar-width:thin;
+  scrollbar-color:#52749d #141e35;
+}
+#adminPanel .row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#adminPanel .row input{
+  flex:1 1 180px;
+  min-width:0;
+}
+#adminPanel .row button{
+  flex:1 1 auto;
+  min-height:44px;
+}
+#adminPanel input,
+#adminPanel select,
+#adminPanel textarea{
+  width:100%;
+  min-height:45px;
+  font-size:16px;
+  margin:8px 0;
+}
+#adminPanel textarea{
+  min-height:120px;
+  resize:vertical;
+  line-height:1.45;
+}
+#adminPanel button{
+  min-height:44px;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+#adminPanel h3{color:#ffd34d;font-size:18px}
+#adminPanel h4{
+  color:#8ecbff;
+  font-size:15px;
+  margin-top:22px;
+  margin-bottom:7px;
+}
+#adminPanel .muted{line-height:1.5}
+#adminPanel .bot-card,
+#adminPanel .banned-card{
+  width:100%;
+  overflow-wrap:anywhere;
+}
+#adminPanel .bot-card .bot-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+#adminPanel .bot-card .bot-actions button{
+  flex:1 1 120px;
+  min-height:45px;
+}
+#adminPanel::-webkit-scrollbar{width:7px}
+#adminPanel::-webkit-scrollbar-thumb{background:#52749d;border-radius:10px}
+
+@media(max-width:420px){
+  #adminPanel{left:5px;right:5px;padding:13px}
+  #adminPanel .row{flex-wrap:wrap}
+  #adminPanel .row button{flex:1 1 100%}
+  #adminPanel .bot-card .bot-actions button{flex:1 1 100%}
+}
 @media(min-width:701px){body.chat-active .container{max-width:850px;margin:auto}}
 body.chat-active #chatView,body.chat-active #privateView{display:flex;flex-direction:column;flex:1 1 0;min-height:0;overflow:hidden}
 body.chat-active #messages,body.chat-active #privateMessages{flex:1 1 0;min-height:0;overflow-y:auto}
@@ -599,8 +672,18 @@ renderTabs();if(currentRoom)await switchRoom(currentRoom);
 
 /* ADMINISTRACIÓN */
 function openAdmin(){
-if(!isAdmin){alert("No tenés permisos de administrador.");return;}
-$("adminPanel").classList.remove("hidden");if(currentRoom)loadRoomTopic(currentRoom);renderRoomDelete();renderModerationUsers();loadBannedUsers();loadBots();
+  if(!isAdmin){
+    alert("No tenés permisos de administrador.");
+    return;
+  }
+  const panel=$("adminPanel");
+  panel.classList.remove("hidden");
+  panel.scrollTop=0;
+  if(currentRoom)loadRoomTopic(currentRoom);
+  renderRoomDelete();
+  renderModerationUsers();
+  loadBannedUsers();
+  loadBots();
 }
 function closeAdmin(){$("adminPanel").classList.add("hidden");}
 async function createRoom(){

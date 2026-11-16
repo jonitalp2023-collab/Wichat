@@ -918,7 +918,13 @@ currentRoom=id;showMainTab("chat");$("roomTopic").style.display="flex";$("roomTo
 topicChannel=db.channel("wichat-room-topic-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id)).subscribe();
 receivedIds.clear();roomUsers.clear();reactionCache.clear();$("messages").innerHTML="";subscribeMessageReactions("public");renderTabs();renderUsers();
 const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";
-messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>{const m=p.new;if(m&&String(m.sender_id)!==String(senderId)&&typeof m.message==="string"&&new RegExp("(^|\\\\s)@"+nickname.replace(/[.*+?^${}()|[\\]\\\\]/g,"\\\\messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new)).subscribe(s=>{")+"(\\\\b|$)","i").test(m.message)){showChatNotification("📣 "+(m.nickname||"Alguien")+" te mencionó en #"+(rooms.find(r=>String(r.id)===String(id))?.name||"sala"));}addMessage(m);}).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
+messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>{
+ const m=p.new;
+ if(m&&String(m.sender_id)!==String(senderId)&&typeof m.message==="string"&&nickname&&m.message.toLocaleLowerCase().includes("@"+nickname.toLocaleLowerCase())){
+  showChatNotification("📣 "+(m.nickname||"Alguien")+" te mencionó en #"+(rooms.find(r=>String(r.id)===String(id))?.name||"sala"));
+ }
+ addMessage(m);
+}).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
 presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
 presenceChannel.on("presence",{event:"sync"},updatePresenceList).on("presence",{event:"join"},updatePresenceList).on("presence",{event:"leave"},updatePresenceList).subscribe(async state=>{
 if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,is_registered:isRegisteredAccount,online_at:new Date().toISOString()});updatePresenceList();}

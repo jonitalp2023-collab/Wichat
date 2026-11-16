@@ -376,6 +376,8 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
 <div id="privateView" class="hidden"><div id="privateMessages"></div>
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
+<div class="emoji-wrap"><button class="emoji-toggle" aria-label="Stickers privados" onclick="toggleStickerPicker('privateInput')">🎭</button><div id="stickerPickerPrivate" class="emoji-picker"></div></div>
+<button class="emoji-toggle" aria-label="Enviar GIF privado" title="Enviar GIF" onclick="sendGifByUrl('privateInput')">GIF</button>
 <input id="privateInput" maxlength="1000" placeholder="Escribí un mensaje privado..." onkeydown="if(event.key==='Enter')sendPrivateMessage()">
 <button id="privateSendBtn" class="send-button" onclick="sendPrivateMessage()">➤</button></div></div>
 </div>
@@ -816,7 +818,7 @@ $("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchR
 subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
 }catch(e){await releaseNickname();await releaseAccountDeviceSession();currentRoom=null;console.error("Error al ingresar al chat:",e);showError("No se pudo ingresar: "+(e.message||String(e)));btn.disabled=false;}
 }
-function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");const stickers=$("stickerPickerPublic");if(stickers)stickers.classList.remove("open");}
+function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");const stickers=$("stickerPickerPublic"),privateStickers=$("stickerPickerPrivate");if(stickers)stickers.classList.remove("open");if(privateStickers)privateStickers.classList.remove("open");}
 
 /* NAVEGACIÓN */
 function showMainTab(which){
@@ -1174,11 +1176,11 @@ const CHAT_STICKERS=[
 {key:"sad",emoji:"🥺",label:"Qué pena"},
 {key:"wow",emoji:"🤯",label:"No lo puedo creer"}
 ];
-function toggleStickerPicker(){
-const picker=$("stickerPickerPublic"),wasOpen=picker.classList.contains("open");closeEmojiPickers();picker.classList.remove("open");
+function toggleStickerPicker(target){
+const privateTarget=target==="privateInput",picker=$(privateTarget?"stickerPickerPrivate":"stickerPickerPublic"),wasOpen=picker.classList.contains("open");closeEmojiPickers();
 if(wasOpen)return;
 picker.innerHTML="";const grid=document.createElement("div");grid.className="sticker-grid";
-CHAT_STICKERS.forEach(sticker=>{const button=document.createElement("button");button.type="button";button.className="sticker-choice";const face=document.createElement("span");face.textContent=sticker.emoji;const label=document.createElement("small");label.textContent=sticker.label;button.append(face,label);button.onclick=()=>sendSticker(sticker.key);grid.appendChild(button);});
+CHAT_STICKERS.forEach(sticker=>{const button=document.createElement("button");button.type="button";button.className="sticker-choice";const face=document.createElement("span");face.textContent=sticker.emoji;const label=document.createElement("small");label.textContent=sticker.label;button.append(face,label);button.onclick=()=>sendSticker(sticker.key,target);grid.appendChild(button);});
 picker.appendChild(grid);picker.classList.add("open");
 }
 async function sendRichMessage(value){
@@ -1197,12 +1199,26 @@ closeEmojiPickers();input.focus();
 }catch(error){alert("No se pudo enviar: "+error.message);}
 finally{button.disabled=false;}
 }
-function sendSticker(key){const sticker=CHAT_STICKERS.find(x=>x.key===key);if(!sticker)return;sendRichMessage("[[CHATARG_STICKER:"+sticker.key+"]]");}
-async function sendGifByUrl(){
+function sendSticker(key,target){
+const sticker=CHAT_STICKERS.find(x=>x.key===key);if(!sticker)return;
+if(target==="privateInput")sendPrivateRichMessage("sticker",sticker.key);else sendRichMessage("[[CHATARG_STICKER:"+sticker.key+"]]");
+}
+async function sendGifByUrl(target){
 const raw=prompt("Pegá el enlace directo de un GIF (debe terminar en .gif y usar HTTPS):");if(raw===null)return;
 let parsed;try{parsed=new URL(raw.trim());}catch(_){alert("El enlace no es válido.");return;}
 if(parsed.protocol!=="https:"||!(/\\.gif(?:$|[?#])/i.test(parsed.href))){alert("Usá un enlace HTTPS directo a un archivo .gif.");return;}
-await sendRichMessage("[[CHATARG_GIF:"+encodeURIComponent(parsed.href)+"]]");
+if(target==="privateInput")await sendPrivateRichMessage("gif",parsed.href);
+else await sendRichMessage("[[CHATARG_GIF:"+encodeURIComponent(parsed.href)+"]]");
+}
+async function sendPrivateRichMessage(type,value){
+if(!activePrivateUser||$("privateSendBtn").disabled)return;
+const button=$("privateSendBtn");button.disabled=true;
+try{
+const payload={sender_id:senderId,recipient_id:activePrivateUser.id,sender_nickname:nickname,content:type==="sticker"?String(value):"GIF",message_type:type,media_url:type==="gif"?value:null};
+const {data,error}=await db.from("private_messages").insert(payload).select().single();if(error)throw error;
+addPrivateMessage(data);closeEmojiPickers();
+}catch(error){alert("No se pudo enviar el contenido privado: "+error.message);}
+finally{button.disabled=false;$("privateInput").focus();}
 }
 
 /* EMOJIS */
@@ -1296,7 +1312,15 @@ const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c5
 if(m.sender_id&&registeredUsers.has(String(m.sender_id)))addRegisteredPlus(who);
 if(privateNick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";who.appendChild(star);}
 who.appendChild(document.createTextNode(privateNick+": "));
-if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);box.appendChild(div);box.scrollTop=box.scrollHeight;
+if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);
+const msg=document.createElement("span");msg.className="msgtext";
+if(m.message_type==="sticker"){
+const sticker=CHAT_STICKERS.find(x=>x.key===m.content);
+if(sticker){const card=document.createElement("div");card.className="chat-sticker";const face=document.createElement("span");face.className="sticker-face";face.textContent=sticker.emoji;const caption=document.createElement("span");caption.className="sticker-caption";caption.textContent=sticker.label;card.append(face,caption);msg.appendChild(card);}else{msg.textContent="Sticker";}
+}else if(m.message_type==="gif"&&m.media_url){
+try{const url=new URL(m.media_url);if(url.protocol==="https:"&&/\\.gif(?:$|[?#])/i.test(url.href)){const img=document.createElement("img");img.className="chat-gif";img.src=url.href;img.alt="GIF";img.loading="lazy";img.onerror=()=>img.replaceWith(document.createTextNode("No se pudo cargar el GIF."));msg.appendChild(img);}else{msg.textContent="GIF no válido.";}}catch(_){msg.textContent="GIF no válido.";}
+}else{msg.textContent=m.content||"";}
+div.append(who,msg);box.appendChild(div);box.scrollTop=box.scrollHeight;
 }
 async function sendPrivateMessage(){
 if(!activePrivateUser)return;const input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();if(!value)return;btn.disabled=true;

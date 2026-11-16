@@ -988,7 +988,7 @@ if(!confirm("¿Querés "+actionText+user.nick+"?\nMotivo: "+reason))return;
 closeUserMenu();
 try{
 const result=await callAdminApi("moderate_user",{target_sender_id:user.id,room_id_input:currentRoom,action_name:action,reason_input:reason,duration_minutes_input:duration});
-$("adminStatus").textContent=(action==="ban"?"Usuario baneado":"Usuario expulsado")+" por "+formatModerationDuration(result?.duration_minutes||duration)+". Reincidencias: "+Number(result?.prior_sanctions||0)+".
+$("adminStatus").textContent=(action==="ban"?"Usuario baneado":"Usuario expulsado")+" por "+formatModerationDuration(result?.duration_minutes||duration)+". Reincidencias: "+Number(result?.prior_sanctions||0)+".");
 await loadModerationHistory();
 if(action==="ban")await loadBannedUsers();
 }catch(error){alert("No se pudo moderar al usuario: "+error.message);}

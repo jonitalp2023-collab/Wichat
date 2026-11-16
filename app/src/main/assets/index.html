@@ -582,6 +582,28 @@ catch(error){console.warn("No se pudo liberar la sesión del dispositivo:",error
 accountSessionLeaseActive=false;
 }
 
+// Android: liberar la sesión exclusiva al enviar la aplicación a segundo plano.
+// Al volver, se vuelve a reclamar para mantener la protección entre dispositivos.
+let appSessionSuspended=false;
+window.chatAppOnBackground=async function(){
+if(!document.body.classList.contains("chat-active")||appSessionSuspended)return;
+appSessionSuspended=true;
+await releaseAccountDeviceSession();
+};
+window.chatAppOnForeground=async function(){
+if(!appSessionSuspended)return;
+appSessionSuspended=false;
+if(!document.body.classList.contains("chat-active")||!isRegisteredAccount)return;
+try{
+await claimAccountDeviceSession();
+}catch(error){
+console.warn("No se pudo recuperar la sesión exclusiva al volver:",error);
+alert("Tu cuenta se abrió en otro dispositivo mientras esta aplicación estaba cerrada. Ingresá nuevamente para continuar.");
+await exitChat();
+}
+};
+
+
 /* SISTEMA DE NICKS ÚNICOS EN LÍNEA */
 function normalizeNickname(name){return String(name||"").trim().toLowerCase();}
 async function claimNickname(name){

@@ -109,4 +109,87 @@ begin
   end if;
 end $;
 
+
+-- Anti-spam server-side: protege mensajes públicos y privados.
+-- La tabla queda cerrada a los clientes; únicamente la función disparadora la modifica.
+create table if not exists public.chat_antispam_events (
+  id bigint generated always as identity primary key,
+  sender_id text not null,
+  body_hash text not null,
+  context_key text not null,
+  sent_at timestamptz not null default clock_timestamp()
+);
+create index if not exists chat_antispam_events_sender_time_idx
+  on public.chat_antispam_events (sender_id, sent_at desc);
+create index if not exists chat_antispam_events_sender_hash_time_idx
+  on public.chat_antispam_events (sender_id, body_hash, sent_at desc);
+alter table public.chat_antispam_events enable row level security;
+revoke all on table public.chat_antispam_events from public, anon, authenticated;
+
+create or replace function public.wichat_antispam_guard()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $function$
+declare
+  v_sender text;
+  v_body text;
+  v_media text;
+  v_hash text;
+  v_context text;
+  v_now timestamptz := clock_timestamp();
+  v_recent_count integer;
+  v_last_sent timestamptz;
+  v_duplicate_count integer;
+begin
+  -- Los procesos confiables del backend (incluidos los bots) no consumen la cuota del usuario.
+  if coalesce(current_setting('request.jwt.claim.role', true), '') = 'service_role' then
+    return new;
+  end if;
+  v_sender := to_jsonb(new)->>'sender_id';
+  if v_sender is null or btrim(v_sender) = '' then return new; end if;
+  v_body := coalesce(to_jsonb(new)->>'message', to_jsonb(new)->>'content', '');
+  v_media := coalesce(to_jsonb(new)->>'media_url', '');
+  v_context := coalesce(to_jsonb(new)->>'room_id', to_jsonb(new)->>'recipient_id', 'chat');
+  v_body := lower(regexp_replace(btrim(v_body), '\\s+', ' ', 'g'));
+  if v_body = '' then v_body := 'media:' || v_media; end if;
+  v_hash := md5(v_body);
+  perform pg_advisory_xact_lock(hashtextextended(v_sender, 0));
+
+  select count(*), max(sent_at) into v_recent_count, v_last_sent
+  from public.chat_antispam_events
+  where sender_id = v_sender and sent_at > v_now - interval '10 seconds';
+  if v_recent_count >= 6 then
+    raise exception 'Estás enviando mensajes demasiado rápido. Esperá unos segundos.' using errcode = 'P0001';
+  end if;
+  if v_last_sent is not null and v_now - v_last_sent < interval '1200 milliseconds' then
+    raise exception 'Esperá un momento antes de enviar otro mensaje.' using errcode = 'P0001';
+  end if;
+
+  select count(*) into v_duplicate_count
+  from public.chat_antispam_events
+  where sender_id = v_sender and body_hash = v_hash
+    and sent_at > v_now - interval '60 seconds';
+  if v_duplicate_count >= 2 then
+    raise exception 'Detectamos mensajes repetidos. Cambiá el texto antes de volver a enviarlo.' using errcode = 'P0001';
+  end if;
+
+  insert into public.chat_antispam_events(sender_id, body_hash, context_key, sent_at)
+  values (v_sender, v_hash, v_context, v_now);
+  if mod(extract(epoch from v_now)::bigint, 100) = 0 then
+    delete from public.chat_antispam_events where sent_at < v_now - interval '1 day';
+  end if;
+  return new;
+end;
+$function$;
+revoke all on function public.wichat_antispam_guard() from public, anon, authenticated;
+
+drop trigger if exists chat_antispam_guard_trigger on public.messages;
+create trigger chat_antispam_guard_trigger before insert on public.messages
+for each row execute function public.wichat_antispam_guard();
+drop trigger if exists chat_antispam_guard_trigger on public.private_messages;
+create trigger chat_antispam_guard_trigger before insert on public.private_messages
+for each row execute function public.wichat_antispam_guard();
+
 commit;

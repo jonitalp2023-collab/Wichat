@@ -124,6 +124,17 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 .user-menu-card .private-action{background:#168bea}
 .user-menu-card .kick-action{background:#344361}
 .user-menu-card .ban-action{background:#bd394d}
+#profileModal{display:none;position:fixed;inset:0;z-index:26000;background:rgba(0,0,0,.82);align-items:center;justify-content:center;padding:18px}
+#profileModal.show{display:flex}
+.profile-card{width:100%;max-width:390px;max-height:88dvh;overflow-y:auto;background:#141e35;border:1px solid #278bd2;border-radius:16px;padding:20px;box-shadow:0 10px 35px #000b}
+.profile-card h3{color:#55b8ff;text-align:center;margin:0 0 15px}
+.profile-avatar{display:block;width:92px;height:92px;object-fit:cover;border-radius:50%;margin:0 auto 12px;border:2px solid #278bd2;background:#0c1427}
+.profile-card label{display:block;color:#b9cce5;font-size:13px;margin-top:10px}
+.profile-card input,.profile-card textarea{width:100%;padding:12px;border:1px solid #344361;border-radius:10px;background:#0c1427;color:white;font-size:15px;margin:6px 0}
+.profile-card textarea{min-height:85px;resize:vertical}
+.profile-card button{width:100%;margin-top:10px}
+.profile-card .profile-muted{color:#9baac5;font-size:13px;text-align:center;overflow-wrap:anywhere}
+
 
 /* PANEL ADMIN: ventana fija con desplazamiento vertical propio */
 #adminPanel{
@@ -276,11 +287,30 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div class="user-menu-card">
 <h3 id="userMenuTitle">Usuario</h3>
 <button class="private-action" onclick="userMenuPrivate()">💬 Enviar mensaje privado</button>
+<button class="secondary" onclick="userMenuViewProfile()">👤 Ver perfil</button>
 <div id="adminUserActions" class="hidden">
 <button class="kick-action" onclick="userMenuModerate('kick')">🚪 Echar usuario</button>
 <button class="ban-action" onclick="userMenuModerate('ban')">🚫 Banear usuario por 5 minutos</button>
 </div>
 <button class="secondary" onclick="closeUserMenu()">Cerrar</button>
+</div></div>
+<div id="profileModal" onclick="if(event.target===this)closeProfileModal()">
+<div class="profile-card">
+<h3 id="profileTitle">Perfil de usuario</h3>
+<img id="profileAvatar" class="profile-avatar hidden" alt="Foto de perfil">
+<p id="profileNickname" class="profile-muted"></p>
+<div id="profileReadOnly">
+<p id="profileStatus" class="profile-muted"></p>
+<p id="profileBio" style="white-space:pre-wrap;overflow-wrap:anywhere;text-align:center"></p>
+</div>
+<div id="profileEditor" class="hidden">
+<label for="profileAvatarInput">URL de foto (opcional)</label><input id="profileAvatarInput" type="url" maxlength="500" placeholder="https://...">
+<label for="profileStatusInput">Estado</label><input id="profileStatusInput" maxlength="80" placeholder="¿Qué estás haciendo?">
+<label for="profileBioInput">Sobre mí</label><textarea id="profileBioInput" maxlength="500" placeholder="Contá algo sobre vos..."></textarea>
+<button onclick="saveProfileEditor()">💾 Guardar perfil</button>
+</div>
+<p id="profileFeedback" class="profile-muted"></p>
+<button class="secondary" onclick="closeProfileModal()">Cerrar</button>
 </div></div>
 <div id="moderationModal" role="alertdialog" aria-modal="true">
 <div class="moderation-card">
@@ -332,7 +362,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
 <input id="messageInput" maxlength="1000" placeholder="Escribí aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
 <button id="sendBtn" class="send-button" onclick="sendMessage()">➤</button></div></div>
-<div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><div id="usersCountText" class="user-count">0 usuarios conectados</div><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
+<div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><div id="usersCountText" class="user-count">0 usuarios conectados</div><p class="muted">Tocá un Nick para ver sus opciones.</p><button class="secondary" style="width:100%;margin:0 0 12px" onclick="openMyProfile()">👤 Mi perfil</button><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
 <div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
 <div id="privateView" class="hidden"><div id="privateMessages"></div>
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
@@ -817,6 +847,48 @@ function updatePresenceList(){
 if(!presenceChannel)return;const state=presenceChannel.presenceState(),next=new Map();
 Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length){const p=entries[entries.length-1],id=p.sender_id||key;next.set(id,{id,nick:p.nickname||"Usuario",admin:p.is_admin===true,registered:p.is_registered===true||registeredUsers.has(String(id))});}});
 roomUsers=next;renderUsers();renderModerationUsers();
+}
+
+/* PERFILES PERSONALIZADOS */
+let profileEditingUserId=null;
+function closeProfileModal(){$("profileModal").classList.remove("show");profileEditingUserId=null;}
+function openMyProfile(){openProfile(senderId,nickname,true);}
+async function userMenuViewProfile(){if(!selectedMenuUser)return;const u={...selectedMenuUser};closeUserMenu();await openProfile(u.id,u.nick,false);}
+async function openProfile(userId,nick,own){
+if(!userId)return;
+profileEditingUserId=own?String(senderId):null;
+$("profileTitle").textContent=own?"Mi perfil":"Perfil de usuario";
+$("profileNickname").textContent=nick||"Usuario";
+$("profileFeedback").textContent="Cargando perfil...";
+$("profileReadOnly").classList.remove("hidden");$("profileEditor").classList.toggle("hidden",!own);
+$("profileAvatar").classList.add("hidden");$("profileStatus").textContent="";$("profileBio").textContent="";
+$("profileModal").classList.add("show");
+try{
+const {data,error}=await db.from("chat_profiles").select("nickname,bio,avatar_url,status").eq("user_id",userId).maybeSingle();
+if(error)throw error;
+const p=data||{};
+$("profileNickname").textContent=p.nickname||nick||"Usuario";
+if(p.avatar_url&&/^https?:\\/\\//i.test(p.avatar_url)){$("profileAvatar").src=p.avatar_url;$("profileAvatar").classList.remove("hidden");}
+$("profileStatus").textContent=p.status||"Sin estado";
+$("profileBio").textContent=p.bio||"Todavía no agregó una descripción.";
+if(own){$("profileAvatarInput").value=p.avatar_url||"";$("profileStatusInput").value=p.status||"";$("profileBioInput").value=p.bio||"";}
+$("profileFeedback").textContent="";
+}catch(e){$("profileFeedback").textContent="No se pudo cargar el perfil: "+e.message;}
+}
+async function saveProfileEditor(){
+if(!profileEditingUserId||profileEditingUserId!==String(senderId))return;
+const avatar=$("profileAvatarInput").value.trim(),status=$("profileStatusInput").value.trim(),bio=$("profileBioInput").value.trim();
+if(avatar){try{const parsed=new URL(avatar);if(!["http:","https:"].includes(parsed.protocol))throw new Error();}catch(e){$("profileFeedback").textContent="La foto debe tener una URL válida que empiece con https://";return;}}
+$("profileFeedback").textContent="Guardando...";
+try{
+const {error}=await db.from("chat_profiles").upsert({user_id:senderId,nickname:nickname,is_registered:isRegisteredAccount,bio:bio||null,avatar_url:avatar||null,status:status||null,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+if(error)throw error;
+$("profileFeedback").textContent="Perfil actualizado correctamente.";
+$("profileNickname").textContent=nickname;
+$("profileStatus").textContent=status||"Sin estado";
+$("profileBio").textContent=bio||"Todavía no agregó una descripción.";
+if(avatar){$("profileAvatar").src=avatar;$("profileAvatar").classList.remove("hidden");}else{$("profileAvatar").removeAttribute("src");$("profileAvatar").classList.add("hidden");}
+}catch(e){$("profileFeedback").textContent="No se pudo guardar: "+e.message;}
 }
 
 /* MENÚ DE USUARIO */

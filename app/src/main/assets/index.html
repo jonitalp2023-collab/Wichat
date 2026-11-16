@@ -738,13 +738,13 @@ if(action==="ban"||action==="kick"){const reason=String(event.reason||"");await 
 $("nickname").addEventListener("input",()=>{const admin=$("nickname").value.trim().toUpperCase()==="UNIX";$("adminPinWrap").classList.toggle("hidden",!admin);});
 
 async function fetchRooms(){
-const {data,error}=await db.from("rooms").select("id,name");if(error)throw error;
+const {data,error}=await db.from("rooms").select("id,name,is_vip");if(error)throw error;
 rooms=(data||[]).slice().sort((a,b)=>{
 const ag=String(a.name).trim().toLowerCase()==="general",bg=String(b.name).trim().toLowerCase()==="general";
 if(ag&&!bg)return -1;if(bg&&!ag)return 1;return String(a.name).localeCompare(String(b.name),"es");
 });
 const select=$("initialRoom"),previous=select.value;select.innerHTML="";
-rooms.forEach(r=>{const o=document.createElement("option");o.value=r.id;o.textContent=r.name;select.appendChild(o);});
+rooms.forEach(r=>{const o=document.createElement("option");o.value=r.id;o.textContent=(r.is_vip?"👑 ":"")+r.name;select.appendChild(o);});
 const general=rooms.find(r=>String(r.name).trim().toLowerCase()==="general");
 if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;else if(general)select.value=general.id;else if(rooms.length)select.value=rooms[0].id;
 if(isAdmin)renderRoomDelete();if(!rooms.length)throw new Error("No hay salas. Creá una desde Administración.");
@@ -876,8 +876,8 @@ function renderTabs(){
 const list=$("roomTabs"),pills=$("roomPills");list.innerHTML="";pills.innerHTML="";
 rooms.forEach(r=>{
 const active=String(r.id)===String(currentRoom),roomName=String(r.name).trim().toLowerCase()==="general"?"General":"#"+String(r.name).replace(/^#/,"");
-const pill=document.createElement("button");pill.className="room-pill"+(active?" active":"");pill.textContent=roomName;pill.onclick=()=>switchRoom(r.id);pills.appendChild(pill);
-const b=document.createElement("button");b.className="room-tab"+(active?" active":"");b.textContent=roomName;b.onclick=()=>switchRoom(r.id);list.appendChild(b);
+const pill=document.createElement("button");pill.className="room-pill"+(active?" active":"");pill.textContent=(r.is_vip?"👑 ":"")+roomName;pill.onclick=()=>switchRoom(r.id);pills.appendChild(pill);
+const b=document.createElement("button");b.className="room-tab"+(active?" active":"");b.textContent=(r.is_vip?"👑 ":"")+roomName;b.onclick=()=>switchRoom(r.id);list.appendChild(b);
 });
 renderPrivateTabs();
 }
@@ -1507,7 +1507,7 @@ await fetchRooms();renderTabs();renderRoomDelete();
 function renderRoomDelete(){
 const select=$("roomToDelete");if(!select)return;const previous=select.value;
 select.innerHTML='<option value="">Elegí una sala</option>';
-rooms.forEach(r=>{const option=document.createElement("option");option.value=r.id;option.textContent=r.name;select.appendChild(option);});
+rooms.forEach(r=>{const option=document.createElement("option");option.value=r.id;option.textContent=(r.is_vip?"👑 ":"")+r.name;select.appendChild(option);});
 if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
 }
 async function deleteRoom(){

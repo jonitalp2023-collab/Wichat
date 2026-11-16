@@ -522,7 +522,7 @@ const $=id=>document.getElementById(id);
 let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,reactionChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;let accountSessionHeartbeatTimer=null,accountSessionLeaseActive=false,accountDeviceId=null;
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
-let adminStatsChannel=null,adminStatsMessageCount=null;
+let adminStatsChannel=null,adminStatsMessageCount=null,adminStatsRefreshTimer=null,adminStatsRefreshRequest=0;
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
 let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
 let authMode="home";
@@ -878,12 +878,13 @@ roomUsers=next;renderUsers();renderModerationUsers();updateAdminStats();
 }
 
 /* PERFILES PERSONALIZADOS */
-let profileEditingUserId=null;
-function closeProfileModal(){$("profileModal").classList.remove("show");profileEditingUserId=null;}
+let profileEditingUserId=null,profileLoadRequestId=0;
+function closeProfileModal(){profileLoadRequestId++;$("profileModal").classList.remove("show");profileEditingUserId=null;}
 function openMyProfile(){openProfile(senderId,nickname,true);}
 async function userMenuViewProfile(){if(!selectedMenuUser)return;const u={...selectedMenuUser};closeUserMenu();await openProfile(u.id,u.nick,false);}
 async function openProfile(userId,nick,own){
 if(!userId)return;
+const requestId=++profileLoadRequestId;
 profileEditingUserId=own?String(senderId):null;
 $("profileTitle").textContent=own?"Mi perfil":"Perfil de usuario";
 $("profileNickname").textContent=nick||"Usuario";
@@ -897,6 +898,7 @@ db.from("chat_profiles").select("nickname,bio,avatar_url,status").eq("user_id",u
 db.from("chat_public_profile_badges").select("is_vip,points,medal").eq("user_id",userId).maybeSingle()
 ]);
 if(error)throw error;
+if(requestId!==profileLoadRequestId)return;
 if(badgeError)console.warn("No se pudieron cargar los puntos y medallas:",badgeError.message);
 const p=data||{},badge=badgeData||{is_vip:false,points:0,medal:"Principiante"};
 $("profileBadges").textContent=(badge.is_vip?"⭐ VIP · ":"")+String(badge.points||0)+" puntos · Medalla "+(badge.medal||"Principiante");
@@ -906,22 +908,24 @@ $("profileStatus").textContent=p.status||"Sin estado";
 $("profileBio").textContent=p.bio||"Todavía no agregó una descripción.";
 if(own){$("profileAvatarInput").value=p.avatar_url||"";$("profileStatusInput").value=p.status||"";$("profileBioInput").value=p.bio||"";}
 $("profileFeedback").textContent="";
-}catch(e){$("profileFeedback").textContent="No se pudo cargar el perfil: "+e.message;}
+}catch(e){if(requestId===profileLoadRequestId)$("profileFeedback").textContent="No se pudo cargar el perfil: "+e.message;}
 }
 async function saveProfileEditor(){
 if(!profileEditingUserId||profileEditingUserId!==String(senderId))return;
+const saveRequestId=profileLoadRequestId,saveUserId=profileEditingUserId;
 const avatar=$("profileAvatarInput").value.trim(),status=$("profileStatusInput").value.trim(),bio=$("profileBioInput").value.trim();
 if(avatar){try{const parsed=new URL(avatar);if(!["http:","https:"].includes(parsed.protocol))throw new Error();}catch(e){$("profileFeedback").textContent="La foto debe tener una URL válida que empiece con https://";return;}}
 $("profileFeedback").textContent="Guardando...";
 try{
 const {error}=await db.from("chat_profiles").upsert({user_id:senderId,nickname:nickname,is_registered:isRegisteredAccount,bio:bio||null,avatar_url:avatar||null,status:status||null,updated_at:new Date().toISOString()},{onConflict:"user_id"});
 if(error)throw error;
+if(saveRequestId!==profileLoadRequestId||saveUserId!==profileEditingUserId)return;
 $("profileFeedback").textContent="Perfil actualizado correctamente.";
 $("profileNickname").textContent=nickname;
 $("profileStatus").textContent=status||"Sin estado";
 $("profileBio").textContent=bio||"Todavía no agregó una descripción.";
 if(avatar){$("profileAvatar").src=avatar;$("profileAvatar").classList.remove("hidden");}else{$("profileAvatar").removeAttribute("src");$("profileAvatar").classList.add("hidden");}
-}catch(e){$("profileFeedback").textContent="No se pudo guardar: "+e.message;}
+}catch(e){if(saveRequestId===profileLoadRequestId&&saveUserId===profileEditingUserId)$("profileFeedback").textContent="No se pudo guardar: "+e.message;}
 }
 
 /* MENÚ DE USUARIO */
@@ -1427,22 +1431,26 @@ function updateAdminStats(){
 }
 async function refreshAdminHistoricalStats(){
   if(!isAdmin)return;
+  const requestId=++adminStatsRefreshRequest;
   const [messagesResult,profilesResult]=await Promise.all([
     db.from("messages").select("id",{count:"exact",head:true}),
     db.from("chat_profiles").select("user_id",{count:"exact",head:true}).eq("is_registered",true)
   ]);
+  if(requestId!==adminStatsRefreshRequest||!isAdmin)return;
   if(messagesResult.error)console.warn("No se pudo consultar el total de mensajes:",messagesResult.error.message);
   else{adminStatsMessageCount=messagesResult.count||0;const el=$("adminStatMessagesDetail");if(el)el.textContent=String(adminStatsMessageCount);}
   if(profilesResult.error)console.warn("No se pudo consultar el total de cuentas:",profilesResult.error.message);
   else{const el=$("adminStatRegisteredDetail");if(el)el.textContent=String(profilesResult.count||0);}
 }
+function scheduleAdminStatsRefresh(){
+  if(adminStatsRefreshTimer)clearTimeout(adminStatsRefreshTimer);
+  adminStatsRefreshTimer=setTimeout(()=>{adminStatsRefreshTimer=null;refreshAdminHistoricalStats();},300);
+}
 function subscribeAdminStats(){
   if(!isAdmin||adminStatsChannel)return;
   adminStatsChannel=db.channel("wichat-admin-live-stats")
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},()=>{
-      if(adminStatsMessageCount===null)return;
-      adminStatsMessageCount++;
-      const el=$("adminStatMessagesDetail");if(el)el.textContent=String(adminStatsMessageCount);
+      scheduleAdminStatsRefresh();
     })
     .subscribe(status=>{if(status==="SUBSCRIBED")refreshAdminHistoricalStats();});
 }
@@ -1467,6 +1475,8 @@ function openAdmin(){
 }
 function closeAdmin(){
   $("adminPanel").classList.add("hidden");
+  adminStatsRefreshRequest++;
+  if(adminStatsRefreshTimer){clearTimeout(adminStatsRefreshTimer);adminStatsRefreshTimer=null;}
   if(adminStatsChannel){db.removeChannel(adminStatsChannel);adminStatsChannel=null;}
 }
 async function createRoom(){

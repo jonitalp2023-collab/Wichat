@@ -1087,8 +1087,7 @@ if(sticker){const card=document.createElement("div");card.className="chat-sticke
 }else if(storedMessage.startsWith("[[CHATARG_GIF:")&&storedMessage.endsWith("]]")){
 try{const gifUrl=decodeURIComponent(storedMessage.slice(14,-2)),parsed=new URL(gifUrl);if(parsed.protocol==="https:"&&/\.gif(?:$|[?#])/i.test(parsed.href)){const img=document.createElement("img");img.className="chat-gif";img.src=parsed.href;img.alt="GIF";img.loading="lazy";img.onerror=()=>{img.replaceWith(document.createTextNode("No se pudo cargar el GIF."));};t.appendChild(img);}else{t.textContent="GIF no válido.";}}catch(_){t.textContent="GIF no válido.";}
 }else{t.textContent=storedMessage;}
-const reactions=document.createElement("div");reactions.className="message-reactions";reactions.dataset.messageId=String(m.id);
-div.append(n,t,reactions);$("messages").appendChild(div);renderMessageReactions(m.id);$("messages").scrollTop=$("messages").scrollHeight;
+div.append(n,t);$("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
 }
 async function loadRoomMessages(roomId){
 const cutoff=new Date(Date.now()-12*60*60*1000).toISOString();let from=0;const pageSize=500;
@@ -1407,8 +1406,7 @@ if(sticker){const card=document.createElement("div");card.className="chat-sticke
 try{const url=new URL(m.media_url);if(url.protocol==="https:"&&/\.gif(?:$|[?#])/i.test(url.href)){const img=document.createElement("img");img.className="chat-gif";img.src=url.href;img.alt="GIF";img.loading="lazy";img.onerror=()=>img.replaceWith(document.createTextNode("No se pudo cargar el GIF."));msg.appendChild(img);}else{msg.textContent="GIF no válido.";}}catch(_){msg.textContent="GIF no válido.";}
 }else{msg.textContent=m.content||"";}
 div.dataset.messageId=String(m.id);
-const reactions=document.createElement("div");reactions.className="private-message-reactions";reactions.dataset.messageId=String(m.id);
-div.append(who,msg,reactions);box.appendChild(div);renderPrivateMessageReactions(m.id);box.scrollTop=box.scrollHeight;
+div.append(who,msg);box.appendChild(div);box.scrollTop=box.scrollHeight;
 }
 async function sendPrivateMessage(){
 if(!activePrivateUser)return;const recipientId=activePrivateUser.id,input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();if(!value)return;btn.disabled=true;

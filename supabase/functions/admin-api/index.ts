@@ -286,7 +286,14 @@ Deno.serve(async (req: Request) => {
       case "create_bot": {
         const name = String(body.bot_name ?? "").trim();
         const instructions = String(body.bot_instructions ?? "").trim();
-        if (!name || name.length > 25 || !instructions || instructions.length > 4000) {
+        const roomIds = Array.isArray(body.room_ids) ? [...new Set(body.room_ids.map((value: unknown) => Number(value)))] : [];
+        const cooldownSeconds = Number(body.cooldown_seconds ?? 0);
+        const respondToBots = body.respond_to_bots !== false;
+        const responseStyle = String(body.response_style ?? "natural");
+        if (!name || name.length > 25 || !instructions || instructions.length > 4000 ||
+            roomIds.some((value: number) => !Number.isSafeInteger(value) || value <= 0) ||
+            !Number.isInteger(cooldownSeconds) || cooldownSeconds < 0 || cooldownSeconds > 3600 ||
+            !["natural", "brief", "expressive"].includes(responseStyle)) {
           return respond({
             success: false,
             message: "El nombre debe tener 1 a 25 caracteres y las instrucciones entre 1 y 4000.",
@@ -304,7 +311,7 @@ Deno.serve(async (req: Request) => {
         }
 
         ({ data: result, error } = await adminDb.from("chat_bots")
-          .insert({ name, instructions, active: true, room_ids: [], cooldown_seconds: 0, respond_to_bots: true, response_style: "natural" })
+          .insert({ name, instructions, active: true, room_ids: roomIds, cooldown_seconds: cooldownSeconds, respond_to_bots: respondToBots, response_style: responseStyle })
           .select("id,name,instructions,active,room_ids,cooldown_seconds,respond_to_bots,response_style,created_at,updated_at").single());
         break;
       }

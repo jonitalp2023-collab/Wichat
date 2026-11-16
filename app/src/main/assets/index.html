@@ -1167,10 +1167,18 @@ async function sendMessage(){
     /* Stickers y GIF no deben activar respuestas automáticas de los bots. */
     if(senderNickname.toLowerCase()==="mili"||value.startsWith("[[CHATARG_STICKER:")||value.startsWith("[[CHATARG_GIF:"))return;
 
+    const requestId=(typeof crypto!=="undefined"&&crypto.randomUUID)
+      ?crypto.randomUUID()
+      :"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{
+        const r=Math.random()*16|0;
+        return (c==="x"?r:(r&0x3|0x8)).toString(16);
+      });
     const requestBody={
       message:value,
       nickname:senderNickname,
-      room_id:roomId
+      room_id:roomId,
+      sender_id:senderId,
+      request_id:requestId
     };
 
     console.log("ACTIVANDO CHAT-BOT:",requestBody);

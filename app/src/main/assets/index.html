@@ -412,6 +412,20 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <h4>➕ Crear una sala</h4><p class="muted">Agregá un nuevo espacio de conversación.</p>
       <div class="row"><input id="newRoomName" maxlength="30" placeholder="Nombre de la sala"><button onclick="createRoom()">Crear sala</button></div>
     </div>
+    <div class="admin-card">
+      <h4>👑 Configurar salas VIP</h4>
+      <p class="muted">Convertí una sala en exclusiva o volvé a habilitarla para todos.</p>
+      <select id="roomVipSelect"><option value="">Elegí una sala</option></select>
+      <button onclick="toggleSelectedRoomVip()">Cambiar acceso VIP</button>
+      <p id="vipRoomStatus" class="muted"></p>
+    </div>
+    <div class="admin-card">
+      <h4>⭐ Membresías VIP</h4>
+      <p class="muted">Ingresá el nick exacto del usuario para otorgar o quitar su membresía.</p>
+      <input id="vipNickname" maxlength="24" placeholder="Nick del usuario">
+      <div class="row"><button onclick="changeVipMembership(true)">Dar membresía</button><button class="danger" onclick="changeVipMembership(false)">Quitar</button></div>
+      <p id="vipMemberStatus" class="muted"></p>
+    </div>
     <div class="admin-card admin-card-danger">
       <h4>🗑️ Eliminar una sala</h4><p class="muted">Esta acción elimina la sala seleccionada. Confirmá antes de continuar.</p>
       <select id="roomToDelete"><option value="">Elegí una sala</option></select>
@@ -747,7 +761,7 @@ const select=$("initialRoom"),previous=select.value;select.innerHTML="";
 rooms.forEach(r=>{const o=document.createElement("option");o.value=r.id;o.textContent=(r.is_vip?"👑 ":"")+r.name;select.appendChild(o);});
 const general=rooms.find(r=>String(r.name).trim().toLowerCase()==="general");
 if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;else if(general)select.value=general.id;else if(rooms.length)select.value=rooms[0].id;
-if(isAdmin)renderRoomDelete();if(!rooms.length)throw new Error("No hay salas. Creá una desde Administración.");
+if(isAdmin){renderRoomDelete();refreshVipRoomSelect();}if(!rooms.length)throw new Error("No hay salas. Creá una desde Administración.");
 }
 async function saveChatProfile(){
   if(!senderId)return;
@@ -1489,6 +1503,7 @@ function openAdmin(){
   updateAdminStats();
   if(currentRoom)loadRoomTopic(currentRoom);
   renderRoomDelete();
+  refreshVipRoomSelect();
   renderModerationUsers();
   loadBannedUsers();
   loadBots();
@@ -1503,6 +1518,32 @@ await callAdminApi("create_room",{room_name:name});
 $("adminStatus").textContent="Sala creada correctamente.";$("newRoomName").value="";
 await fetchRooms();renderTabs();renderRoomDelete();
 }catch(error){$("adminStatus").textContent="Error al crear sala: "+error.message;}
+}
+async function refreshVipRoomSelect(){
+ const select=$("roomVipSelect");if(!select)return;const previous=select.value;select.innerHTML='<option value="">Elegí una sala</option>';
+ rooms.forEach(r=>{const option=document.createElement("option");option.value=r.id;option.textContent=(r.is_vip?"👑 VIP · ":"")+r.name;select.appendChild(option);});
+ if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
+}
+async function toggleSelectedRoomVip(){
+ if(!isAdmin)return;const id=String($("roomVipSelect").value||"");const status=$("vipRoomStatus");const room=rooms.find(r=>String(r.id)===id);
+ if(!room){status.textContent="Elegí una sala.";return;}
+ status.textContent="Actualizando acceso...";
+ try{
+  const {data,error}=await db.rpc("admin_set_room_vip",{pin_input:adminPin,room_id_input:Number(id),vip_enabled:!room.is_vip});
+  if(error)throw error;if(data!==true)throw new Error("No se pudo actualizar la sala.");
+  status.textContent=room.is_vip?"La sala ahora es pública.":"La sala ahora es VIP.";
+  await fetchRooms();renderTabs();renderRoomDelete();await refreshVipRoomSelect();
+ }catch(error){status.textContent="Error: "+error.message;}
+}
+async function changeVipMembership(enabled){
+ if(!isAdmin)return;const nick=$("vipNickname").value.trim();const status=$("vipMemberStatus");
+ if(!nick){status.textContent="Escribí el nick exacto.";return;}
+ status.textContent="Actualizando membresía...";
+ try{
+  const {data,error}=await db.rpc("admin_set_vip_member",{pin_input:adminPin,nickname_input:nick,vip_enabled:enabled});
+  if(error)throw error;if(data!==true)throw new Error("No se pudo actualizar la membresía.");
+  status.textContent=enabled?"Membresía VIP otorgada a "+nick+".":"Membresía VIP quitada a "+nick+".";
+ }catch(error){status.textContent="Error: "+error.message;}
 }
 function renderRoomDelete(){
 const select=$("roomToDelete");if(!select)return;const previous=select.value;

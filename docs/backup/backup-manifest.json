@@ -1,0 +1,62 @@
+{
+  "project_id": "pqnnzkqxkndzelsbtxvv",
+  "project_name": "Wi chat",
+  "region": "us-east-1",
+  "postgres_version": "17.11.0.018",
+  "source_repository": "https://github.com/jonitalp2023-collab/Wichat",
+  "source_branch": "feature/chat-argentina-expansion",
+  "backup_branch": "backup/chat-argentina-2026-11-16",
+  "database_scope": "schema only; excludes user rows, public/private messages, auth users, sessions and storage objects",
+  "migrations": [
+    {
+      "version": "20261116202136",
+      "name": "enforce_unique_active_chat_nicknames"
+    },
+    {
+      "version": "20261116202405",
+      "name": "enforce_one_device_per_registered_account"
+    },
+    {
+      "version": "20261116212906",
+      "name": "chat_antispam_guard"
+    },
+    {
+      "version": "20261116214137",
+      "name": "moderation_escalation_and_history"
+    },
+    {
+      "version": "20261116214509",
+      "name": "chat_user_reports"
+    },
+    {
+      "version": "20261116215617",
+      "name": "configurable_chat_word_filter_and_spam"
+    },
+    {
+      "version": "20261116215747",
+      "name": "spam_logging_and_ip_ban_evasion_check"
+    },
+    {
+      "version": "20261116220958",
+      "name": "chat_scheduled_announcements"
+    },
+    {
+      "version": "20261116221303",
+      "name": "chat_room_polls"
+    }
+  ],
+  "edge_functions": [
+    {
+      "slug": "Chat-Bot",
+      "backup_path": "supabase/functions/Chat-Bot/index.ts"
+    },
+    {
+      "slug": "admin-api",
+      "backup_path": "supabase/functions/admin-api/index.ts"
+    },
+    {
+      "slug": "bright-processor",
+      "backup_path": "supabase/functions/bright-processor/index.ts"
+    }
+  ]
+}

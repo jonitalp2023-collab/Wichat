@@ -309,3 +309,105 @@ select p.user_id,exists(select 1 from public.chat_vip_members v where v.user_id=
  case when coalesce(sum(l.points_delta),0)>=500 then 'Diamante' when coalesce(sum(l.points_delta),0)>=250 then 'Oro' when coalesce(sum(l.points_delta),0)>=100 then 'Plata' when coalesce(sum(l.points_delta),0)>=25 then 'Bronce' else 'Principiante' end as medal
 from public.chat_profiles p left join public.chat_points_ledger l on l.user_id=p.user_id group by p.user_id;
 grant select on public.chat_public_profile_badges to authenticated;
+
+
+-- Protección ampliada de salas: filtro configurable, normalización anti-evasión y chequeo de IP conocida.
+create table if not exists public.chat_moderation_terms (
+ id bigint generated always as identity primary key,
+ term text not null,
+ normalized_term text not null unique,
+ category text not null default 'custom' check(category in ('insulto','spam','custom')),
+ active boolean not null default true,
+ created_at timestamptz not null default now(),
+ created_by uuid
+);
+alter table public.chat_moderation_terms enable row level security;
+revoke all on public.chat_moderation_terms from public,anon,authenticated;
+grant select,insert,update,delete on public.chat_moderation_terms to service_role;
+
+create or replace function public.wichat_normalize_moderation_text(txt text)
+returns text language sql immutable parallel safe
+as $$
+ select trim(regexp_replace(
+   regexp_replace(
+     translate(lower(coalesce(txt,'')), 'áéíóúüñ013457@$','aeiouunoieastas'),
+     '([a-z])\1+', '\1', 'g'
+   ),
+   '[^a-z0-9]+',' ','g'
+ ));
+$$;
+
+create or replace function public.wichat_contains_insult(txt text)
+returns boolean language plpgsql stable security definer
+set search_path=pg_catalog,public
+as $function$
+declare normalized text; custom_term text;
+begin
+ normalized:=public.wichat_normalize_moderation_text(txt);
+ if normalized ~ '(^| )(pelotudo|pelotuda|boludo|boluda|boludeces|forro|forra|forros|puta|puto|putas|putos|mierda|mierdas|concha|hdp|pendejo|pendeja|gil|giles|idiota|idiotas|imbecil|estupido|estupida|tarado|tarada|cagada|cagado|cagon)( |$)' then return true; end if;
+ for custom_term in select normalized_term from public.chat_moderation_terms where active and category in ('insulto','custom')
+ loop
+  if position(' '||custom_term||' ' in ' '||normalized||' ')>0 then return true; end if;
+ end loop;
+ return false;
+end;
+$function$;
+
+create or replace function public.wichat_moderate_message()
+returns trigger language plpgsql security definer set search_path=public
+as $function$
+declare total integer; active_ban boolean; clean_body text;
+begin
+ if new.sender_id is null or new.room_id is null then return new; end if;
+ select exists(select 1 from public.wichat_room_bans where sender_id=new.sender_id and room_id=new.room_id and expires_at>now()) into active_ban;
+ if active_ban then return null; end if;
+ clean_body:=coalesce(new.message,new.content,'');
+ if public.wichat_contains_insult(clean_body) then
+  insert into public.wichat_insult_counts(sender_id,room_id,insult_count,updated_at)
+  values(new.sender_id,new.room_id,1,now())
+  on conflict(sender_id,room_id) do update set insult_count=public.wichat_insult_counts.insult_count+1,updated_at=now()
+  returning insult_count into total;
+  if total<3 then
+   insert into public.wichat_moderation_events(sender_id,room_id,action,reason)
+   values(new.sender_id,new.room_id,'warning_'||total,'Mensaje bloqueado por lenguaje no permitido');
+   return null;
+  end if;
+  insert into public.wichat_room_bans(sender_id,room_id,nickname,reason,expires_at)
+  values(new.sender_id,new.room_id,new.nickname,'Tres infracciones por lenguaje no permitido',now()+interval '5 minutes')
+  on conflict(sender_id,room_id) do update set nickname=excluded.nickname,reason=excluded.reason,created_at=now(),expires_at=excluded.expires_at;
+  insert into public.wichat_moderation_events(sender_id,room_id,action,reason,duration_minutes)
+  values(new.sender_id,new.room_id,'ban','Tres infracciones por lenguaje no permitido',5);
+  return null;
+ end if;
+ return new;
+end;
+$function$;
+
+-- Si el request no trae cabeceras de IP, se reutiliza la última IP conocida de la cuenta.
+-- El resto de controles de ban global, ban de sala y acceso VIP se conserva.
+create or replace function public.check_chat_access(sender_id_input text,room_id_input bigint)
+returns boolean language plpgsql security definer set search_path=public
+as $function$
+declare headers json; ip_text text; user_ip inet; sender_uuid uuid;
+begin
+ headers:=coalesce(nullif(current_setting('request.headers',true),'')::json,'{}'::json);
+ ip_text:=nullif(trim(headers->>'cf-connecting-ip'),'');
+ if ip_text is null then ip_text:=nullif(trim(split_part(coalesce(headers->>'x-forwarded-for',''),',',1)),''); end if;
+ if ip_text is not null then begin user_ip:=ip_text::inet; exception when others then user_ip:=null; end; end if;
+ if user_ip is not null then
+  insert into public.wichat_user_ips(sender_id,client_ip,updated_at) values(sender_id_input,user_ip,now())
+  on conflict(sender_id) do update set client_ip=excluded.client_ip,updated_at=now();
+ else
+  select client_ip into user_ip from public.wichat_user_ips where sender_id=sender_id_input;
+ end if;
+ if exists(select 1 from public.wichat_bans where sender_id=sender_id_input and (expires_at is null or expires_at>now())) then return false; end if;
+ if exists(select 1 from public.wichat_room_bans where sender_id=sender_id_input and room_id=room_id_input and expires_at>now()) then return false; end if;
+ if user_ip is not null and exists(select 1 from public.wichat_ip_bans where client_ip=user_ip and room_id=room_id_input and expires_at>now()) then return false; end if;
+ if exists(select 1 from public.rooms where id=room_id_input and is_vip=true) then
+  if auth.uid() is null or sender_id_input is distinct from auth.uid()::text then return false; end if;
+  sender_uuid:=auth.uid();
+  if not exists(select 1 from public.chat_vip_members where user_id=sender_uuid) then return false; end if;
+ end if;
+ return true;
+end;
+$function$;

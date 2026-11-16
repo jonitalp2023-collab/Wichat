@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -121,10 +122,10 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 .user-menu-card .kick-action{background:#344361}
 .user-menu-card .ban-action{background:#bd394d}
 
-/* PANEL ADMIN: scroll independiente y cómodo en celulares */
+/* PANEL ADMIN: DESPLAZAMIENTO INDEPENDIENTE PARA CELULARES */
 #adminPanel{
-  position:fixed;
-  z-index:5000;
+  position:fixed!important;
+  z-index:30000!important;
   top:calc(env(safe-area-inset-top) + 8px);
   bottom:calc(env(safe-area-inset-bottom) + 8px);
   left:8px;
@@ -138,14 +139,22 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
   background:#141e35;
   border:1px solid #d99b35;
   border-radius:15px;
-  overflow-y:scroll;
-  overflow-x:hidden;
+
+  display:block;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+
   -webkit-overflow-scrolling:touch;
   overscroll-behavior-y:contain;
   touch-action:pan-y;
   scrollbar-width:thin;
   scrollbar-color:#52749d #141e35;
+
+  pointer-events:auto;
+  isolation:isolate;
+  overscroll-behavior:contain;
 }
+#adminPanel.hidden{display:none!important}
 #adminPanel .row{
   display:flex;
   align-items:center;
@@ -190,21 +199,39 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 #adminPanel .banned-card{
   width:100%;
   overflow-wrap:anywhere;
+  margin:12px 0;
+  padding:12px;
+  border:1px solid #344361;
+  border-radius:10px;
+  background:#101a30;
 }
 #adminPanel .bot-card .bot-actions{
   display:flex;
   flex-wrap:wrap;
   gap:8px;
+  margin-top:10px;
 }
 #adminPanel .bot-card .bot-actions button{
   flex:1 1 120px;
   min-height:45px;
 }
+#adminPanel .bot-active{color:#70dca1;font-size:12px;font-weight:bold}
+#adminPanel .bot-inactive{color:#ff8585;font-size:12px;font-weight:bold}
+#adminPanel .banned-name{display:block;color:#ff8585}
+#adminPanel .banned-details{color:#b9cce5;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+#adminPanel .unban-button{background:#168bea;width:100%}
 #adminPanel::-webkit-scrollbar{width:7px}
+#adminPanel::-webkit-scrollbar-track{background:#141e35}
 #adminPanel::-webkit-scrollbar-thumb{background:#52749d;border-radius:10px}
 
 @media(max-width:420px){
-  #adminPanel{left:5px;right:5px;padding:13px}
+  #adminPanel{
+    left:5px;
+    right:5px;
+    top:calc(env(safe-area-inset-top) + 5px);
+    bottom:calc(env(safe-area-inset-bottom) + 5px);
+    padding:13px;
+  }
   #adminPanel .row{flex-wrap:wrap}
   #adminPanel .row button{flex:1 1 100%}
   #adminPanel .bot-card .bot-actions button{flex:1 1 100%}
@@ -318,7 +345,6 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div class="row"><button onclick="saveBot()">➕ Crear bot</button><button class="secondary" onclick="loadBots()">🔄 Actualizar</button></div>
 <p id="botAdminStatus" class="muted"></p>
 <div id="botsList" style="margin-top:12px"><p class="muted">Presioná actualizar para ver los bots.</p></div>
-
 </div></section></div>
 
 <script>
@@ -631,7 +657,6 @@ async function sendMessage(){
       throw new Error("El ID de la sala no es un UUID válido: "+roomId);
     }
 
-    /* Confirma que seguimos usando la sesión anónima correcta. */
     const {data:authData,error:authError}=await db.auth.getSession();
     if(authError)throw authError;
 
@@ -641,7 +666,6 @@ async function sendMessage(){
       throw new Error("La sesión cambió. Salí y volvé a ingresar al chat.");
     }
 
-    /* No se usa .select() después del INSERT para no exigir una política SELECT adicional. */
     const {error:insertError}=await db.from("messages").insert({
       nickname:senderNickname,
       message:value,
@@ -657,7 +681,6 @@ async function sendMessage(){
       nickname:senderNickname
     });
 
-    /* Evita que un bot se dispare a sí mismo. */
     if(senderNickname.toLowerCase()==="mili")return;
 
     const requestBody={
@@ -845,13 +868,16 @@ function openAdmin(){
   const panel=$("adminPanel");
   panel.classList.remove("hidden");
   panel.scrollTop=0;
+
   if(currentRoom)loadRoomTopic(currentRoom);
   renderRoomDelete();
   renderModerationUsers();
   loadBannedUsers();
   loadBots();
 }
-function closeAdmin(){$("adminPanel").classList.add("hidden");}
+function closeAdmin(){
+  $("adminPanel").classList.add("hidden");
+}
 async function createRoom(){
 if(!isAdmin)return;const name=$("newRoomName").value.trim();
 if(!name){$("adminStatus").textContent="Escribí el nombre de la sala.";return;}
@@ -918,7 +944,6 @@ const data=await callAdminApi("unban_user",{target_sender_id:target});
 $("adminStatus").textContent=data?.message||"Usuario desbloqueado correctamente.";await loadBannedUsers();
 }catch(error){$("adminStatus").textContent="Error al desbanear: "+error.message;}
 }
-
 
 /* ADMINISTRACIÓN DE BOTS */
 let editingBotId = null;
@@ -1039,6 +1064,31 @@ window.addEventListener("resize",updateScreen);
 document.addEventListener("focusin",function(event){if(event.target.matches("input,textarea"))setTimeout(updateScreen,50);});
 document.addEventListener("focusout",function(){setTimeout(updateScreen,300);});
 updateScreen();
+})();
+
+/* AJUSTE DEL PANEL ADMIN EN PANTALLAS TÁCTILES */
+(function(){
+const panel=$("adminPanel");
+if(!panel)return;
+
+let startY=0;
+let startScroll=0;
+
+panel.addEventListener("touchstart",function(event){
+  if(!event.touches||!event.touches.length)return;
+  startY=event.touches[0].clientY;
+  startScroll=panel.scrollTop;
+},{passive:true});
+
+panel.addEventListener("touchmove",function(event){
+  if(!event.touches||!event.touches.length)return;
+  const currentY=event.touches[0].clientY;
+  const distance=startY-currentY;
+
+  if(panel.scrollHeight>panel.clientHeight){
+    panel.scrollTop=startScroll+distance;
+  }
+},{passive:true});
 })();
 </script>
 </body>

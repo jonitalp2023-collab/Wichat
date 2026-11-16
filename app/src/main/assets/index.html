@@ -740,7 +740,7 @@ await loadRoomTopic(currentRoom);
 /* MODERACIÓN */
 function showModerationModal(action,roomName,blocked=false,reason=""){
 const title=$("moderationTitle"),message=$("moderationMessage"),button=$("moderationModal").querySelector("button");
-if(blocked){title.textContent="⛔ Acceso restringido";message.textContent="No podés entrar a la sala "+roomName+". Tu expulsión o baneo sigue vigente. Podrás volver cuando termine el plazo.";}
+if(action==="vip_required"){title.textContent="🔒 Membresía necesaria";message.textContent="Necesitás una membresía para ingresar a esta sala.";}\nelse if(blocked){title.textContent="⛔ Acceso restringido";message.textContent="No podés entrar a la sala "+roomName+". Tu expulsión o baneo sigue vigente. Podrás volver cuando termine el plazo.";}
 else if(action==="warning_1"){title.textContent="⚠️ Primera advertencia";message.textContent="El bot de CHAT ARGENTINA te avisa que está prohibido escribir insultos. Por favor, respetá a los demás usuarios. A la tercera infracción serás expulsado durante cinco minutos.";}
 else if(action==="warning_2"){title.textContent="🚨 Segunda advertencia";message.textContent="Esta es tu segunda advertencia por utilizar insultos. Si volvés a hacerlo, serás expulsado automáticamente durante cinco minutos.";}
 else if(action==="ban"){title.textContent="🚫 Fuiste baneado";message.textContent="UNIX te baneó de CHAT ARGENTINA en la sala "+roomName+" durante cinco minutos.";}
@@ -829,7 +829,7 @@ await fetchRooms();currentRoom=$("initialRoom").value||rooms[0]?.id;if(!currentR
 const selectedRoom=rooms.find(r=>String(r.id)===String(currentRoom));
 const {data:allowed,error}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:currentRoom});
 if(error)throw error;
-if(!allowed){currentRoom=null;showModerationModal("blocked",selectedRoom?.name||"esta sala",true);btn.disabled=false;return;}
+if(!allowed){currentRoom=null;if(selectedRoom?.is_vip&&!isAdmin)showModerationModal("vip_required",selectedRoom?.name||"VIP");else showModerationModal("blocked",selectedRoom?.name||"esta sala",true);btn.disabled=false;return;}
 const available=await claimNickname(nickname);if(!available){currentRoom=null;throw new Error("Este Nick ya está en uso. Elegí otro.");}
 await saveChatProfile();
 await loadRegisteredProfiles();
@@ -861,7 +861,7 @@ renderPrivateTabs();
 async function switchRoom(id){
 const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:id});
 if(accessError){$("status").textContent="Error de acceso: "+accessError.message;return;}
-if(!allowed){const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";return;}
+if(!allowed){const room=rooms.find(r=>String(r.id)===String(id));if(room?.is_vip&&!isAdmin)showModerationModal("vip_required",room.name||"VIP");else $("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";return;}
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}

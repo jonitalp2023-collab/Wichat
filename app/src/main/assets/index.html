@@ -365,6 +365,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="roomTopic" class="empty"><span class="topic-label">📌 Tópico</span><span id="roomTopicText" class="topic-text">Sin tópico</span></div>
 <div id="chatView">
 <div class="chat-welcome"><strong>Conversación general</strong><span id="status">Conectando...</span></div>
+<div id="roomPolls" style="display:none;padding:8px 10px;max-height:38vh;overflow:auto"></div>
 <div id="messages"></div>
 <div class="composer"><button class="media-action" title="Enviar sticker" onclick="openMediaComposer('public','sticker')">🧸</button><button class="media-action" title="Enviar GIF" onclick="openMediaComposer('public','gif')">GIF</button><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
 <input id="messageInput" maxlength="1000" placeholder="Escribí aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
@@ -427,6 +428,16 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <label style="display:flex;align-items:center;gap:8px;margin:8px 0"><input id="roomWelcomeEnabled" type="checkbox" checked style="width:auto"> Activar bienvenida automática</label>
       <div class="row"><button onclick="saveRoomWelcome()">Guardar bienvenida</button><button class="secondary" onclick="clearRoomWelcome()">Quitar</button></div>
       <p id="roomWelcomeStatus" class="muted"></p>
+    </div>
+    <div class="admin-card">
+      <h4>📊 Encuestas de sala</h4>
+      <p class="muted">Creá una encuesta para una sala. Los usuarios pueden votar una sola vez.</p>
+      <select id="pollRoomSelect"><option value="">Elegí una sala</option></select>
+      <input id="pollQuestionInput" maxlength="180" placeholder="Pregunta de la encuesta">
+      <textarea id="pollOptionsInput" maxlength="500" rows="4" placeholder="Una opción por línea (mínimo 2, máximo 6)"></textarea>
+      <div class="row"><button onclick="adminCreateRoomPoll()">Crear encuesta</button><button class="secondary" onclick="refreshAdminPolls()">Actualizar</button></div>
+      <p id="pollAdminStatus" class="muted"></p>
+      <div id="adminPollList" class="muted">Las encuestas activas y anteriores aparecerán aquí.</div>
     </div>
     <div class="admin-card">
       <h4>🗓️ Mensajes programados</h4>
@@ -566,7 +577,7 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;let accountSessionHeartbeatTimer=null,accountSessionLeaseActive=false,accountDeviceId=null;
-let privateChannel=null,privateNoticeChannel=null,reactionNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
+let privateChannel=null,privateNoticeChannel=null,reactionNoticeChannel=null,moderationChannel=null,topicChannel=null,pollChannel=null,currentRoomTopic="";
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
 let reactionChannel=null,reactionContext="";
 const reactionCache=new Map();
@@ -786,6 +797,82 @@ async function clearRoomWelcome(){
  $("roomWelcomeInput").value="";
  await saveRoomWelcome();
 }
+/* ENCUESTAS DE SALA */
+function refreshPollRoomSelect(){
+ const select=$("pollRoomSelect");if(!select)return;
+ const previous=select.value;select.innerHTML='<option value="">Elegí una sala</option>';
+ rooms.forEach(r=>{const o=document.createElement("option");o.value=r.id;o.textContent=r.name;select.appendChild(o);});
+ if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
+}
+function renderRoomPolls(items){
+ const wrap=$("roomPolls");if(!wrap)return;
+ wrap.innerHTML="";
+ if(!items||!items.length){wrap.style.display="none";return;}
+ wrap.style.display="block";
+ items.forEach(p=>{
+  const card=document.createElement("section");
+  card.style.cssText="background:var(--card,#172740);border:1px solid #344b69;border-radius:13px;padding:12px;margin:4px 0 10px;color:inherit";
+  const title=document.createElement("strong");title.textContent="📊 "+p.question;card.appendChild(title);
+  const total=Number(p.total_votes||0),myVote=p.my_vote===null?null:Number(p.my_vote);
+  (p.options||[]).forEach((option,index)=>{
+   const line=document.createElement("div");line.style.cssText="margin-top:8px";
+   const button=document.createElement("button");button.type="button";button.style.cssText="width:100%;text-align:left;white-space:normal";
+   const count=Number((p.votes||[])[index]||0),pct=total?Math.round(count*100/total):0;
+   button.textContent=(myVote===index?"✓ ":"")+(option)+" · "+count+" ("+pct+"%)";
+   button.disabled=!!p.is_closed||myVote!==null;
+   if(myVote===null&&!p.is_closed)button.onclick=()=>voteRoomPoll(p.id,index);
+   line.appendChild(button);
+   const bar=document.createElement("div");bar.style.cssText="height:5px;background:#263b55;border-radius:8px;overflow:hidden;margin-top:4px";
+   const fill=document.createElement("div");fill.style.cssText="height:100%;width:"+pct+"%;background:#d9a441;border-radius:8px";bar.appendChild(fill);line.appendChild(bar);
+   card.appendChild(line);
+  });
+  const foot=document.createElement("div");foot.style.cssText="font-size:12px;opacity:.75;margin-top:8px";
+  foot.textContent=total+" voto(s) · "+(p.is_closed?"Encuesta cerrada":myVote!==null?"Ya votaste":"Elegí una opción para votar");
+  card.appendChild(foot);wrap.appendChild(card);
+ });
+}
+async function loadRoomPolls(roomId=currentRoom){
+ if(!roomId)return;
+ try{const {data,error}=await db.rpc("get_chat_room_polls",{room_id_input:Number(roomId)});if(error)throw error;
+  if(String(currentRoom)===String(roomId))renderRoomPolls(Array.isArray(data)?data:[]);
+ }catch(error){console.error("No se pudieron cargar las encuestas:",error);}
+}
+async function voteRoomPoll(pollId,index){
+ try{const {error}=await db.rpc("vote_chat_room_poll",{poll_id_input:pollId,option_index_input:index});if(error)throw error;await loadRoomPolls();}
+ catch(error){alert(error.message||"No se pudo registrar el voto.");}
+}
+async function adminCreateRoomPoll(){
+ if(!isAdmin)return;
+ const roomId=$("pollRoomSelect").value,question=$("pollQuestionInput").value.trim();
+ const options=$("pollOptionsInput").value.split("\n").map(x=>x.trim()).filter(Boolean);
+ const status=$("pollAdminStatus");
+ if(!roomId||question.length<3||options.length<2||options.length>6){status.textContent="Elegí una sala, escribí una pregunta y agregá entre 2 y 6 opciones (una por línea).";return;}
+ status.textContent="Creando encuesta...";
+ try{const {error}=await db.rpc("admin_create_room_poll",{pin_input:adminPin,room_id_input:Number(roomId),question_input:question,options_input:options});if(error)throw error;
+  $("pollQuestionInput").value="";$("pollOptionsInput").value="";status.textContent="Encuesta creada.";
+  await refreshAdminPolls();if(String(currentRoom)===String(roomId))await loadRoomPolls();
+ }catch(error){status.textContent="No se pudo crear: "+(error.message||String(error));}
+}
+async function refreshAdminPolls(){
+ if(!isAdmin)return;refreshPollRoomSelect();
+ const list=$("adminPollList");if(!list)return;
+ list.textContent="Cargando encuestas...";
+ try{
+  const roomId=$("pollRoomSelect").value;
+  if(!roomId){list.textContent="Elegí una sala para ver sus encuestas.";return;}
+  const {data,error}=await db.rpc("get_chat_room_polls",{room_id_input:Number(roomId)});if(error)throw error;
+  list.innerHTML="";
+  if(!Array.isArray(data)||!data.length){list.textContent="Esta sala todavía no tiene encuestas.";return;}
+  data.forEach(p=>{
+   const row=document.createElement("div");row.style.cssText="padding:9px 0;border-top:1px solid #344b69";
+   const title=document.createElement("strong");title.textContent=p.question;row.appendChild(title);
+   const detail=document.createElement("p");detail.className="muted";detail.textContent=(p.total_votes||0)+" voto(s) · "+(p.is_closed?"Cerrada":"Abierta");row.appendChild(detail);
+   if(!p.is_closed){const close=document.createElement("button");close.className="secondary";close.textContent="Cerrar encuesta";close.onclick=async()=>{try{const {error}=await db.rpc("admin_close_room_poll",{pin_input:adminPin,poll_id_input:p.id});if(error)throw error;await refreshAdminPolls();if(String(currentRoom)===String(p.room_id))await loadRoomPolls();}catch(e){$("pollAdminStatus").textContent="No se pudo cerrar: "+e.message;}};row.appendChild(close);}
+   list.appendChild(row);
+  });
+ }catch(error){list.textContent="Error: "+(error.message||String(error));}
+}
+
 /* MENSAJES AUTOMÁTICOS PROGRAMADOS */
 function refreshScheduledRoomSelect(){
  const select=$("scheduledRoomSelect");if(!select)return;
@@ -1057,10 +1144,13 @@ if(!allowed){const room=rooms.find(r=>String(r.id)===String(id));$("status").tex
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
+if(pollChannel){await db.removeChannel(pollChannel);pollChannel=null;}
 currentRoom=id;showMainTab("chat");await loadRoomWelcome(id,true);$("roomTopic").style.display="flex";$("roomTopicText").textContent="Cargando tópico...";$("roomTopic").classList.add("empty");await loadRoomTopic(id);
 topicChannel=db.channel("wichat-room-topic-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id)).subscribe();
 receivedIds.clear();roomUsers.clear();reactionCache.clear();$("messages").innerHTML="";subscribeMessageReactions("public");renderTabs();renderUsers();
 const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";
+pollChannel=db.channel("wichat-polls-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_polls",filter:"room_id=eq."+id},()=>loadRoomPolls(id)).subscribe();
+loadRoomPolls(id);
 messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>{
  const m=p.new;
  if(m&&String(m.sender_id)!==String(senderId)&&typeof m.message==="string"&&nickname&&m.message.toLocaleLowerCase().includes("@"+nickname.toLocaleLowerCase())){
@@ -1750,6 +1840,8 @@ function openAdmin(){
   loadBannedUsers();
   loadBots();
   loadScheduledAnnouncements();
+  refreshPollRoomSelect();
+  refreshAdminPolls();
   startAdminStatsLive();
 }
 function closeAdmin(){stopAdminStatsLive();$("adminPanel").classList.add("hidden");}

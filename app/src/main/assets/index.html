@@ -106,31 +106,43 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 .user-menu-card .kick-action{background:#344361}
 .user-menu-card .ban-action{background:#bd394d}
 
-/* PANEL ADMIN */
-#adminPanel{
-  position:fixed;
-  z-index:5000;
-  top:calc(env(safe-area-inset-top) + 8px);
-  bottom:calc(env(safe-area-inset-bottom) + 8px);
-  left:8px;
-  right:8px;
-  width:auto;
-  max-width:680px;
-  height:auto;
-  max-height:none;
-  margin:0 auto;
-  padding:16px;
-  background:#141e35;
-  border:1px solid #d99b35;
-  border-radius:15px;
-  overflow-y:scroll;
-  overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
-  overscroll-behavior-y:contain;
-  touch-action:pan-y;
-  scrollbar-width:thin;
-  scrollbar-color:#52749d #141e35;
+/* PANEL ADMIN - CORREGIDO PARA ANDROID */
+body.admin-open{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
 }
+body.admin-open .container{
+  overflow:visible!important;
+}
+body.admin-open #chat{
+  overflow:visible!important;
+}
+#adminPanel{
+  position:fixed!important;
+  z-index:30000!important;
+  top:0!important;
+  bottom:0!important;
+  left:0!important;
+  right:0!important;
+  width:100%!important;
+  max-width:760px!important;
+  height:100vh!important;
+  height:100dvh!important;
+  max-height:100dvh!important;
+  margin:0 auto!important;
+  padding:calc(18px + env(safe-area-inset-top)) 16px calc(35px + env(safe-area-inset-bottom))!important;
+  background:#141e35!important;
+  border:1px solid #d99b35!important;
+  border-radius:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  touch-action:pan-y!important;
+  scrollbar-width:thin!important;
+  scrollbar-color:#55b8ff #141e35!important;
+}
+#adminPanel.hidden{display:none!important}
 #adminPanel .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #adminPanel .row input{flex:1 1 180px;min-width:0}
 #adminPanel .row button{flex:1 1 auto;min-height:44px}
@@ -146,7 +158,7 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 #adminPanel::-webkit-scrollbar{width:7px}
 #adminPanel::-webkit-scrollbar-thumb{background:#52749d;border-radius:10px}
 @media(max-width:420px){
-  #adminPanel{left:5px;right:5px;padding:13px}
+  #adminPanel{padding-left:13px!important;padding-right:13px!important}
   #adminPanel .row{flex-wrap:wrap}
   #adminPanel .row button{flex:1 1 100%}
   #adminPanel .bot-card .bot-actions button{flex:1 1 100%}
@@ -990,9 +1002,7 @@ from+=pageSize;
 }
 }
 
-/* ENVÍO DE MENSAJES + BOTS
-   CORREGIDO: room_id ES BIGINT, NO UUID.
-*/
+/* ENVÍO DE MENSAJES + BOTS */
 async function sendMessage(){
 
 const input=$("messageInput");
@@ -1003,18 +1013,15 @@ if(!value||!nickname||currentRoom===null||btn.disabled)return;
 
 btn.disabled=true;
 
-// Convertir el ID de sala a número BIGINT.
 const roomId=Number(currentRoom);
 const senderNickname=String(nickname).trim();
 
 try{
 
-// Validar ID numérico.
 if(!Number.isSafeInteger(roomId)||roomId<1){
 throw new Error("El ID numérico de la sala no es válido: "+currentRoom);
 }
 
-// Comprobar sesión.
 const {data:authData,error:authError}=await db.auth.getSession();
 
 if(authError)throw authError;
@@ -1029,7 +1036,6 @@ if(String(session.user.id)!==String(senderId)){
 throw new Error("La sesión cambió. Salí y volvé a ingresar al chat.");
 }
 
-// Comprobar acceso.
 const {data:allowed,error:accessError}=await db.rpc(
 "check_chat_access",
 {
@@ -1044,7 +1050,6 @@ if(!allowed){
 throw new Error("No tenés permiso para escribir en esta sala.");
 }
 
-// Guardar mensaje humano.
 const {error:insertError}=await db.from("messages").insert({
 nickname:senderNickname,
 message:value,
@@ -1063,10 +1068,8 @@ sender_id:senderId,
 nickname:senderNickname
 });
 
-// Evitar que Mili se active a sí misma.
 if(senderNickname.toLowerCase()==="mili")return;
 
-// Activar Chat-Bot.
 const requestBody={
 message:value,
 nickname:senderNickname,
@@ -1559,7 +1562,7 @@ if(currentRoom)await switchRoom(currentRoom);
 }).subscribe();
 }
 
-/* ADMINISTRACIÓN */
+/* ADMINISTRACIÓN - CORREGIDO */
 function openAdmin(){
 if(!isAdmin){
 alert("No tenés permisos de administrador.");
@@ -1567,8 +1570,13 @@ return;
 }
 
 const panel=$("adminPanel");
+
+document.body.classList.add("admin-open");
 panel.classList.remove("hidden");
+
+requestAnimationFrame(()=>{
 panel.scrollTop=0;
+});
 
 if(currentRoom)loadRoomTopic(currentRoom);
 
@@ -1578,7 +1586,12 @@ loadBannedUsers();
 loadBots();
 }
 
-function closeAdmin(){$("adminPanel").classList.add("hidden");}
+function closeAdmin(){
+const panel=$("adminPanel");
+panel.classList.add("hidden");
+document.body.classList.remove("admin-open");
+panel.scrollTop=0;
+}
 
 async function createRoom(){
 if(!isAdmin)return;
@@ -1912,6 +1925,8 @@ async function exitChat(){
 closeUserMenu();
 selectedMenuUser=null;
 
+closeAdmin();
+
 await releaseNickname();
 
 if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
@@ -1957,7 +1972,7 @@ renderTabs();
 
 $("chat").style.display="none";
 $("login").style.display="block";
-document.body.classList.remove("chat-active");
+document.body.classList.remove("chat-active","admin-open");
 $("enterBtn").disabled=false;
 
 $("messages").innerHTML="";
@@ -1966,6 +1981,7 @@ $("privateInput").value="";
 $("messageInput").value="";
 
 $("adminPanel").classList.add("hidden");
+$("adminPanel").scrollTop=0;
 $("adminOpenBtn").classList.add("hidden");
 $("adminPin").value="";
 $("adminPinWrap").classList.add("hidden");

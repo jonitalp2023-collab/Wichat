@@ -442,78 +442,31 @@ if(String(currentRoom)!==String(roomId))return;(data||[]).forEach(addMessage);if
 }
 
 /* ENVÍO DE MENSAJES + CONEXIÓN CON MILI */
-async function sendMessage() {
-  const input = $("messageInput");
-  const btn = $("sendBtn");
-  const value = input.value.trim();
-
-  if (!value || !nickname || !currentRoom) return;
-
-  btn.disabled = true;
-  const roomId = currentRoom;
-
-  try {
-    // Guardar primero el mensaje del usuario en Supabase.
-    const { error } = await db.from("messages").insert({
-      nickname: nickname,
-      message: value,
-      room_id: roomId,
-      sender_id: senderId
-    });
-
-    if (error) throw error;
-
-    // El mensaje ya está guardado; limpiar el campo.
-    input.value = "";
-
-    // Pedirle a Mili que responda en esta misma sala.
-    const { data, error: botError } = await db.functions.invoke("chat-bot", {
-      body: {
-        message: value,
-        nickname: nickname,
-        room_id: roomId
-      }
-    });
-
-    if (botError) {
-      console.error("Error al contactar a Mili:", botError);
-      let detail = botError.message || "Error desconocido";
-
-      try {
-        if (botError.context &&
-            typeof botError.context.json === "function") {
-          const response = await botError.context.json();
-          if (response?.error) detail = response.error;
-          else if (response?.message) detail = response.message;
-        }
-      } catch (_) {}
-
-      alert(
-        "Tu mensaje se envió correctamente, pero Mili no pudo responder.\n\n" +
-        detail
-      );
-      return;
-    }
-
-    if (!data || data.success !== true) {
-      console.error("Respuesta incorrecta de Mili:", data);
-      alert(
-        "Tu mensaje se envió correctamente, pero Mili no pudo responder.\n\n" +
-        (data?.error || data?.message ||
-          "La función no devolvió una respuesta válida.")
-      );
-      return;
-    }
-
-    console.log("Mili respondió correctamente:", data.message);
-
-  } catch (e) {
-    console.error("Error enviando mensaje:", e);
-    alert("No se pudo enviar el mensaje:\n" + (e.message || String(e)));
-  } finally {
-    btn.disabled = false;
-    input.focus();
-  }
+async function sendMessage(){
+const input=$("messageInput"),btn=$("sendBtn"),value=input.value.trim();
+if(!value||!nickname||!currentRoom||btn.disabled)return;
+btn.disabled=true;
+const roomId=Number(currentRoom),senderNickname=nickname;
+try{
+const {error}=await db.from("messages").insert({nickname:senderNickname,message:value,room_id:roomId,sender_id:senderId});
+if(error)throw error;
+input.value="";
+/* Evita que Mili se responda a sí misma y genere un ciclo. */
+if(senderNickname.trim().toLowerCase()==="mili")return;
+/* El nombre debe coincidir con el slug desplegado: Chat-Bot. */
+const {data,error:botError}=await db.functions.invoke("Chat-Bot",{body:{message:value,nickname:senderNickname,room_id:roomId}});
+if(botError){
+console.error("ERROR AL ACTIVAR MILI:",botError);let detail=botError.message||"Error desconocido";
+try{if(botError.context&&typeof botError.context.json==="function"){const response=await botError.context.json();detail=response?.error||response?.message||detail;}}catch(_){}
+alert("Tu mensaje se publicó, pero Mili no pudo responder:\n\n"+detail);return;
+}
+if(!data||data.success!==true){
+console.error("RESPUESTA DE MILI:",data);
+alert("Tu mensaje se publicó, pero Mili no pudo responder:\n\n"+(data?.error||data?.message||"Respuesta inválida del servidor."));return;
+}
+console.log("MILI RESPONDIÓ:",data.message);
+}catch(error){console.error("ERROR EN SENDMESSAGE:",error);alert("No se pudo completar el envío:\n"+(error.message||String(error)));}
+finally{btn.disabled=false;input.focus();}
 }
 
 /* EMOJIS */

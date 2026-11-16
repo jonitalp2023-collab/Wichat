@@ -972,6 +972,7 @@ if(Array.from(s.options).some(o=>o.value===old))s.value=old;
 /* MENSAJES PÚBLICOS */
 const CHAT_REACTIONS=["👍","❤️","😂","😮","😢","👏","🔥"];
 const roomReactionRows=new Map();
+const privateReactionRows=new Map();
 function renderMessageReactions(messageId){
 const key=String(messageId),bar=document.querySelector('.message-reactions[data-message-id="'+key+'"]');
 if(!bar)return;

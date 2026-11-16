@@ -122,93 +122,61 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 .user-menu-card .kick-action{background:#344361}
 .user-menu-card .ban-action{background:#bd394d}
 
-/* PANEL ADMIN: scroll independiente y cómodo en celulares */
+/* PANEL ADMIN: ventana fija con desplazamiento vertical propio */
 #adminPanel{
-  position:fixed;
+  position:fixed!important;
   z-index:5000;
-  top:calc(env(safe-area-inset-top) + 8px);
-  bottom:calc(env(safe-area-inset-bottom) + 8px);
-  left:8px;
-  right:8px;
-  width:auto;
+  top:8px!important;
+  bottom:8px!important;
+  left:8px!important;
+  right:8px!important;
+  width:auto!important;
   max-width:680px;
-  height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
-  max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
-  min-height:0;
-  margin:0 auto;
+  height:auto!important;
+  max-height:none!important;
+  min-height:0!important;
+  margin:0 auto!important;
   padding:16px;
   background:#141e35;
   border:1px solid #d99b35;
   border-radius:15px;
   display:block;
-  overflow-y:auto;
-  overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
+  overflow-y:scroll!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
   overscroll-behavior-y:contain;
   touch-action:pan-y;
-  scrollbar-gutter:stable;
   scrollbar-width:thin;
   scrollbar-color:#52749d #141e35;
+  box-sizing:border-box;
 }
+#adminPanel.hidden{display:none!important}
 #adminPanel .row{
   display:flex;
   align-items:center;
   gap:8px;
   flex-wrap:wrap;
 }
-#adminPanel .row input{
-  flex:1 1 180px;
-  min-width:0;
-}
-#adminPanel .row button{
-  flex:1 1 auto;
-  min-height:44px;
-}
-#adminPanel input,
-#adminPanel select,
-#adminPanel textarea{
+#adminPanel .row input{flex:1 1 180px;min-width:0}
+#adminPanel .row button{flex:1 1 auto;min-height:44px}
+#adminPanel input,#adminPanel select,#adminPanel textarea{
   width:100%;
   min-height:45px;
   font-size:16px;
   margin:8px 0;
 }
-#adminPanel textarea{
-  min-height:120px;
-  resize:vertical;
-  line-height:1.45;
-}
-#adminPanel button{
-  min-height:44px;
-  white-space:normal;
-  overflow-wrap:anywhere;
-}
+#adminPanel textarea{min-height:120px;resize:vertical;line-height:1.45}
+#adminPanel button{min-height:44px;white-space:normal;overflow-wrap:anywhere}
 #adminPanel h3{color:#ffd34d;font-size:18px}
-#adminPanel h4{
-  color:#8ecbff;
-  font-size:15px;
-  margin-top:22px;
-  margin-bottom:7px;
-}
+#adminPanel h4{color:#8ecbff;font-size:15px;margin-top:22px;margin-bottom:7px}
 #adminPanel .muted{line-height:1.5}
-#adminPanel .bot-card,
-#adminPanel .banned-card{
-  width:100%;
-  overflow-wrap:anywhere;
-}
-#adminPanel .bot-card .bot-actions{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-}
-#adminPanel .bot-card .bot-actions button{
-  flex:1 1 120px;
-  min-height:45px;
-}
+#adminPanel .bot-card,#adminPanel .banned-card{width:100%;overflow-wrap:anywhere}
+#adminPanel .bot-card .bot-actions{display:flex;flex-wrap:wrap;gap:8px}
+#adminPanel .bot-card .bot-actions button{flex:1 1 120px;min-height:45px}
 #adminPanel::-webkit-scrollbar{width:7px}
 #adminPanel::-webkit-scrollbar-thumb{background:#52749d;border-radius:10px}
-
 @media(max-width:420px){
-  #adminPanel{left:5px;right:5px;padding:13px}
+  #adminPanel{left:5px!important;right:5px!important;padding:13px}
   #adminPanel .row{flex-wrap:wrap}
   #adminPanel .row button{flex:1 1 100%}
   #adminPanel .bot-card .bot-actions button{flex:1 1 100%}

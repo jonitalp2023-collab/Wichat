@@ -432,7 +432,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
     <div class="admin-card">
       <h4>📊 Encuestas de sala</h4>
       <p class="muted">Creá una encuesta para una sala. Los usuarios pueden votar una sola vez.</p>
-      <select id="pollRoomSelect"><option value="">Elegí una sala</option></select>
+      <select id="pollRoomSelect" onchange="refreshAdminPolls()"><option value="">Elegí una sala</option></select>
       <input id="pollQuestionInput" maxlength="180" placeholder="Pregunta de la encuesta">
       <textarea id="pollOptionsInput" maxlength="500" rows="4" placeholder="Una opción por línea (mínimo 2, máximo 6)"></textarea>
       <div class="row"><button onclick="adminCreateRoomPoll()">Crear encuesta</button><button class="secondary" onclick="refreshAdminPolls()">Actualizar</button></div>

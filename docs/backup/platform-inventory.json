@@ -1,0 +1,63 @@
+{
+  "cron_jobs": [
+    {
+      "jobid": 1,
+      "active": true,
+      "command": "\n    delete from public.messages\n    where created_at < now() - interval '12 hours';\n  ",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "jobid": 2,
+      "active": true,
+      "command": "\n  SELECT net.http_post(\n    url := (\n      SELECT decrypted_secret\n      FROM vault.decrypted_secrets\n      WHERE name = 'project_url'\n    ) || '/functions/v1/Chat-Bot',\n\n    headers := jsonb_build_object(\n      'Content-Type', 'application/json',\n      'apikey', (\n        SELECT decrypted_secret\n        FROM vault.decrypted_secrets\n        WHERE name = 'anon_key'\n      ),\n      'Authorization', 'Bearer ' || (\n        SELECT decrypted_secret\n        FROM vault.decrypted_secrets\n        WHERE name = 'anon_key'\n      )\n    ),\n\n    body := '{\"room_id\":1,\"trigger\":\"spontaneous\"}'::jsonb\n  );\n  ",
+      "schedule": "*/2 * * * *"
+    },
+    {
+      "jobid": 3,
+      "active": true,
+      "command": "\n  select net.http_post(\n    url := (\n      select decrypted_secret\n      from vault.decrypted_secrets\n      where name = 'project_url'\n    ) || '/functions/v1/Chat-Bot',\n    headers := jsonb_build_object(\n      'Content-Type', 'application/json',\n      'apikey', (\n        select decrypted_secret\n        from vault.decrypted_secrets\n        where name = 'secret_key'\n      )\n    ),\n    body := '{\"room_id\":1}'::jsonb\n  );\n  ",
+      "schedule": "*/2 * * * *"
+    },
+    {
+      "jobid": 4,
+      "active": true,
+      "command": "select public.process_chat_scheduled_announcements();",
+      "schedule": "* * * * *"
+    }
+  ],
+  "extensions": [
+    "pg_cron",
+    "pg_net",
+    "pg_stat_statements",
+    "pgcrypto",
+    "plpgsql",
+    "supabase_vault",
+    "uuid-ossp"
+  ],
+  "realtime_publication": [
+    {
+      "table": "chat_message_reactions",
+      "schema": "public"
+    },
+    {
+      "table": "chat_room_polls",
+      "schema": "public"
+    },
+    {
+      "table": "chat_room_topics",
+      "schema": "public"
+    },
+    {
+      "table": "messages",
+      "schema": "public"
+    },
+    {
+      "table": "private_messages",
+      "schema": "public"
+    },
+    {
+      "table": "wichat_moderation_events",
+      "schema": "public"
+    }
+  ]
+}

@@ -411,3 +411,35 @@ begin
  return true;
 end;
 $function$;
+
+
+-- Bienvenida automatica configurable por sala
+create table if not exists public.chat_room_welcome_messages (
+  room_id bigint primary key references public.rooms(id) on delete cascade,
+  message text not null check (char_length(btrim(message)) between 1 and 300),
+  enabled boolean not null default true,
+  updated_at timestamptz not null default now(),
+  updated_by uuid
+);
+alter table public.chat_room_welcome_messages enable row level security;
+drop policy if exists chat_room_welcome_read on public.chat_room_welcome_messages;
+create policy chat_room_welcome_read on public.chat_room_welcome_messages for select to authenticated using (true);
+revoke insert, update, delete on public.chat_room_welcome_messages from anon, authenticated;
+grant select on public.chat_room_welcome_messages to authenticated;
+create or replace function public.admin_set_room_welcome(pin_input text, room_id_input bigint, message_input text, enabled_input boolean)
+returns boolean language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+ if public.verify_admin_pin(pin_input) is distinct from true then raise exception 'PIN incorrecto'; end if;
+ if not exists(select 1 from public.rooms where id=room_id_input) then raise exception 'La sala no existe'; end if;
+ if message_input is null or char_length(btrim(message_input))=0 then
+   delete from public.chat_room_welcome_messages where room_id=room_id_input;
+   return true;
+ end if;
+ if char_length(btrim(message_input))>300 then raise exception 'El mensaje no puede superar 300 caracteres'; end if;
+ insert into public.chat_room_welcome_messages(room_id,message,enabled,updated_at)
+ values(room_id_input,btrim(message_input),coalesce(enabled_input,true),now())
+ on conflict(room_id) do update set message=excluded.message,enabled=excluded.enabled,updated_at=now();
+ return true;
+end; $$;
+revoke all on function public.admin_set_room_welcome(text,bigint,text,boolean) from public;
+grant execute on function public.admin_set_room_welcome(text,bigint,text,boolean) to authenticated;

@@ -193,3 +193,50 @@ create trigger chat_antispam_guard_trigger before insert on public.private_messa
 for each row execute function public.wichat_antispam_guard();
 
 commit;
+
+ 
+-- Puntos y medallas de participación (16-11-2026).
+-- Se otorga 1 punto por mensaje público de texto de al menos 3 caracteres,
+-- con un máximo de 20 puntos por usuario y día. Stickers/GIF y mensajes privados no puntúan.
+-- El cliente no puede insertar puntos: el trigger es el único escritor.
+create or replace function public.wichat_award_public_message_point()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $function$
+declare
+  v_uid uuid;
+  v_count integer;
+  v_body text;
+begin
+  if coalesce(to_jsonb(new)->>'message_type','text') <> 'text' then return new; end if;
+  v_body := btrim(coalesce(to_jsonb(new)->>'message', to_jsonb(new)->>'content',''));
+  if char_length(v_body) < 3 then return new; end if;
+  if coalesce(to_jsonb(new)->>'sender_id','') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then return new; end if;
+  v_uid := (to_jsonb(new)->>'sender_id')::uuid;
+  perform pg_advisory_xact_lock(hashtextextended(v_uid::text || ':daily-points', 0));
+  select count(*) into v_count from public.chat_points_ledger
+  where user_id=v_uid and reason='mensaje_publico' and created_at>=date_trunc('day',now());
+  if v_count>=20 then return new; end if;
+  insert into public.chat_points_ledger(user_id,points_delta,reason,event_key)
+  values(v_uid,1,'mensaje_publico','public-message:'||new.id::text)
+  on conflict(event_key) do nothing;
+  return new;
+end;
+$function$;
+revoke all on function public.wichat_award_public_message_point() from public,anon,authenticated;
+drop trigger if exists chat_award_public_message_point on public.messages;
+create trigger chat_award_public_message_point after insert on public.messages
+for each row execute function public.wichat_award_public_message_point();
+
+create or replace view public.chat_points_ranking with (security_invoker=true) as
+select p.user_id,p.nickname,coalesce(sum(l.points_delta),0)::bigint as points,
+case when coalesce(sum(l.points_delta),0)>=500 then 'Diamante'
+when coalesce(sum(l.points_delta),0)>=250 then 'Oro'
+when coalesce(sum(l.points_delta),0)>=100 then 'Plata'
+when coalesce(sum(l.points_delta),0)>=25 then 'Bronce'
+else 'Principiante' end as medal
+from public.chat_profiles p left join public.chat_points_ledger l on l.user_id=p.user_id
+group by p.user_id,p.nickname;
+grant select on public.chat_points_ranking to authenticated;

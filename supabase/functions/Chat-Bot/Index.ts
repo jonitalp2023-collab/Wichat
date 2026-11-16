@@ -4,7 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-cron-secret",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
@@ -215,18 +215,6 @@ Deno.serve(async (req: Request) => {
       },
     );
 
-    // Validar la sesión real que invocó la función.
-    const authorization = req.headers.get("Authorization") || "";
-    const accessToken = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
-    if (!accessToken) {
-      return respond({ success: false, error: "Sesión no válida. Volvé a ingresar al chat." }, 401);
-    }
-    const { data: authResult, error: authError } = await supabase.auth.getUser(accessToken);
-    if (authError || !authResult?.user?.id) {
-      return respond({ success: false, error: "La sesión expiró o no es válida." }, 401);
-    }
-    const authenticatedUserId = authResult.user.id;
-
     // =====================================
     // DATOS RECIBIDOS
     // =====================================
@@ -256,13 +244,38 @@ Deno.serve(async (req: Request) => {
       }, 400);
     }
 
-    const message = String(
-      body.message ?? "",
-    ).trim();
-
+    const isSpontaneous = body.trigger === "spontaneous";
+    const message = String(body.message ?? "").trim();
     const nickname = String(
-      body.nickname ?? "Usuario",
-    ).trim().slice(0, 50) || "Usuario";
+      body.nickname ?? (isSpontaneous ? "Chat Argentina" : "Usuario"),
+    ).trim().slice(0, 50) || (isSpontaneous ? "Chat Argentina" : "Usuario");
+
+    // Los llamados espontáneos sólo se aceptan con el secreto privado del cron.
+    let authenticatedUserId = "";
+    if (isSpontaneous) {
+      const cronSecret = req.headers.get("x-cron-secret") || "";
+      if (!cronSecret) {
+        return respond({ success: false, error: "Falta la autenticación del proceso automático." }, 401);
+      }
+      const { data: cronAuthorized, error: cronAuthError } = await supabase
+        .rpc("verify_chat_bot_cron_secret", { secret_input: cronSecret });
+      if (cronAuthError || cronAuthorized !== true) {
+        console.error("Se rechazó una llamada espontánea no autorizada.");
+        return respond({ success: false, error: "Proceso automático no autorizado." }, 401);
+      }
+      authenticatedUserId = "system:spontaneous";
+    } else {
+      const authorization = req.headers.get("Authorization") || "";
+      const accessToken = authorization.match(/^Bearer\\s+(.+)$/i)?.[1]?.trim();
+      if (!accessToken) {
+        return respond({ success: false, error: "Sesión no válida. Volvé a ingresar al chat." }, 401);
+      }
+      const { data: authResult, error: authError } = await supabase.auth.getUser(accessToken);
+      if (authError || !authResult?.user?.id) {
+        return respond({ success: false, error: "La sesión expiró o no es válida." }, 401);
+      }
+      authenticatedUserId = authResult.user.id;
+    }
 
     const rawRoomId =
       body.room_id ??
@@ -273,20 +286,16 @@ Deno.serve(async (req: Request) => {
     const senderId = String(body.sender_id ?? "").trim();
     const requestId = String(body.request_id ?? "").trim();
 
-    if (!message) {
-      return respond({
-        success: false,
-        error: "El mensaje está vacío.",
-      }, 400);
+    if (!isSpontaneous && !message) {
+      return respond({ success: false, error: "El mensaje está vacío." }, 400);
     }
-
-    if (senderId !== authenticatedUserId) {
+    if (!isSpontaneous && senderId !== authenticatedUserId) {
       return respond({ success: false, error: "El remitente no coincide con la sesión activa." }, 403);
     }
-
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)) {
+    if (!isSpontaneous && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)) {
       return respond({ success: false, error: "Identificador de solicitud no válido." }, 400);
     }
+    const effectiveRequestId = isSpontaneous ? crypto.randomUUID() : requestId;
 
     if (message.length > MAX_MESSAGE_LENGTH) {
       return respond({
@@ -334,26 +343,28 @@ Deno.serve(async (req: Request) => {
       }, 404);
     }
 
-    // Confirmar que el usuario realmente publicó ese mensaje en esa sala.
-    const recentSince = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-    const { data: sourceMessage, error: sourceMessageError } = await supabase
-      .from("messages")
-      .select("id")
-      .eq("sender_id", authenticatedUserId)
-      .eq("room_id", roomId)
-      .eq("nickname", nickname)
-      .eq("message", message)
-      .gte("created_at", recentSince)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // En modo usuario se exige comprobar el mensaje recién publicado.
+    if (!isSpontaneous) {
+      const recentSince = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      const { data: sourceMessage, error: sourceMessageError } = await supabase
+        .from("messages")
+        .select("id")
+        .eq("sender_id", authenticatedUserId)
+        .eq("room_id", roomId)
+        .eq("nickname", nickname)
+        .eq("message", message)
+        .gte("created_at", recentSince)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (sourceMessageError) {
-      console.error("No se pudo validar el mensaje de origen:", sourceMessageError.message);
-      return respond({ success: false, error: "No se pudo verificar el mensaje publicado." }, 500);
-    }
-    if (!sourceMessage) {
-      return respond({ success: false, error: "El mensaje no existe, no pertenece a tu sesión o ya venció." }, 403);
+      if (sourceMessageError) {
+        console.error("No se pudo validar el mensaje de origen:", sourceMessageError.message);
+        return respond({ success: false, error: "No se pudo verificar el mensaje publicado." }, 500);
+      }
+      if (!sourceMessage) {
+        return respond({ success: false, error: "El mensaje no existe, no pertenece a tu sesión o ya venció." }, 403);
+      }
     }
 
     // Clave idempotente: una solicitud sólo puede activar los bots una vez.
@@ -361,7 +372,7 @@ Deno.serve(async (req: Request) => {
     const { error: requestInsertError } = await supabase
       .from("chat_bot_requests")
       .insert({
-        request_id: requestId,
+        request_id: effectiveRequestId,
         sender_id: authenticatedUserId,
         room_id: roomId,
         expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
@@ -481,7 +492,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (knownBotNames.has(normalizeName(nickname))) {
+    if (!isSpontaneous && knownBotNames.has(normalizeName(nickname))) {
       return respond({ success: false, error: "Los bots no pueden iniciar solicitudes como si fueran usuarios." }, 403);
     }
 
@@ -510,6 +521,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const orderedHistory = (history || []).reverse();
+    if (isSpontaneous && orderedHistory.length === 0) {
+      return respond({ success: true, replied: false, message: "Todavía no hay conversación para retomar.", room_id: roomId });
+    }
 
     // =====================================
     // EVITAR DUPLICAR EL MENSAJE ACTUAL
@@ -529,6 +543,7 @@ Deno.serve(async (req: Request) => {
 
         if (
           !currentMessageRemoved &&
+          !isSpontaneous &&
           itemNickname === nickname &&
           itemMessage === message
         ) {
@@ -568,12 +583,29 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Incorporar mensaje humano actual.
+    // Incorporar el mensaje humano sólo en respuestas normales.
+    if (!isSpontaneous) {
+      conversation.push({
+        role: "user",
+        content: `${nickname}: ${message}`,
+      });
+    }
 
-    conversation.push({
-      role: "user",
-      content: `${nickname}: ${message}`,
-    });
+    // En modo espontáneo habla un solo bot por ciclo y se respeta su intervalo.
+    if (isSpontaneous) {
+      activeBots = [...activeBots]
+        .filter(bot => {
+          if (!bot.cooldown_seconds || !bot.last_response_at) return true;
+          const elapsed = (Date.now() - new Date(bot.last_response_at).getTime()) / 1000;
+          return !Number.isFinite(elapsed) || elapsed >= bot.cooldown_seconds;
+        })
+        .sort((a, b) => {
+          const aTime = a.last_response_at ? new Date(a.last_response_at).getTime() : 0;
+          const bTime = b.last_response_at ? new Date(b.last_response_at).getTime() : 0;
+          return aTime - bTime;
+        })
+        .slice(0, 1);
+    }
 
     // =====================================
     // RESULTADOS
@@ -612,7 +644,7 @@ Deno.serve(async (req: Request) => {
           const latestEntry = conversation[conversation.length - 1];
           const latestSpeaker = latestEntry?.content.split(":")[0]?.trim() || "";
           const latestWasBot = knownBotNames.has(normalizeName(latestSpeaker));
-          if (latestWasBot && bot.respond_to_bots === false) continue;
+          if (!isSpontaneous && latestWasBot && bot.respond_to_bots === false) continue;
 
           if (bot.cooldown_seconds && bot.last_response_at) {
             const elapsed = (Date.now() - new Date(bot.last_response_at).getTime()) / 1000;
@@ -670,6 +702,8 @@ claras y relativamente breves.
 
 14. No afirmes haber realizado acciones
 que no realizaste.
+
+${isSpontaneous ? "MODO ESPONTÁNEO: iniciá una intervención breve y natural para mantener viva la charla. Podés retomar algo del historial o abrir un tema liviano. No inventes que alguien te habló ni repitas el último mensaje." : ""}
 
 Estás en la ronda ${round} de conversación.
 

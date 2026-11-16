@@ -465,6 +465,12 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <p class="muted">Los bots activos participan automáticamente en las conversaciones. Máximo 5 bots activos.</p>
       <input id="botName" maxlength="25" placeholder="Nombre del nuevo bot">
       <textarea id="botInstructions" maxlength="4000" rows="5" placeholder="Personalidad e instrucciones del bot"></textarea>
+      <label class="muted" for="newBotRooms">Salas permitidas (IDs separados por coma; vacío = todas)</label>
+      <input id="newBotRooms" placeholder="Ej.: 1, 2">
+      <label class="muted" for="newBotCooldown">Intervalo mínimo entre respuestas (segundos)</label>
+      <input id="newBotCooldown" type="number" min="0" max="3600" value="0">
+      <label><input id="newBotRespondToBots" type="checkbox" checked> Puede responder a otros bots</label>
+      <select id="newBotStyle"><option value="natural">Estilo natural</option><option value="brief">Respuestas breves</option><option value="expressive">Más expresivo</option></select>
       <div class="row"><button onclick="saveBot()">➕ Crear bot</button><button class="secondary" onclick="loadBots()">↻ Actualizar</button></div>
       <p id="botAdminStatus" class="muted"></p>
       <div id="botsList" class="admin-list"><p class="muted">Presioná actualizar para ver los bots.</p></div>
@@ -1628,6 +1634,21 @@ async function loadBots(){
       instructions.value=bot.instructions||"";
       instructions.maxLength=4000;
       instructions.setAttribute("aria-label","Instrucciones de "+bot.name);
+      const roomInput=document.createElement("input");
+      roomInput.value=(bot.room_ids||[]).join(", ");
+      roomInput.placeholder="IDs de salas; vacío = todas";
+      roomInput.setAttribute("aria-label","Salas permitidas de "+bot.name);
+      const cooldownInput=document.createElement("input");
+      cooldownInput.type="number";cooldownInput.min="0";cooldownInput.max="3600";
+      cooldownInput.value=String(bot.cooldown_seconds||0);
+      cooldownInput.setAttribute("aria-label","Intervalo en segundos de "+bot.name);
+      const respondInput=document.createElement("input");
+      respondInput.type="checkbox";respondInput.checked=bot.respond_to_bots!==false;
+      const respondLabel=document.createElement("label");
+      respondLabel.append(respondInput,document.createTextNode(" Puede responder a otros bots"));
+      const styleSelect=document.createElement("select");
+      [["natural","Natural"],["brief","Breve"],["expressive","Expresivo"]].forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;styleSelect.appendChild(option);});
+      styleSelect.value=bot.response_style||"natural";
       const nameInput=document.createElement("input");
       nameInput.value=bot.name;
       nameInput.maxLength=25;
@@ -1636,17 +1657,17 @@ async function loadBots(){
       actions.className="bot-actions";
       const save=document.createElement("button");
       save.textContent="Guardar cambios";
-      save.onclick=()=>updateBot(bot.id,nameInput.value,instructions.value,bot.active);
+      save.onclick=()=>updateBot(bot.id,nameInput.value,instructions.value,bot.active,roomInput.value,cooldownInput.value,respondInput.checked,styleSelect.value);
       const toggle=document.createElement("button");
       toggle.className="secondary";
       toggle.textContent=bot.active?"Desactivar":"Activar";
-      toggle.onclick=()=>updateBot(bot.id,bot.name,bot.instructions,!bot.active);
+      toggle.onclick=()=>updateBot(bot.id,nameInput.value,instructions.value,!bot.active,roomInput.value,cooldownInput.value,respondInput.checked,styleSelect.value);
       const remove=document.createElement("button");
       remove.className="danger";
       remove.textContent="Eliminar";
       remove.onclick=()=>deleteBot(bot.id,bot.name);
       actions.append(save,toggle,remove);
-      card.append(title,state,nameInput,instructions,actions);
+      card.append(title,state,nameInput,instructions,roomInput,cooldownInput,respondLabel,styleSelect,actions);
       list.appendChild(card);
     });
   }catch(error){
@@ -1660,17 +1681,28 @@ async function saveBot(){
   const status=$("botAdminStatus");
   if(!name||!instructions){status.textContent="Completá el nombre y las instrucciones.";return;}
   try{
-    await callAdminApi("create_bot",{bot_name:name,bot_instructions:instructions});
+    const roomText=$("newBotRooms").value.trim();
+    const roomIds=roomText?roomText.split(",").map(value=>Number(value.trim())):[];
+    const cooldown=Number($("newBotCooldown").value||0);
+    if(roomIds.some(value=>!Number.isSafeInteger(value)||value<=0)||!Number.isInteger(cooldown)||cooldown<0||cooldown>3600){status.textContent="Revisá los IDs de salas y el intervalo (0 a 3600 segundos).";return;}
+    await callAdminApi("create_bot",{bot_name:name,bot_instructions:instructions,room_ids:roomIds,cooldown_seconds:cooldown,respond_to_bots:$("newBotRespondToBots").checked,response_style:$("newBotStyle").value});
     $("botName").value="";
     $("botInstructions").value="";
+    $("newBotRooms").value="";
+    $("newBotCooldown").value="0";
+    $("newBotRespondToBots").checked=true;
+    $("newBotStyle").value="natural";
     status.textContent="Bot creado correctamente.";
     await loadBots();
   }catch(error){status.textContent="No se pudo crear el bot: "+error.message;}
 }
-async function updateBot(id,name,instructions,active){
+async function updateBot(id,name,instructions,active,roomText="",cooldownText="0",respondToBots=true,responseStyle="natural"){
   if(!isAdmin)return;
   try{
-    await callAdminApi("update_bot",{bot_id:id,bot_name:String(name||"").trim(),bot_instructions:String(instructions||"").trim(),bot_active:Boolean(active)});
+    const roomIds=String(roomText||"").trim()?String(roomText).split(",").map(value=>Number(value.trim())):[];
+    const cooldown=Number(cooldownText||0);
+    if(roomIds.some(value=>!Number.isSafeInteger(value)||value<=0)||!Number.isInteger(cooldown)||cooldown<0||cooldown>3600)throw new Error("Revisá los IDs de salas y el intervalo (0 a 3600 segundos).");
+    await callAdminApi("update_bot",{bot_id:id,bot_name:String(name||"").trim(),bot_instructions:String(instructions||"").trim(),bot_active:Boolean(active),room_ids:roomIds,cooldown_seconds:cooldown,respond_to_bots:respondToBots,response_style:responseStyle});
     $("botAdminStatus").textContent="Bot actualizado correctamente.";
     await loadBots();
   }catch(error){$("botAdminStatus").textContent="No se pudo actualizar: "+error.message;}

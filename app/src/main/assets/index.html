@@ -187,6 +187,77 @@ body.chat-active #messages,body.chat-active #privateMessages{flex:1 1 0;min-heig
 body.chat-active .composer{display:flex;position:relative;flex:0 0 auto;width:100%;min-height:70px;background:#222;z-index:100;padding:9px 14px}
 body.chat-active .composer input{display:block;min-width:0;flex:1 1 auto}
 body.chat-active .send-button{display:flex;align-items:center;justify-content:center;flex:0 0 53px}
+
+/* REDISEÑO ADMINISTRACIÓN · AZUL OSCURO Y DORADO */
+#adminPanel{
+  background:linear-gradient(160deg,#111d33 0%,#0b1426 100%)!important;
+  border:1px solid rgba(224,174,76,.65)!important;
+  border-radius:22px!important;
+  padding:0 16px 18px!important;
+  box-shadow:0 24px 70px #000c,0 0 35px #d99b351c;
+  color:#f4f7fc;
+}
+#adminPanel .admin-topbar{position:sticky;top:-1px;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 -16px;padding:13px 16px;background:rgba(12,22,40,.96);backdrop-filter:blur(14px);border-bottom:1px solid #d99b3538;border-radius:21px 21px 0 0}
+#adminPanel .admin-brand{display:flex;align-items:center;gap:10px;min-width:0}
+#adminPanel .admin-brand-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(145deg,#263f61,#14243d);border:1px solid #d99b3566;font-size:23px}
+#adminPanel .admin-brand h3{margin:0;color:#f3c66d;font-size:15px;letter-spacing:.7px}
+#adminPanel .admin-brand p{margin:4px 0 0;color:#91a5c1;font-size:11px}
+#adminPanel .admin-brand p span{color:#6ee0a5;margin-left:5px;font-weight:bold}
+#adminPanel .admin-close{width:40px;min-width:40px;height:40px;min-height:40px;padding:0;border:1px solid #455773;background:#1b2b44;color:#dce7f5;border-radius:12px;font-size:17px}
+#adminPanel .admin-welcome{display:flex;align-items:center;justify-content:space-between;padding:20px 3px 16px}
+#adminPanel .admin-welcome h2{font-size:23px;margin:5px 0;color:#fff}
+#adminPanel .admin-welcome p{font-size:13px;color:#9eafc8;margin:0}
+#adminPanel .admin-eyebrow{font-size:10px;font-weight:800;letter-spacing:1.5px;color:#e5b65d}
+#adminPanel .admin-crown{font-size:32px;filter:drop-shadow(0 3px 10px #d99b3577)}
+#adminPanel .admin-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:0 0 17px}
+#adminPanel .admin-stat{min-width:0;padding:12px 10px;background:linear-gradient(145deg,#1b2e49,#142239);border:1px solid #354b69;border-radius:15px;display:flex;flex-direction:column;gap:5px}
+#adminPanel .admin-stat>span{font-size:19px}
+#adminPanel .admin-stat small{font-size:9px;letter-spacing:.6px;color:#a5b5cc;font-weight:bold}
+#adminPanel .admin-stat strong{font-size:23px;color:#f4c96f;font-variant-numeric:tabular-nums}
+#adminPanel .admin-tabs{position:sticky;top:67px;z-index:4;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:10px 0 13px;background:linear-gradient(#0e1a2d 82%,transparent);margin-bottom:5px}
+#adminPanel .admin-tab{display:flex;align-items:center;justify-content:center;gap:6px;min-height:43px;padding:8px 5px;border:1px solid #354a66;border-radius:12px;background:#172740;color:#b8c8dd;font-size:12px}
+#adminPanel .admin-tab span{font-size:15px}
+#adminPanel .admin-tab.active{background:linear-gradient(120deg,#174d78,#176aa0);border-color:#e0b45f;color:#fff;box-shadow:0 4px 14px #0878c933}
+#adminPanel .admin-section{display:none;animation:adminFadeIn .18s ease}
+#adminPanel .admin-section.active{display:block}
+@keyframes adminFadeIn{from{opacity:.55;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+#adminPanel .admin-section-heading{display:flex;align-items:center;justify-content:space-between;margin:12px 2px 14px}
+#adminPanel .admin-section-heading h3{font-size:21px;margin:4px 0;color:#f3f6fc}
+#adminPanel .admin-heading-icon{width:43px;height:43px;display:grid;place-items:center;border-radius:14px;background:#1b304c;border:1px solid #d99b354a;font-size:21px}
+#adminPanel .admin-card{padding:15px;margin:0 0 12px;background:linear-gradient(145deg,#192b45,#132239);border:1px solid #344b69;border-radius:16px;box-shadow:0 8px 22px #0002}
+#adminPanel .admin-card-danger{border-color:#8b4850}
+#adminPanel .admin-card h4{margin:0 0 7px;color:#f1c66f;font-size:15px}
+#adminPanel .admin-card p{margin:5px 0 10px}
+#adminPanel .admin-card input,#adminPanel .admin-card select,#adminPanel .admin-card textarea{background:#0b172a;border:1px solid #3a5272;border-radius:11px;color:#f5f7fb}
+#adminPanel .admin-card button{border-radius:11px}
+#adminPanel .admin-card .row{gap:8px}
+#adminPanel .admin-card .row button{flex:1 1 120px}
+#adminPanel .admin-feedback{min-height:20px;color:#83dfae;font-size:13px;overflow-wrap:anywhere}
+#adminPanel .admin-list{margin-top:12px}
+#adminPanel .admin-setting-row{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #35465d;color:#aebed2;font-size:13px}
+#adminPanel .admin-setting-row:last-child{border-bottom:0}
+#adminPanel .admin-setting-row strong{color:#f0c66f;text-align:right}
+#adminPanel .admin-setting-row .admin-online{color:#72dfa4}
+#adminPanel .admin-footer{display:flex;justify-content:space-between;gap:8px;padding:17px 3px 3px;margin-top:12px;border-top:1px solid #34445b;color:#d9b66d;font-size:11px;font-weight:bold;letter-spacing:.5px}
+#adminPanel .admin-footer span{color:#7186a4;font-weight:normal;letter-spacing:0}
+#adminPanel .bot-card,#adminPanel .banned-card{padding:13px;margin:9px 0;background:#101d31;border:1px solid #354b68;border-radius:13px}
+#adminPanel .bot-card textarea{min-height:100px}
+#adminPanel .bot-card .bot-actions{gap:7px}
+#adminPanel .bot-active{color:#70dfa0}
+#adminPanel .bot-inactive{color:#e3a0a0}
+#adminPanel .banned-name{color:#f0c66f}
+#adminPanel .banned-details{color:#a7b7cd;font-size:12px;overflow-wrap:anywhere}
+#adminPanel .unban-button{background:#315b80}
+@media(max-width:390px){
+ #adminPanel{padding-left:11px!important;padding-right:11px!important}
+ #adminPanel .admin-topbar{margin-left:-11px;margin-right:-11px;padding-left:12px;padding-right:12px}
+ #adminPanel .admin-tabs{gap:5px}
+ #adminPanel .admin-tab{font-size:11px;gap:3px}
+ #adminPanel .admin-stat{padding:10px 7px}
+ #adminPanel .admin-stat small{font-size:8px}
+ #adminPanel .admin-welcome h2{font-size:20px}
+}
+
 </style>
 </head>
 <body>
@@ -266,32 +337,117 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <button id="navExit" class="nav-btn exit" onclick="exitChat()"><span class="nav-icon">✕</span><span>Salir</span></button>
 </nav>
 <div id="adminPanel" class="panel admin-box hidden">
-<div class="row" style="justify-content:space-between"><h3 style="margin:0">Administración UNIX ⭐</h3><button class="secondary" onclick="closeAdmin()">Cerrar</button></div>
-<hr style="border-color:#344361;margin:20px 0">
-<h4>📌 Tópico de la sala actual</h4><p class="muted">Solo UNIX puede cambiar o borrar el tópico de esta sala.</p>
-<input id="roomTopicInput" maxlength="180" placeholder="Escribí el tópico de esta sala">
-<div class="row"><button onclick="saveRoomTopic()">Guardar tópico</button><button class="secondary" onclick="deleteRoomTopic()">Borrar</button></div>
-<p id="topicAdminStatus" class="muted"></p><hr style="border-color:#344361;margin:20px 0">
-<h4>Crear una sala</h4><div class="row"><input id="newRoomName" maxlength="30" placeholder="Nombre de la sala"><button onclick="createRoom()">Crear</button></div>
-<h4>Eliminar una sala</h4><select id="roomToDelete"><option value="">Elegí una sala</option></select><button class="danger" onclick="deleteRoom()">Eliminar sala</button>
-<h4>Expulsar o banear usuarios</h4><p class="muted">Elegí un usuario conectado en esta sala.</p>
-<select id="userToModerate"><option value="">Usuarios de esta sala</option></select>
-<div class="row"><button class="secondary" onclick="moderateUser('kick')">Expulsar de esta sala</button><button class="danger" onclick="moderateUser('ban')">Banear</button></div>
-<p id="adminStatus" class="muted"></p><hr style="border-color:#344361;margin:20px 0">
-<h4>🚫 Usuarios baneados</h4><p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
-<button class="secondary" onclick="loadBannedUsers()">🔄 Actualizar lista</button>
-<div id="bannedUsersList" style="margin-top:12px"><p class="muted">Presioná actualizar para ver los baneados.</p></div>
-<hr style="border-color:#344361;margin:20px 0">
-<h4>🤖 Administración de bots</h4>
-<p class="muted">Los bots activos participan automáticamente en cada mensaje de la sala. Cada uno tiene una intervención por mensaje humano y leen las respuestas anteriores para conversar entre ellos. Máximo 5 bots activos.</p>
-<input id="botName" maxlength="25" placeholder="Nombre del nuevo bot">
-<textarea id="botInstructions" maxlength="4000" rows="5" style="width:100%;padding:12px;border:1px solid #344361;border-radius:10px;background:#0c1427;color:white;font:16px Arial" placeholder="Personalidad e instrucciones del bot"></textarea>
-<div class="row"><button onclick="saveBot()">➕ Crear bot</button><button class="secondary" onclick="loadBots()">🔄 Actualizar</button></div>
-<p id="botAdminStatus" class="muted"></p>
-<div id="botsList" style="margin-top:12px"><p class="muted">Presioná actualizar para ver los bots.</p></div>
+  <div class="admin-topbar">
+    <div class="admin-brand">
+      <div class="admin-brand-icon">🇦🇷</div>
+      <div><h3>CHAT ARGENTINA</h3><p>Centro de administración <span>● EN LÍNEA</span></p></div>
+    </div>
+    <button class="admin-close" onclick="closeAdmin()" aria-label="Cerrar administración">✕</button>
+  </div>
 
+  <div class="admin-welcome">
+    <div><span class="admin-eyebrow">PANEL DE CONTROL</span><h2>¡Hola, UNIX! 👋</h2><p>Administrá tu comunidad desde un solo lugar.</p></div>
+    <div class="admin-crown">⭐</div>
+  </div>
+
+  <div class="admin-stats">
+    <div class="admin-stat"><span>💬</span><small>SALAS</small><strong id="adminStatRooms">0</strong></div>
+    <div class="admin-stat"><span>👥</span><small>EN ESTA SALA</small><strong id="adminStatUsers">0</strong></div>
+    <div class="admin-stat"><span>🤖</span><small>BOTS</small><strong id="adminStatBots">—</strong></div>
+  </div>
+
+  <nav class="admin-tabs" aria-label="Secciones de administración">
+    <button class="admin-tab active" data-admin-section="rooms" onclick="adminShowSection('rooms')"><span>💬</span>Salas</button>
+    <button class="admin-tab" data-admin-section="users" onclick="adminShowSection('users')"><span>👥</span>Usuarios</button>
+    <button class="admin-tab" data-admin-section="bots" onclick="adminShowSection('bots')"><span>🤖</span>Bots</button>
+    <button class="admin-tab" data-admin-section="moderation" onclick="adminShowSection('moderation')"><span>🛡️</span>Moderación</button>
+    <button class="admin-tab" data-admin-section="stats" onclick="adminShowSection('stats')"><span>📊</span>Estadísticas</button>
+    <button class="admin-tab" data-admin-section="settings" onclick="adminShowSection('settings')"><span>⚙️</span>Configuración</button>
+  </nav>
+
+  <section class="admin-section active" id="adminSectionRooms">
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">COMUNIDAD</span><h3>Gestión de salas</h3></div><span class="admin-heading-icon">💬</span></div>
+    <div class="admin-card">
+      <h4>📌 Tópico de la sala actual</h4><p class="muted">Definí el tema que verán los participantes de esta sala.</p>
+      <input id="roomTopicInput" maxlength="180" placeholder="Escribí el tópico de esta sala">
+      <div class="row"><button onclick="saveRoomTopic()">Guardar tópico</button><button class="secondary" onclick="deleteRoomTopic()">Borrar</button></div>
+      <p id="topicAdminStatus" class="muted"></p>
+    </div>
+    <div class="admin-card">
+      <h4>➕ Crear una sala</h4><p class="muted">Agregá un nuevo espacio de conversación.</p>
+      <div class="row"><input id="newRoomName" maxlength="30" placeholder="Nombre de la sala"><button onclick="createRoom()">Crear sala</button></div>
+    </div>
+    <div class="admin-card admin-card-danger">
+      <h4>🗑️ Eliminar una sala</h4><p class="muted">Esta acción elimina la sala seleccionada. Confirmá antes de continuar.</p>
+      <select id="roomToDelete"><option value="">Elegí una sala</option></select>
+      <button class="danger" onclick="deleteRoom()">Eliminar sala</button>
+    </div>
+    <p id="adminStatus" class="admin-feedback" aria-live="polite"></p>
+  </section>
+
+  <section class="admin-section" id="adminSectionUsers">
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">PARTICIPACIÓN</span><h3>Usuarios conectados</h3></div><span class="admin-heading-icon">👥</span></div>
+    <div class="admin-card">
+      <h4>👤 Seleccionar usuario</h4><p class="muted">Elegí un participante conectado en la sala actual.</p>
+      <select id="userToModerate"><option value="">Usuarios de esta sala</option></select>
+      <p class="muted">Para expulsar o aplicar un baneo, ingresá a la sección Moderación.</p>
+    </div>
+  </section>
+
+  <section class="admin-section" id="adminSectionBots">
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">INTELIGENCIA ARTIFICIAL</span><h3>Administración de bots</h3></div><span class="admin-heading-icon">🤖</span></div>
+    <div class="admin-card">
+      <p class="muted">Los bots activos participan automáticamente en las conversaciones. Máximo 5 bots activos.</p>
+      <input id="botName" maxlength="25" placeholder="Nombre del nuevo bot">
+      <textarea id="botInstructions" maxlength="4000" rows="5" placeholder="Personalidad e instrucciones del bot"></textarea>
+      <div class="row"><button onclick="saveBot()">➕ Crear bot</button><button class="secondary" onclick="loadBots()">↻ Actualizar</button></div>
+      <p id="botAdminStatus" class="muted"></p>
+      <div id="botsList" class="admin-list"><p class="muted">Presioná actualizar para ver los bots.</p></div>
+    </div>
+  </section>
+
+  <section class="admin-section" id="adminSectionModeration">
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">SEGURIDAD</span><h3>Herramientas de moderación</h3></div><span class="admin-heading-icon">🛡️</span></div>
+    <div class="admin-card">
+      <h4>Acciones sobre usuarios</h4><p class="muted">Seleccioná primero un usuario en la sección Usuarios.</p>
+      <div class="row"><button class="secondary" onclick="moderateUser('kick')">🚪 Expulsar</button><button class="danger" onclick="moderateUser('ban')">🚫 Banear 5 minutos</button></div>
+    </div>
+    <div class="admin-card">
+      <h4>🚫 Usuarios baneados</h4><p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
+      <button class="secondary" onclick="loadBannedUsers()">↻ Actualizar lista</button>
+      <div id="bannedUsersList" class="admin-list"><p class="muted">Presioná actualizar para ver los baneados.</p></div>
+    </div>
+    <p id="adminModerationStatus" class="admin-feedback" aria-live="polite"></p>
+  </section>
+
+  <section class="admin-section" id="adminSectionStats">
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">RESUMEN</span><h3>Estadísticas</h3></div><span class="admin-heading-icon">📊</span></div>
+    <div class="admin-stats admin-stats-large">
+      <div class="admin-stat"><span>💬</span><small>SALAS CREADAS</small><strong id="adminStatRoomsDetail">0</strong></div>
+      <div class="admin-stat"><span>👥</span><small>USUARIOS EN SALA ACTUAL</small><strong id="adminStatUsersDetail">0</strong></div>
+      <div class="admin-stat"><span>🤖</span><small>BOTS CONFIGURADOS</small><strong id="adminStatBotsDetail">—</strong></div>
+    </div>
+    <p class="muted">Estos indicadores muestran los datos disponibles en la sesión actual. No representan estadísticas históricas.</p>
+  </section>
+
+  <section class="admin-section" id="adminSectionSettings">
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">PREFERENCIAS</span><h3>Configuración</h3></div><span class="admin-heading-icon">⚙️</span></div>
+    <div class="admin-card">
+      <h4>🔐 Acceso de administrador</h4><p class="muted">Las acciones administrativas están protegidas por tu sesión y el PIN de UNIX.</p>
+      <div class="admin-setting-row"><span>Estado del panel</span><strong class="admin-online">● Activo</strong></div>
+      <div class="admin-setting-row"><span>Proyecto</span><strong>CHAT ARGENTINA</strong></div>
+      <div class="admin-setting-row"><span>Estilo visual</span><strong>Azul oscuro + dorado</strong></div>
+    </div>
+    <div class="admin-card">
+      <h4>ℹ️ Información</h4><p class="muted">Los cambios de salas, usuarios y bots se guardan mediante los servicios administrativos existentes. Este rediseño no cambia tus datos ni permisos.</p>
+      <button class="secondary" onclick="closeAdmin()">Cerrar panel</button>
+    </div>
+  </section>
+
+  <div class="admin-footer">CHAT ARGENTINA 🇦🇷 <span>Panel de administración</span></div>
 </div></section></div>
 
+<script>
 <script>
 const SUPABASE_URL="https://pqnnzkqxkndzelsbtxvv.supabase.co";
 const SUPABASE_KEY="sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
@@ -871,6 +1027,29 @@ renderTabs();if(currentRoom)await switchRoom(currentRoom);
 }).subscribe();
 }
 
+/* NAVEGACIÓN DEL PANEL ADMINISTRATIVO */
+function adminShowSection(section){
+  const allowed=["rooms","users","bots","moderation","stats","settings"];
+  if(!allowed.includes(section))return;
+  document.querySelectorAll("#adminPanel .admin-tab").forEach(button=>{
+    button.classList.toggle("active",button.dataset.adminSection===section);
+  });
+  document.querySelectorAll("#adminPanel .admin-section").forEach(panel=>{
+    panel.classList.toggle("active",panel.id==="adminSection"+section.charAt(0).toUpperCase()+section.slice(1));
+  });
+  const panel=$("adminPanel");
+  if(panel)panel.scrollTop=0;
+}
+function updateAdminStats(){
+  const roomCount=rooms.length;
+  const userCount=roomUsers.size;
+  const values={
+    adminStatRooms:roomCount,adminStatUsers:userCount,
+    adminStatRoomsDetail:roomCount,adminStatUsersDetail:userCount
+  };
+  Object.entries(values).forEach(([id,value])=>{const el=$(id);if(el)el.textContent=String(value);});
+}
+
 /* ADMINISTRACIÓN */
 function openAdmin(){
   if(!isAdmin){
@@ -880,6 +1059,8 @@ function openAdmin(){
   const panel=$("adminPanel");
   panel.classList.remove("hidden");
   panel.scrollTop=0;
+  adminShowSection("rooms");
+  updateAdminStats();
   if(currentRoom)loadRoomTopic(currentRoom);
   renderRoomDelete();
   renderModerationUsers();
@@ -982,6 +1163,8 @@ async function loadBots(){
   try{
     const bots=await callAdminApi("list_bots");
     list.innerHTML="";
+    const botCount=(bots||[]).length;
+    ["adminStatBots","adminStatBotsDetail"].forEach(id=>{const el=$(id);if(el)el.textContent=String(botCount);});
     if(!bots||!bots.length){
       list.innerHTML='<p class="muted">No hay bots configurados.</p>';
       return;

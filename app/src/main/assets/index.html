@@ -479,6 +479,17 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <div id="moderationHistoryList" class="admin-list"><p class="muted">Presioná para consultar el historial.</p></div>
     </div>
     <div class="admin-card">
+      <h4>🛡️ Filtro de palabras</h4>
+      <p class="muted">Agregá términos que el filtro automático bloqueará en las salas públicas. El filtro también detecta algunas variantes con números y letras repetidas.</p>
+      <div class="row" style="flex-wrap:wrap;gap:8px">
+        <input id="moderationTermInput" maxlength="40" placeholder="Palabra o expresión prohibida" style="flex:1;min-width:150px">
+        <select id="moderationTermCategory" style="min-width:110px"><option value="insulto">Insulto</option><option value="custom">Otra palabra</option></select>
+        <button onclick="addModerationTerm()">Agregar</button>
+      </div>
+      <button class="secondary" onclick="loadModerationTerms()">↻ Actualizar filtro</button>
+      <div id="moderationTermsList" class="admin-list"><p class="muted">Presioná para consultar las palabras configuradas.</p></div>
+    </div>
+    <div class="admin-card">
       <h4>🚩 Denuncias de usuarios</h4>
       <p class="muted">Revisá los reportes enviados por la comunidad y registrá su resolución.</p>
       <button class="secondary" onclick="loadUserReports()">↻ Actualizar denuncias</button>
@@ -1759,6 +1770,40 @@ async function reviewUserReport(reportId,status){
  if(!isAdmin)return;
  try{await callAdminApi("review_user_report",{report_id:reportId,report_status:status});await loadUserReports();}
  catch(error){alert("No se pudo actualizar la denuncia: "+error.message);}
+}
+async function loadModerationTerms(){
+ if(!isAdmin)return;
+ const list=$("moderationTermsList");if(!list)return;
+ list.innerHTML='<p class="muted">Cargando filtro...</p>';
+ try{
+  const rows=await callAdminApi("list_moderation_terms");list.innerHTML="";
+  if(!rows||!rows.length){list.innerHTML='<p class="muted">Todavía no agregaste palabras personalizadas.</p>';return;}
+  rows.forEach(term=>{
+   const item=document.createElement("div");item.className="banned-card";
+   const title=document.createElement("strong");title.className="banned-name";
+   title.textContent=(term.active?"🟢 ":"⚪ ")+term.term+" · "+(term.category==="insulto"?"Insulto":"Personalizada");
+   const toggle=document.createElement("button");toggle.className="secondary";
+   toggle.textContent=term.active?"Desactivar":"Activar";
+   toggle.onclick=()=>toggleModerationTerm(term.id,!term.active);
+   item.append(title,toggle);list.appendChild(item);
+  });
+ }catch(error){list.textContent="Error al cargar el filtro: "+error.message;}
+}
+async function addModerationTerm(){
+ if(!isAdmin)return;
+ const input=$("moderationTermInput"),term=input?.value.trim(),category=$("moderationTermCategory")?.value||"custom";
+ if(!term||term.length<2||term.length>40){alert("Ingresá una palabra de entre 2 y 40 caracteres.");return;}
+ try{
+  await callAdminApi("add_moderation_term",{term,category});
+  input.value="";
+  $("adminModerationStatus").textContent="Palabra agregada al filtro automático.";
+  await loadModerationTerms();
+ }catch(error){alert("No se pudo agregar: "+error.message);}
+}
+async function toggleModerationTerm(id,active){
+ if(!isAdmin)return;
+ try{await callAdminApi("toggle_moderation_term",{term_id:id,active});await loadModerationTerms();}
+ catch(error){alert("No se pudo actualizar la palabra: "+error.message);}
 }
 async function loadModerationHistory(){
  if(!isAdmin)return;

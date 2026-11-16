@@ -89,6 +89,14 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .emoji-cats button.active{background:#0878c9}
 .emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .emoji-grid button{background:#192c49;padding:8px 2px;font-size:23px}
+.sticker-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.sticker-choice{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:78px;padding:7px 3px;background:#192c49;border:1px solid #344b6b;border-radius:10px;color:white;font-size:12px}
+.sticker-choice span{font-size:30px}
+.chat-sticker{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;min-width:112px;max-width:190px;min-height:100px;margin:5px 0;padding:12px 18px;border-radius:18px;background:linear-gradient(145deg,#174b79,#28204c);border:1px solid #4b8dc3;box-shadow:0 4px 12px #0005}
+.chat-sticker .sticker-face{font-size:54px;line-height:1.2}
+.chat-sticker .sticker-caption{font-size:13px;font-weight:bold;color:#fff;text-align:center}
+.chat-gif{display:block;max-width:min(260px,70vw);max-height:220px;margin:6px 0;border-radius:12px;object-fit:contain;background:#101d33}
+
 #usersView,#roomsView{padding:15px;background:#222}
 #usersView h3,#roomsView h3{margin:8px 0 12px;color:#55b8ff}
 .user-item{display:flex;align-items:center;gap:9px;padding:13px;margin-bottom:8px;background:#292929;border:1px solid #383838;border-radius:10px;cursor:pointer}
@@ -360,6 +368,8 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div class="chat-welcome"><strong>Conversación general</strong><span id="status">Conectando...</span></div>
 <div id="messages"></div>
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
+<div class="emoji-wrap"><button class="emoji-toggle" aria-label="Stickers" onclick="toggleStickerPicker()">🎭</button><div id="stickerPickerPublic" class="emoji-picker"></div></div>
+<button class="emoji-toggle" aria-label="Enviar GIF" title="Enviar GIF" onclick="sendGifByUrl()">GIF</button>
 <input id="messageInput" maxlength="1000" placeholder="Escribí aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
 <button id="sendBtn" class="send-button" onclick="sendMessage()">➤</button></div></div>
 <div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><div id="usersCountText" class="user-count">0 usuarios conectados</div><p class="muted">Tocá un Nick para ver sus opciones.</p><button class="secondary" style="width:100%;margin:0 0 12px" onclick="openMyProfile()">👤 Mi perfil</button><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
@@ -993,7 +1003,14 @@ if(nick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.c
 n.appendChild(document.createTextNode(nick));
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,n);
-const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";
+const t=document.createElement("span");t.className="msgtext";
+const storedMessage=String(m.message||m.content||"");
+if(storedMessage.startsWith("[[CHATARG_STICKER:")&&storedMessage.endsWith("]]")){
+const stickerKey=storedMessage.slice(18,-2),sticker=CHAT_STICKERS.find(x=>x.key===stickerKey);
+if(sticker){const card=document.createElement("div");card.className="chat-sticker";const face=document.createElement("span");face.className="sticker-face";face.textContent=sticker.emoji;const caption=document.createElement("span");caption.className="sticker-caption";caption.textContent=sticker.label;card.append(face,caption);t.appendChild(card);}else{t.textContent="Sticker";}
+}else if(storedMessage.startsWith("[[CHATARG_GIF:")&&storedMessage.endsWith("]]")){
+try{const gifUrl=decodeURIComponent(storedMessage.slice(14,-2)),parsed=new URL(gifUrl);if(parsed.protocol==="https:"&&/\\.gif(?:$|[?#])/i.test(parsed.href)){const img=document.createElement("img");img.className="chat-gif";img.src=parsed.href;img.alt="GIF";img.loading="lazy";img.onerror=()=>{img.replaceWith(document.createTextNode("No se pudo cargar el GIF."));};t.appendChild(img);}else{t.textContent="GIF no válido.";}}catch(_){t.textContent="GIF no válido.";}
+}else{t.textContent=storedMessage;}
 const reactions=document.createElement("div");reactions.className="message-reactions";reactions.dataset.messageId=String(m.id);
 div.append(n,t,reactions);$("messages").appendChild(div);renderMessageReactions(m.id);$("messages").scrollTop=$("messages").scrollHeight;
 }
@@ -1054,8 +1071,8 @@ async function sendMessage(){
       nickname:senderNickname
     });
 
-    /* Evita que un bot se dispare a sí mismo. */
-    if(senderNickname.toLowerCase()==="mili")return;
+    /* Stickers y GIF no deben activar respuestas automáticas de los bots. */
+    if(senderNickname.toLowerCase()==="mili"||value.startsWith("[[CHATARG_STICKER:")||value.startsWith("[[CHATARG_GIF:"))return;
 
     const requestBody={
       message:value,
@@ -1119,6 +1136,50 @@ async function sendMessage(){
     btn.disabled=false;
     input.focus();
   }
+}
+
+/* STICKERS Y GIF */
+const CHAT_STICKERS=[
+{key:"love",emoji:"😍",label:"Me encanta"},
+{key:"heart",emoji:"❤️",label:"Te quiero"},
+{key:"laugh",emoji:"😂",label:"Jajaja"},
+{key:"cool",emoji:"😎",label:"Genial"},
+{key:"party",emoji:"🥳",label:"A festejar"},
+{key:"kiss",emoji:"😘",label:"Un beso"},
+{key:"hug",emoji:"🤗",label:"Un abrazo"},
+{key:"fire",emoji:"🔥",label:"Está buenísimo"},
+{key:"clap",emoji:"👏",label:"Aplausos"},
+{key:"mate",emoji:"🧉",label:"Matecito"},
+{key:"sad",emoji:"🥺",label:"Qué pena"},
+{key:"wow",emoji:"🤯",label:"No lo puedo creer"}
+];
+function toggleStickerPicker(){
+const picker=$("stickerPickerPublic"),wasOpen=picker.classList.contains("open");closeEmojiPickers();picker.classList.remove("open");
+if(wasOpen)return;
+picker.innerHTML="";const grid=document.createElement("div");grid.className="sticker-grid";
+CHAT_STICKERS.forEach(sticker=>{const button=document.createElement("button");button.type="button";button.className="sticker-choice";const face=document.createElement("span");face.textContent=sticker.emoji;const label=document.createElement("small");label.textContent=sticker.label;button.append(face,label);button.onclick=()=>sendSticker(sticker.key);grid.appendChild(button);});
+picker.appendChild(grid);picker.classList.add("open");
+}
+async function sendRichMessage(value){
+const input=$("messageInput"),button=$("sendBtn");if(!nickname||!currentRoom||button.disabled)return;
+button.disabled=true;
+try{
+const roomId=String(currentRoom).trim(),roomIdPattern=/^(?:[1-9][0-9]*|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+if(!roomIdPattern.test(roomId))throw new Error("El ID de la sala no es válido.");
+const {data:authData,error:authError}=await db.auth.getSession();if(authError)throw authError;
+if(!authData?.session?.user?.id||String(authData.session.user.id)!==String(senderId))throw new Error("La sesión cambió. Salí y volvé a ingresar al chat.");
+const {error}=await db.from("messages").insert({nickname:String(nickname).trim(),message:value,room_id:roomId,sender_id:senderId});
+if(error)throw error;
+closeEmojiPickers();input.focus();
+}catch(error){alert("No se pudo enviar: "+error.message);}
+finally{button.disabled=false;}
+}
+function sendSticker(key){const sticker=CHAT_STICKERS.find(x=>x.key===key);if(!sticker)return;sendRichMessage("[[CHATARG_STICKER:"+sticker.key+"]]");}
+async function sendGifByUrl(){
+const raw=prompt("Pegá el enlace directo de un GIF (debe terminar en .gif y usar HTTPS):");if(raw===null)return;
+let parsed;try{parsed=new URL(raw.trim());}catch(_){alert("El enlace no es válido.");return;}
+if(parsed.protocol!=="https:"||!(/\\.gif(?:$|[?#])/i.test(parsed.href))){alert("Usá un enlace HTTPS directo a un archivo .gif.");return;}
+await sendRichMessage("[[CHATARG_GIF:"+encodeURIComponent(parsed.href)+"]]");
 }
 
 /* EMOJIS */

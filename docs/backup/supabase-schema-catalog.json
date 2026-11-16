@@ -1,0 +1,2260 @@
+{
+  "views": [
+    {
+      "name": "chat_points_ranking",
+      "definition": " SELECT p.user_id,\n    p.nickname,\n    COALESCE(sum(l.points_delta), 0::bigint) AS points,\n        CASE\n            WHEN COALESCE(sum(l.points_delta), 0::bigint) >= 500 THEN 'Diamante'::text\n            WHEN COALESCE(sum(l.points_delta), 0::bigint) >= 250 THEN 'Oro'::text\n            WHEN COALESCE(sum(l.points_delta), 0::bigint) >= 100 THEN 'Plata'::text\n            WHEN COALESCE(sum(l.points_delta), 0::bigint) >= 25 THEN 'Bronce'::text\n            ELSE 'Principiante'::text\n        END AS medal\n   FROM chat_profiles p\n     LEFT JOIN chat_points_ledger l ON l.user_id = p.user_id\n  GROUP BY p.user_id, p.nickname;"
+    },
+    {
+      "name": "chat_public_profile_badges",
+      "definition": " SELECT p.user_id,\n    (EXISTS ( SELECT 1\n           FROM chat_vip_members v\n          WHERE v.user_id = p.user_id)) AS is_vip,\n    COALESCE(sum(l.points_delta), 0::bigint) AS points,\n        CASE\n            WHEN COALESCE(sum(l.points_delta), 0::bigint) >= 500 THEN 'Diamante'::text\n            WHEN COALESCE(sum(l.points_delta), 0::bigint) >= 250 THEN 'Oro'::text\n            WHEN COALESCE(sum(l.points_delta), 0::bigint) >= 100 THEN 'Plata'::text\n            WHEN COALESCE(sum(l.points_delta), 0::bigint) >= 25 THEN 'Bronce'::text\n            ELSE 'Principiante'::text\n        END AS medal\n   FROM chat_profiles p\n     LEFT JOIN chat_points_ledger l ON l.user_id = p.user_id\n  GROUP BY p.user_id;"
+    }
+  ],
+  "tables": [
+    {
+      "name": "admins",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "default": "'UNIX'::text",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX admins_pkey ON public.admins USING btree (user_id)"
+      ],
+      "policies": [
+        {
+          "name": "Admin puede ver su registro",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "(user_id = auth.uid())",
+          "command": "r",
+          "with_check": null
+        },
+        {
+          "name": "Consultar administradores",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "(auth.uid() = user_id)",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "PRIMARY KEY (user_id)",
+        "FOREIGN KEY (user_id) REFERENCES auth.users(id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "banned_users",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "default": null,
+          "identity": "a",
+          "nullable": false
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX banned_users_pkey ON public.banned_users USING btree (id)"
+      ],
+      "policies": [
+        {
+          "name": "Administrar baneados",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true",
+          "command": "*",
+          "with_check": "true"
+        },
+        {
+          "name": "Consultar baneados",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "PRIMARY KEY (id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_antispam_events",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "default": null,
+          "identity": "a",
+          "nullable": false
+        },
+        {
+          "name": "sender_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "body_hash",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "context_key",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "default": "clock_timestamp()",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX chat_antispam_events_pkey ON public.chat_antispam_events USING btree (id)",
+        "CREATE INDEX chat_antispam_events_sender_hash_time_idx ON public.chat_antispam_events USING btree (sender_id, body_hash, sent_at DESC)",
+        "CREATE INDEX chat_antispam_events_sender_time_idx ON public.chat_antispam_events USING btree (sender_id, sent_at DESC)"
+      ],
+      "policies": null,
+      "constraints": [
+        "PRIMARY KEY (id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_bots",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "instructions",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "default": "true",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX chat_bots_name_key ON public.chat_bots USING btree (name)",
+        "CREATE UNIQUE INDEX chat_bots_pkey ON public.chat_bots USING btree (id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "CHECK (char_length(TRIM(BOTH FROM instructions)) >= 1 AND char_length(TRIM(BOTH FROM instructions)) <= 4000)",
+        "UNIQUE (name)",
+        "CHECK (char_length(TRIM(BOTH FROM name)) >= 1 AND char_length(TRIM(BOTH FROM name)) <= 25)",
+        "PRIMARY KEY (id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_message_reactions",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "default": null,
+          "identity": "d",
+          "nullable": false
+        },
+        {
+          "name": "message_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "private_message_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "reaction",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX chat_message_reactions_pkey ON public.chat_message_reactions USING btree (id)",
+        "CREATE INDEX chat_reactions_private_message_idx ON public.chat_message_reactions USING btree (private_message_id) WHERE (private_message_id IS NOT NULL)",
+        "CREATE UNIQUE INDEX chat_reactions_private_unique ON public.chat_message_reactions USING btree (private_message_id, user_id, reaction) WHERE (private_message_id IS NOT NULL)",
+        "CREATE INDEX chat_reactions_public_message_idx ON public.chat_message_reactions USING btree (message_id) WHERE (message_id IS NOT NULL)",
+        "CREATE UNIQUE INDEX chat_reactions_public_unique ON public.chat_message_reactions USING btree (message_id, user_id, reaction) WHERE (message_id IS NOT NULL)"
+      ],
+      "policies": [
+        {
+          "name": "chat_reactions_delete_own",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "((auth.uid() IS NOT NULL) AND (user_id = auth.uid()))",
+          "command": "d",
+          "with_check": null
+        },
+        {
+          "name": "chat_reactions_insert_own",
+          "roles": [
+            "authenticated"
+          ],
+          "using": null,
+          "command": "a",
+          "with_check": "((auth.uid() IS NOT NULL) AND (user_id = auth.uid()) AND ((message_id IS NOT NULL) OR ((private_message_id IS NOT NULL) AND (EXISTS ( SELECT 1\n   FROM private_messages pm\n  WHERE ((pm.id = chat_message_reactions.private_message_id) AND ((pm.sender_id = auth.uid()) OR (pm.recipient_id = auth.uid()))))))))"
+        },
+        {
+          "name": "chat_reactions_read",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "((auth.uid() IS NOT NULL) AND ((message_id IS NOT NULL) OR ((private_message_id IS NOT NULL) AND (EXISTS ( SELECT 1\n   FROM private_messages pm\n  WHERE ((pm.id = chat_message_reactions.private_message_id) AND ((pm.sender_id = auth.uid()) OR (pm.recipient_id = auth.uid()))))))))",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "CHECK (reaction = ANY (ARRAY['👍'::text, '❤️'::text, '😂'::text, '😮'::text, '😢'::text, '👏'::text, '🔥'::text]))",
+        "FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE",
+        "CHECK (message_id IS NOT NULL AND private_message_id IS NULL OR message_id IS NULL AND private_message_id IS NOT NULL)",
+        "PRIMARY KEY (id)",
+        "FOREIGN KEY (private_message_id) REFERENCES private_messages(id) ON DELETE CASCADE"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_moderation_terms",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "default": null,
+          "identity": "a",
+          "nullable": false
+        },
+        {
+          "name": "term",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "normalized_term",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "default": "'custom'::text",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "default": "true",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX chat_moderation_terms_active_idx ON public.chat_moderation_terms USING btree (active, category)",
+        "CREATE UNIQUE INDEX chat_moderation_terms_normalized_term_key ON public.chat_moderation_terms USING btree (normalized_term)",
+        "CREATE UNIQUE INDEX chat_moderation_terms_pkey ON public.chat_moderation_terms USING btree (id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "CHECK (category = ANY (ARRAY['insulto'::text, 'spam'::text, 'custom'::text]))",
+        "UNIQUE (normalized_term)",
+        "PRIMARY KEY (id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_points_ledger",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "default": null,
+          "identity": "d",
+          "nullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "points_delta",
+          "type": "integer",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "event_key",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX chat_points_ledger_event_key_key ON public.chat_points_ledger USING btree (event_key)",
+        "CREATE UNIQUE INDEX chat_points_ledger_pkey ON public.chat_points_ledger USING btree (id)",
+        "CREATE INDEX chat_points_ledger_user_created_idx ON public.chat_points_ledger USING btree (user_id, created_at DESC)"
+      ],
+      "policies": [
+        {
+          "name": "chat_points_read_authenticated",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "(auth.uid() IS NOT NULL)",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (event_key)",
+        "PRIMARY KEY (id)",
+        "CHECK (points_delta >= 1 AND points_delta <= 1000)",
+        "CHECK (char_length(reason) >= 1 AND char_length(reason) <= 120)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_profiles",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "is_registered",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "bio",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "avatar_url",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX chat_profiles_pkey ON public.chat_profiles USING btree (user_id)",
+        "CREATE UNIQUE INDEX chat_profiles_registered_nickname_unique ON public.chat_profiles USING btree (lower(TRIM(BOTH FROM nickname))) WHERE (is_registered = true)"
+      ],
+      "policies": [
+        {
+          "name": "Actualizar perfil propio",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "(auth.uid() = user_id)",
+          "command": "w",
+          "with_check": "(auth.uid() = user_id)"
+        },
+        {
+          "name": "Crear perfil propio",
+          "roles": [
+            "authenticated"
+          ],
+          "using": null,
+          "command": "a",
+          "with_check": "(auth.uid() = user_id)"
+        },
+        {
+          "name": "Leer perfiles del chat",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "CHECK (avatar_url IS NULL OR char_length(avatar_url) <= 2048 AND avatar_url ~* '^https://'::text)",
+        "CHECK (bio IS NULL OR char_length(bio) <= 160)",
+        "PRIMARY KEY (user_id)",
+        "CHECK (status IS NULL OR char_length(status) <= 40)",
+        "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_room_poll_votes",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "poll_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "option_index",
+          "type": "integer",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX chat_room_poll_votes_pkey ON public.chat_room_poll_votes USING btree (id)",
+        "CREATE UNIQUE INDEX chat_room_poll_votes_poll_id_user_id_key ON public.chat_room_poll_votes USING btree (poll_id, user_id)",
+        "CREATE INDEX chat_room_poll_votes_poll_idx ON public.chat_room_poll_votes USING btree (poll_id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "CHECK (option_index >= 0 AND option_index <= 5)",
+        "PRIMARY KEY (id)",
+        "FOREIGN KEY (poll_id) REFERENCES chat_room_polls(id) ON DELETE CASCADE",
+        "UNIQUE (poll_id, user_id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_room_polls",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "question",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "options",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "is_closed",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX chat_room_polls_pkey ON public.chat_room_polls USING btree (id)",
+        "CREATE INDEX chat_room_polls_room_created_idx ON public.chat_room_polls USING btree (room_id, created_at DESC)"
+      ],
+      "policies": [
+        {
+          "name": "chat_room_polls_read",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "CHECK (jsonb_typeof(options) = 'array'::text AND jsonb_array_length(options) >= 2 AND jsonb_array_length(options) <= 6)",
+        "PRIMARY KEY (id)",
+        "CHECK (char_length(btrim(question)) >= 3 AND char_length(btrim(question)) <= 180)",
+        "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_room_topics",
+      "columns": [
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "topic",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX chat_room_topics_pkey ON public.chat_room_topics USING btree (room_id)"
+      ],
+      "policies": [
+        {
+          "name": "topics_read_public",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "PRIMARY KEY (room_id)",
+        "CHECK (char_length(topic) <= 180)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_room_welcome_messages",
+      "columns": [
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "default": "true",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "updated_by",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX chat_room_welcome_messages_pkey ON public.chat_room_welcome_messages USING btree (room_id)"
+      ],
+      "policies": [
+        {
+          "name": "chat_room_welcome_read",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "true",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "CHECK (char_length(btrim(message)) >= 1 AND char_length(btrim(message)) <= 300)",
+        "PRIMARY KEY (room_id)",
+        "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_scheduled_announcements",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "scheduled_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "default": "'pending'::text",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "created_by",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX chat_scheduled_announcements_due_idx ON public.chat_scheduled_announcements USING btree (scheduled_at) WHERE (status = 'pending'::text)",
+        "CREATE UNIQUE INDEX chat_scheduled_announcements_pkey ON public.chat_scheduled_announcements USING btree (id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "CHECK (char_length(btrim(message)) >= 1 AND char_length(btrim(message)) <= 500)",
+        "PRIMARY KEY (id)",
+        "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE",
+        "CHECK (status = ANY (ARRAY['pending'::text, 'sent'::text, 'cancelled'::text]))"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_user_reports",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "default": null,
+          "identity": "a",
+          "nullable": false
+        },
+        {
+          "name": "reporter_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "target_user_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "details",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "default": "'pending'::text",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "reviewed_by",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX chat_user_reports_pkey ON public.chat_user_reports USING btree (id)",
+        "CREATE INDEX chat_user_reports_status_created_idx ON public.chat_user_reports USING btree (status, created_at DESC)",
+        "CREATE INDEX chat_user_reports_target_created_idx ON public.chat_user_reports USING btree (target_user_id, created_at DESC)"
+      ],
+      "policies": [
+        {
+          "name": "chat_user_reports_insert_own",
+          "roles": [
+            "authenticated"
+          ],
+          "using": null,
+          "command": "a",
+          "with_check": "((reporter_id = auth.uid()) AND (target_user_id <> auth.uid()))"
+        }
+      ],
+      "constraints": [
+        "CHECK (category = ANY (ARRAY['spam'::text, 'insultos'::text, 'acoso'::text, 'contenido_inapropiado'::text, 'otro'::text]))",
+        "CHECK (char_length(TRIM(BOTH FROM details)) >= 5 AND char_length(TRIM(BOTH FROM details)) <= 500)",
+        "CHECK (reporter_id <> target_user_id)",
+        "PRIMARY KEY (id)",
+        "FOREIGN KEY (reporter_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+        "FOREIGN KEY (reviewed_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+        "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE SET NULL",
+        "CHECK (status = ANY (ARRAY['pending'::text, 'reviewed'::text, 'dismissed'::text, 'action_taken'::text]))",
+        "FOREIGN KEY (target_user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "chat_vip_members",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "granted_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "granted_by",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX chat_vip_members_pkey ON public.chat_vip_members USING btree (user_id)"
+      ],
+      "policies": [
+        {
+          "name": "chat_vip_members_read_own",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "(user_id = auth.uid())",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "PRIMARY KEY (user_id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "kicked_users",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "default": null,
+          "identity": "d",
+          "nullable": false
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX kicked_users_pkey ON public.kicked_users USING btree (id)"
+      ],
+      "policies": [
+        {
+          "name": "Consultar expulsados",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "PRIMARY KEY (id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "messages",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "default": null,
+          "identity": "a",
+          "nullable": false
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "sender_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "message_type",
+          "type": "text",
+          "default": "'text'::text",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "media_url",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX messages_created_at_idx ON public.messages USING btree (created_at)",
+        "CREATE UNIQUE INDEX messages_pkey ON public.messages USING btree (id)"
+      ],
+      "policies": [
+        {
+          "name": "Leer mensajes",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true",
+          "command": "r",
+          "with_check": null
+        },
+        {
+          "name": "Todos pueden leer mensajes",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true",
+          "command": "r",
+          "with_check": null
+        },
+        {
+          "name": "Todos pueden ver mensajes",
+          "roles": [
+            "anon"
+          ],
+          "using": "true",
+          "command": "r",
+          "with_check": null
+        },
+        {
+          "name": "messages_insert_authenticated",
+          "roles": [
+            "authenticated"
+          ],
+          "using": null,
+          "command": "a",
+          "with_check": "(sender_id = (auth.uid())::text)"
+        },
+        {
+          "name": "messages_select_authenticated",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "true",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "CHECK (message_type = ANY (ARRAY['text'::text, 'sticker'::text, 'gif'::text]))",
+        "CHECK (message_type = 'text'::text AND media_url IS NULL OR (message_type = ANY (ARRAY['sticker'::text, 'gif'::text])) AND media_url IS NOT NULL AND char_length(media_url) <= 2048 AND media_url ~* '^https://'::text)",
+        "PRIMARY KEY (id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "private_messages",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "default": null,
+          "identity": "d",
+          "nullable": false
+        },
+        {
+          "name": "sender_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "recipient_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "sender_nickname",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "message_type",
+          "type": "text",
+          "default": "'text'::text",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "media_url",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX private_messages_pkey ON public.private_messages USING btree (id)"
+      ],
+      "policies": [
+        {
+          "name": "Enviar mensajes privados propios",
+          "roles": [
+            "authenticated"
+          ],
+          "using": null,
+          "command": "a",
+          "with_check": "(auth.uid() = sender_id)"
+        },
+        {
+          "name": "Leer mensajes privados propios",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "((auth.uid() = sender_id) OR (auth.uid() = recipient_id))",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "CHECK (char_length(content) >= 1 AND char_length(content) <= 1000)",
+        "CHECK (message_type = ANY (ARRAY['text'::text, 'sticker'::text, 'gif'::text]))",
+        "CHECK (message_type = 'text'::text AND media_url IS NULL OR (message_type = ANY (ARRAY['sticker'::text, 'gif'::text])) AND media_url IS NOT NULL AND char_length(media_url) <= 2048 AND media_url ~* '^https://'::text)",
+        "PRIMARY KEY (id)",
+        "FOREIGN KEY (recipient_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+        "FOREIGN KEY (sender_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "rooms",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "default": null,
+          "identity": "d",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "is_vip",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX rooms_name_key ON public.rooms USING btree (name)",
+        "CREATE UNIQUE INDEX rooms_pkey ON public.rooms USING btree (id)"
+      ],
+      "policies": [
+        {
+          "name": "Crear salas",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": null,
+          "command": "a",
+          "with_check": "true"
+        },
+        {
+          "name": "Todos pueden ver salas",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "UNIQUE (name)",
+        "PRIMARY KEY (id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_account_sessions",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "device_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX wichat_account_sessions_pkey ON public.wichat_account_sessions USING btree (user_id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "PRIMARY KEY (user_id)",
+        "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_active_nicks",
+      "columns": [
+        {
+          "name": "nickname_key",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "sender_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX wichat_active_nicks_expiration ON public.wichat_active_nicks USING btree (expires_at)",
+        "CREATE UNIQUE INDEX wichat_active_nicks_pkey ON public.wichat_active_nicks USING btree (nickname_key)",
+        "CREATE UNIQUE INDEX wichat_active_nicks_sender_id_key ON public.wichat_active_nicks USING btree (sender_id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "PRIMARY KEY (nickname_key)",
+        "UNIQUE (sender_id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_admin_config",
+      "columns": [
+        {
+          "name": "singleton",
+          "type": "boolean",
+          "default": "true",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "pin_hash",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX wichat_admin_config_pkey ON public.wichat_admin_config USING btree (singleton)"
+      ],
+      "policies": null,
+      "constraints": [
+        "PRIMARY KEY (singleton)",
+        "CHECK (singleton)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_admins",
+      "columns": [
+        {
+          "name": "sender_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "default": "true",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX wichat_admins_nickname_key ON public.wichat_admins USING btree (nickname)",
+        "CREATE UNIQUE INDEX wichat_admins_pkey ON public.wichat_admins USING btree (sender_id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "UNIQUE (nickname)",
+        "PRIMARY KEY (sender_id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_badword_counts",
+      "columns": [
+        {
+          "name": "sender_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "violation_count",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX wichat_badword_counts_pkey ON public.wichat_badword_counts USING btree (sender_id, room_id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "PRIMARY KEY (sender_id, room_id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_bans",
+      "columns": [
+        {
+          "name": "sender_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "default": "'Baneado por UNIX'::text",
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX wichat_bans_pkey ON public.wichat_bans USING btree (sender_id, room_id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "PRIMARY KEY (sender_id, room_id)",
+        "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_bots",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "default": null,
+          "identity": "d",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "default": "true",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "default": "'groq'::text",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX wichat_bots_pkey ON public.wichat_bots USING btree (id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "PRIMARY KEY (id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_insult_counts",
+      "columns": [
+        {
+          "name": "sender_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "insult_count",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX wichat_insult_counts_pkey ON public.wichat_insult_counts USING btree (sender_id, room_id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "PRIMARY KEY (sender_id, room_id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_ip_bans",
+      "columns": [
+        {
+          "name": "client_ip",
+          "type": "inet",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "default": "'Baneo por administrador'::text",
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX wichat_ip_bans_pkey ON public.wichat_ip_bans USING btree (client_ip, room_id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "PRIMARY KEY (client_ip, room_id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_kicks",
+      "columns": [
+        {
+          "name": "sender_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX wichat_kicks_pkey ON public.wichat_kicks USING btree (sender_id, room_id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "PRIMARY KEY (sender_id, room_id)",
+        "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_moderation_events",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "default": null,
+          "identity": "a",
+          "nullable": false
+        },
+        {
+          "name": "sender_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "duration_minutes",
+          "type": "integer",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "moderated_by",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX wichat_moderation_events_created_idx ON public.wichat_moderation_events USING btree (created_at DESC)",
+        "CREATE UNIQUE INDEX wichat_moderation_events_pkey ON public.wichat_moderation_events USING btree (id)",
+        "CREATE INDEX wichat_moderation_events_sender_created_idx ON public.wichat_moderation_events USING btree (sender_id, created_at DESC)"
+      ],
+      "policies": [
+        {
+          "name": "Users read own moderation events",
+          "roles": [
+            "authenticated"
+          ],
+          "using": "(sender_id = (auth.uid())::text)",
+          "command": "r",
+          "with_check": null
+        }
+      ],
+      "constraints": [
+        "CHECK (duration_minutes IS NULL OR (duration_minutes = ANY (ARRAY[5, 15, 60, 1440])))",
+        "PRIMARY KEY (id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_nicknames",
+      "columns": [
+        {
+          "name": "sender_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "nickname_norm",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "default": "(now() + '00:02:00'::interval)",
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX wichat_nicknames_nickname_norm_key ON public.wichat_nicknames USING btree (nickname_norm)",
+        "CREATE UNIQUE INDEX wichat_nicknames_pkey ON public.wichat_nicknames USING btree (sender_id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "UNIQUE (nickname_norm)",
+        "PRIMARY KEY (sender_id)"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_room_bans",
+      "columns": [
+        {
+          "name": "sender_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "room_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "nickname",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX wichat_room_bans_pkey ON public.wichat_room_bans USING btree (sender_id, room_id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "PRIMARY KEY (sender_id, room_id)",
+        "FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE"
+      ],
+      "rls_enabled": true
+    },
+    {
+      "name": "wichat_user_ips",
+      "columns": [
+        {
+          "name": "sender_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "client_ip",
+          "type": "inet",
+          "default": null,
+          "identity": "",
+          "nullable": false
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX wichat_user_ips_pkey ON public.wichat_user_ips USING btree (sender_id)"
+      ],
+      "policies": null,
+      "constraints": [
+        "PRIMARY KEY (sender_id)"
+      ],
+      "rls_enabled": true
+    }
+  ],
+  "project": {
+    "id": "pqnnzkqxkndzelsbtxvv",
+    "region": "us-east-1",
+    "postgres_version": "17.11"
+  },
+  "triggers": [
+    {
+      "table": "chat_user_reports",
+      "definition": "CREATE TRIGGER wichat_limit_user_reports_trigger BEFORE INSERT ON chat_user_reports FOR EACH ROW EXECUTE FUNCTION wichat_limit_user_reports()"
+    },
+    {
+      "table": "messages",
+      "definition": "CREATE TRIGGER chat_antispam_guard_trigger BEFORE INSERT ON messages FOR EACH ROW EXECUTE FUNCTION wichat_antispam_guard()"
+    },
+    {
+      "table": "messages",
+      "definition": "CREATE TRIGGER chat_award_public_message_point AFTER INSERT ON messages FOR EACH ROW EXECUTE FUNCTION wichat_award_public_message_point()"
+    },
+    {
+      "table": "messages",
+      "definition": "CREATE TRIGGER wichat_moderate_message_trigger BEFORE INSERT ON messages FOR EACH ROW EXECUTE FUNCTION wichat_moderate_message()"
+    },
+    {
+      "table": "private_messages",
+      "definition": "CREATE TRIGGER chat_antispam_guard_trigger BEFORE INSERT ON private_messages FOR EACH ROW EXECUTE FUNCTION wichat_antispam_guard()"
+    },
+    {
+      "table": "wichat_moderation_events",
+      "definition": "CREATE TRIGGER trigger_wichat_apply_ip_ban AFTER INSERT ON wichat_moderation_events FOR EACH ROW EXECUTE FUNCTION wichat_apply_ip_ban()"
+    }
+  ],
+  "functions": [
+    {
+      "name": "admin_cancel_scheduled_announcement",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_cancel_scheduled_announcement(pin_input text, announcement_id_input uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare affected integer;\nbegin\n if not coalesce(public.verify_admin_pin(pin_input),false) then raise exception 'PIN de administrador incorrecto'; end if;\n update public.chat_scheduled_announcements set status='cancelled' where id=announcement_id_input and status='pending';\n get diagnostics affected = row_count;\n return affected=1;\nend $function$\n",
+      "identity_arguments": "pin_input text, announcement_id_input uuid"
+    },
+    {
+      "name": "admin_close_room_poll",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_close_room_poll(pin_input text, poll_id_input uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare n integer;\nbegin\n if not coalesce(public.verify_admin_pin(pin_input),false) then raise exception 'PIN de administrador incorrecto'; end if;\n update public.chat_room_polls set is_closed=true,updated_at=now() where id=poll_id_input and not is_closed;\n get diagnostics n=row_count; return n=1;\nend $function$\n",
+      "identity_arguments": "pin_input text, poll_id_input uuid"
+    },
+    {
+      "name": "admin_create_room",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_create_room(pin_input text, room_name text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n    new_room_id BIGINT;\n    clean_name TEXT;\nBEGIN\n    -- Verificar PIN del administrador\n    IF NOT public.verify_admin_pin(pin_input) THEN\n        RAISE EXCEPTION 'PIN incorrecto';\n    END IF;\n\n    clean_name := trim(room_name);\n\n    IF clean_name IS NULL OR clean_name = '' THEN\n        RAISE EXCEPTION 'El nombre de la sala no puede estar vacío';\n    END IF;\n\n    INSERT INTO public.rooms (name)\n    VALUES (clean_name)\n    RETURNING id INTO new_room_id;\n\n    RETURN jsonb_build_object(\n        'success', true,\n        'id', new_room_id,\n        'name', clean_name\n    );\nEND;\n$function$\n",
+      "identity_arguments": "pin_input text, room_name text"
+    },
+    {
+      "name": "admin_create_room_poll",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_create_room_poll(pin_input text, room_id_input bigint, question_input text, options_input jsonb)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare new_id uuid; clean_options jsonb;\nbegin\n if not coalesce(public.verify_admin_pin(pin_input),false) then raise exception 'PIN de administrador incorrecto'; end if;\n if not exists(select 1 from public.rooms where id=room_id_input) then raise exception 'La sala no existe'; end if;\n if question_input is null or char_length(btrim(question_input)) not between 3 and 180 then raise exception 'La pregunta debe tener entre 3 y 180 caracteres'; end if;\n if options_input is null or jsonb_typeof(options_input) is distinct from 'array' or jsonb_array_length(options_input) not between 2 and 6 then raise exception 'La encuesta debe tener entre 2 y 6 opciones'; end if;\n select jsonb_agg(to_jsonb(v)) into clean_options from (select btrim(value) as v from jsonb_array_elements_text(options_input)) q where char_length(v) between 1 and 80;\n if clean_options is null or jsonb_array_length(clean_options)<>jsonb_array_length(options_input) then raise exception 'Cada opción debe tener entre 1 y 80 caracteres'; end if;\n if (select count(distinct lower(value)) from jsonb_array_elements_text(clean_options))<>jsonb_array_length(clean_options) then raise exception 'No puede haber opciones repetidas'; end if;\n insert into public.chat_room_polls(room_id,question,options,created_by) values(room_id_input,btrim(question_input),clean_options,auth.uid()) returning id into new_id;\n return new_id;\nend $function$\n",
+      "identity_arguments": "pin_input text, room_id_input bigint, question_input text, options_input jsonb"
+    },
+    {
+      "name": "admin_delete_room",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_delete_room(pin_input text, room_id_input bigint)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nBEGIN\n\n    IF NOT public.verify_admin_pin(pin_input) THEN\n        RAISE EXCEPTION 'PIN de administrador incorrecto';\n    END IF;\n\n    DELETE FROM public.rooms\n    WHERE id = room_id_input;\n\n    IF NOT FOUND THEN\n        RETURN FALSE;\n    END IF;\n\n    RETURN TRUE;\n\nEND;\n$function$\n",
+      "identity_arguments": "pin_input text, room_id_input bigint"
+    },
+    {
+      "name": "admin_list_bans",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_list_bans(pin_input text)\n RETURNS TABLE(sender_id text, nickname text, ban_type text, room_id bigint, client_ip inet, expires_at timestamp with time zone)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nBEGIN\n    IF NOT public.verify_admin_pin(pin_input) THEN\n        RAISE EXCEPTION 'PIN incorrecto';\n    END IF;\n\n    RETURN QUERY\n\n    SELECT\n        b.sender_id,\n        b.nickname,\n        'Todas las salas'::text,\n        NULL::bigint,\n        u.client_ip,\n        b.expires_at\n    FROM public.wichat_bans b\n    LEFT JOIN public.wichat_user_ips u\n        ON u.sender_id = b.sender_id\n    WHERE b.expires_at IS NULL OR b.expires_at > now()\n\n    UNION ALL\n\n    SELECT\n        b.sender_id,\n        b.nickname,\n        'Sala específica'::text,\n        b.room_id,\n        u.client_ip,\n        b.expires_at\n    FROM public.wichat_room_bans b\n    LEFT JOIN public.wichat_user_ips u\n        ON u.sender_id = b.sender_id\n    WHERE b.expires_at > now()\n\n    UNION ALL\n\n    SELECT\n        u.sender_id,\n        b.nickname,\n        'Baneo por IP'::text,\n        b.room_id,\n        b.client_ip,\n        b.expires_at\n    FROM public.wichat_ip_bans b\n    LEFT JOIN public.wichat_user_ips u\n        ON u.client_ip = b.client_ip\n    WHERE b.expires_at > now();\nEND;\n$function$\n",
+      "identity_arguments": "pin_input text"
+    },
+    {
+      "name": "admin_list_scheduled_announcements",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_list_scheduled_announcements(pin_input text)\n RETURNS TABLE(id uuid, room_id bigint, message text, scheduled_at timestamp with time zone, status text, created_at timestamp with time zone, sent_at timestamp with time zone)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nbegin\n if not coalesce(public.verify_admin_pin(pin_input),false) then raise exception 'PIN de administrador incorrecto'; end if;\n return query select a.id,a.room_id,a.message,a.scheduled_at,a.status,a.created_at,a.sent_at from public.chat_scheduled_announcements a order by case when a.status='pending' then 0 else 1 end,a.scheduled_at asc limit 100;\nend $function$\n",
+      "identity_arguments": "pin_input text"
+    },
+    {
+      "name": "admin_moderate_user",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_moderate_user(action_name text, pin_input text, room_id_input bigint, target_sender_id text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n    target_nickname text;\n    expiry timestamptz;\n    selected_action text;\n    target_ip inet;\nBEGIN\n    -- Verificar PIN del administrador\n    IF NOT public.verify_admin_pin(pin_input) THEN\n        RAISE EXCEPTION 'PIN incorrecto';\n    END IF;\n\n    -- Proteger a todos los administradores activos\n    IF public.is_wichat_admin(target_sender_id) THEN\n        RAISE EXCEPTION 'No se puede expulsar ni banear a un administrador';\n    END IF;\n\n    IF target_sender_id IS NULL OR trim(target_sender_id) = '' THEN\n        RAISE EXCEPTION 'Usuario no válido';\n    END IF;\n\n    IF NOT EXISTS (\n        SELECT 1\n        FROM public.rooms\n        WHERE id = room_id_input\n    ) THEN\n        RAISE EXCEPTION 'La sala no existe';\n    END IF;\n\n    selected_action := lower(action_name);\n\n    IF selected_action NOT IN ('kick', 'ban') THEN\n        RAISE EXCEPTION 'Acción no válida';\n    END IF;\n\n    SELECT nickname\n    INTO target_nickname\n    FROM public.messages\n    WHERE sender_id = target_sender_id\n      AND room_id = room_id_input\n    ORDER BY created_at DESC\n    LIMIT 1;\n\n    target_nickname := COALESCE(target_nickname, 'Usuario');\n\n    expiry := now() + interval '5 minutes';\n\n    IF selected_action = 'kick' THEN\n\n        DELETE FROM public.wichat_kicks\n        WHERE sender_id = target_sender_id\n          AND room_id = room_id_input;\n\n        DELETE FROM public.wichat_room_bans\n        WHERE sender_id = target_sender_id\n          AND room_id = room_id_input;\n\n        INSERT INTO public.wichat_room_bans\n            (sender_id, room_id, nickname, reason, created_at, expires_at)\n        VALUES (\n            target_sender_id,\n            room_id_input,\n            target_nickname,\n            'Expulsión de cinco minutos',\n            now(),\n            expiry\n        );\n\n    ELSE\n\n        SELECT client_ip\n        INTO target_ip\n        FROM public.wichat_user_ips\n        WHERE sender_id = target_sender_id;\n\n        DELETE FROM public.wichat_kicks\n        WHERE sender_id = target_sender_id;\n\n        INSERT INTO public.wichat_bans\n            (sender_id, nickname, reason, expires_at)\n        VALUES (\n            target_sender_id,\n            target_nickname,\n            'Baneo de cinco minutos',\n            expiry\n        )\n        ON CONFLICT (sender_id)\n        DO UPDATE SET\n            nickname = EXCLUDED.nickname,\n            reason = EXCLUDED.reason,\n            created_at = now(),\n            expires_at = EXCLUDED.expires_at;\n\n        DELETE FROM public.wichat_room_bans\n        WHERE sender_id = target_sender_id;\n\n        IF target_ip IS NOT NULL THEN\n            INSERT INTO public.wichat_ip_bans\n                (client_ip, room_id, nickname, reason, expires_at)\n            VALUES (\n                target_ip,\n                room_id_input,\n                target_nickname,\n                'Baneo por IP de cinco minutos',\n                expiry\n            )\n            ON CONFLICT (client_ip, room_id)\n            DO UPDATE SET\n                nickname = EXCLUDED.nickname,\n                reason = EXCLUDED.reason,\n                created_at = now(),\n                expires_at = EXCLUDED.expires_at;\n        END IF;\n\n    END IF;\n\n    INSERT INTO public.wichat_moderation_events\n        (sender_id, room_id, action)\n    VALUES (\n        target_sender_id,\n        room_id_input,\n        selected_action\n    );\n\n    RETURN jsonb_build_object(\n        'success', true,\n        'action', selected_action,\n        'ip_banned', CASE\n            WHEN selected_action = 'ban'\n            THEN target_ip IS NOT NULL\n            ELSE false\n        END,\n        'expires_at', expiry,\n        'message', CASE\n            WHEN selected_action = 'ban'\n            THEN 'Estás baneado por cinco minutos'\n            ELSE 'Has sido expulsado por cinco minutos'\n        END\n    );\nEND;\n$function$\n",
+      "identity_arguments": "action_name text, pin_input text, room_id_input bigint, target_sender_id text"
+    },
+    {
+      "name": "admin_moderate_user",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_moderate_user(action_name text, pin_input text, room_id_input bigint, target_sender_id text, reason_input text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n  target_nickname text;\n  expiry timestamptz;\n  selected_action text;\n  target_ip inet;\n  moderation_reason text;\nBEGIN\n  IF NOT public.verify_admin_pin(pin_input) THEN\n    RAISE EXCEPTION 'PIN incorrecto';\n  END IF;\n\n  IF public.is_wichat_admin(target_sender_id) THEN\n    RAISE EXCEPTION 'No se puede expulsar ni banear a un administrador';\n  END IF;\n\n  IF target_sender_id IS NULL OR trim(target_sender_id) = '' THEN\n    RAISE EXCEPTION 'Usuario no válido';\n  END IF;\n\n  IF NOT EXISTS (SELECT 1 FROM public.rooms WHERE id = room_id_input) THEN\n    RAISE EXCEPTION 'La sala no existe';\n  END IF;\n\n  selected_action := lower(action_name);\n  IF selected_action NOT IN ('kick', 'ban') THEN\n    RAISE EXCEPTION 'Acción no válida';\n  END IF;\n\n  moderation_reason := nullif(left(trim(coalesce(reason_input, '')), 500), '');\n  IF moderation_reason IS NULL THEN\n    RAISE EXCEPTION 'Tenés que indicar el motivo de la moderación';\n  END IF;\n\n  SELECT nickname INTO target_nickname\n  FROM public.messages\n  WHERE sender_id = target_sender_id AND room_id = room_id_input\n  ORDER BY created_at DESC\n  LIMIT 1;\n  target_nickname := COALESCE(target_nickname, 'Usuario');\n  expiry := now() + interval '5 minutes';\n\n  IF selected_action = 'kick' THEN\n    DELETE FROM public.wichat_kicks\n    WHERE sender_id = target_sender_id AND room_id = room_id_input;\n\n    INSERT INTO public.wichat_room_bans\n      (sender_id, room_id, nickname, reason, created_at, expires_at)\n    VALUES\n      (target_sender_id, room_id_input, target_nickname, moderation_reason, now(), expiry)\n    ON CONFLICT (sender_id, room_id) DO UPDATE SET\n      nickname = EXCLUDED.nickname,\n      reason = EXCLUDED.reason,\n      created_at = now(),\n      expires_at = EXCLUDED.expires_at;\n  ELSE\n    SELECT client_ip INTO target_ip\n    FROM public.wichat_user_ips\n    WHERE sender_id = target_sender_id;\n\n    DELETE FROM public.wichat_kicks WHERE sender_id = target_sender_id;\n    DELETE FROM public.wichat_room_bans WHERE sender_id = target_sender_id;\n    DELETE FROM public.wichat_bans WHERE sender_id = target_sender_id;\n\n    INSERT INTO public.wichat_bans\n      (sender_id, room_id, nickname, reason, created_at, expires_at)\n    VALUES\n      (target_sender_id, room_id_input, target_nickname, moderation_reason, now(), expiry);\n\n    IF target_ip IS NOT NULL THEN\n      INSERT INTO public.wichat_ip_bans\n        (client_ip, room_id, nickname, reason, expires_at)\n      VALUES\n        (target_ip, room_id_input, target_nickname, moderation_reason, expiry)\n      ON CONFLICT (client_ip, room_id) DO UPDATE SET\n        nickname = EXCLUDED.nickname,\n        reason = EXCLUDED.reason,\n        created_at = now(),\n        expires_at = EXCLUDED.expires_at;\n    END IF;\n  END IF;\n\n  INSERT INTO public.wichat_moderation_events\n    (sender_id, room_id, action, reason)\n  VALUES\n    (target_sender_id, room_id_input, selected_action, moderation_reason);\n\n  RETURN jsonb_build_object(\n    'success', true,\n    'action', selected_action,\n    'ip_banned', CASE WHEN selected_action = 'ban' THEN target_ip IS NOT NULL ELSE false END,\n    'expires_at', expiry,\n    'reason', moderation_reason,\n    'message', CASE\n      WHEN selected_action = 'ban' THEN 'Estás baneado por cinco minutos'\n      ELSE 'Has sido expulsado por cinco minutos'\n    END\n  );\nEND;\n$function$\n",
+      "identity_arguments": "action_name text, pin_input text, room_id_input bigint, target_sender_id text, reason_input text"
+    },
+    {
+      "name": "admin_moderate_user",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_moderate_user(pin_input text, target_sender_id text, room_id_input bigint, action_name text, reason_input text, duration_minutes_input integer, moderator_id_input uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare\n  target_nickname text;\n  expiry timestamptz;\n  selected_action text;\n  target_ip inet;\n  moderation_reason text;\n  prior_sanctions integer;\n  applied_minutes integer;\nbegin\n  if not public.verify_admin_pin(pin_input) then\n    raise exception 'PIN incorrecto';\n  end if;\n  if target_sender_id is null or trim(target_sender_id) = '' then\n    raise exception 'Usuario no válido';\n  end if;\n  if public.is_wichat_admin(target_sender_id) then\n    raise exception 'No se puede expulsar ni banear a un administrador';\n  end if;\n  if not exists(select 1 from public.rooms where id=room_id_input) then\n    raise exception 'La sala no existe';\n  end if;\n\n  selected_action := lower(action_name);\n  if selected_action not in ('kick','ban') then\n    raise exception 'Acción no válida';\n  end if;\n  if duration_minutes_input not in (5,15,60,1440) then\n    raise exception 'Duración no válida';\n  end if;\n  moderation_reason := nullif(left(trim(coalesce(reason_input,'')),500),'');\n  if moderation_reason is null then\n    raise exception 'Tenés que indicar el motivo de la moderación';\n  end if;\n\n  select nickname into target_nickname\n  from public.messages\n  where sender_id=target_sender_id and room_id=room_id_input\n  order by created_at desc limit 1;\n  target_nickname := coalesce(target_nickname,'Usuario');\n\n  select count(*)::integer into prior_sanctions\n  from public.wichat_moderation_events\n  where sender_id=target_sender_id\n    and created_at >= now()-interval '30 days'\n    and action in ('kick','ban');\n\n  applied_minutes := greatest(\n    duration_minutes_input,\n    case\n      when prior_sanctions >= 3 then 1440\n      when prior_sanctions = 2 then 60\n      when prior_sanctions = 1 then 15\n      else 5\n    end\n  );\n  expiry := now() + make_interval(mins => applied_minutes);\n\n  if selected_action='kick' then\n    delete from public.wichat_kicks\n      where sender_id=target_sender_id and room_id=room_id_input;\n    insert into public.wichat_room_bans\n      (sender_id,room_id,nickname,reason,created_at,expires_at)\n    values\n      (target_sender_id,room_id_input,target_nickname,moderation_reason,now(),expiry)\n    on conflict (sender_id,room_id) do update set\n      nickname=excluded.nickname, reason=excluded.reason,\n      created_at=now(), expires_at=excluded.expires_at;\n  else\n    select client_ip into target_ip\n    from public.wichat_user_ips where sender_id=target_sender_id;\n\n    delete from public.wichat_kicks where sender_id=target_sender_id;\n    delete from public.wichat_room_bans where sender_id=target_sender_id;\n    delete from public.wichat_bans where sender_id=target_sender_id;\n\n    insert into public.wichat_bans\n      (sender_id,room_id,nickname,reason,created_at,expires_at)\n    values\n      (target_sender_id,room_id_input,target_nickname,moderation_reason,now(),expiry);\n\n    if target_ip is not null then\n      insert into public.wichat_ip_bans\n        (client_ip,room_id,nickname,reason,expires_at)\n      values\n        (target_ip,room_id_input,target_nickname,moderation_reason,expiry)\n      on conflict (client_ip,room_id) do update set\n        nickname=excluded.nickname,reason=excluded.reason,\n        created_at=now(),expires_at=excluded.expires_at;\n    end if;\n  end if;\n\n  insert into public.wichat_moderation_events\n    (sender_id,room_id,action,reason,duration_minutes,moderated_by)\n  values\n    (target_sender_id,room_id_input,selected_action,moderation_reason,applied_minutes,moderator_id_input);\n\n  return jsonb_build_object(\n    'success',true,'action',selected_action,'duration_minutes',applied_minutes,\n    'prior_sanctions',prior_sanctions,'expires_at',expiry,\n    'ip_banned',case when selected_action='ban' then target_ip is not null else false end,\n    'reason',moderation_reason\n  );\nend;\n$function$\n",
+      "identity_arguments": "pin_input text, target_sender_id text, room_id_input bigint, action_name text, reason_input text, duration_minutes_input integer, moderator_id_input uuid"
+    },
+    {
+      "name": "admin_schedule_announcement",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_schedule_announcement(pin_input text, room_id_input bigint, message_input text, scheduled_at_input timestamp with time zone)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare new_id uuid;\nbegin\n if not coalesce(public.verify_admin_pin(pin_input),false) then raise exception 'PIN de administrador incorrecto'; end if;\n if not exists(select 1 from public.rooms where id=room_id_input) then raise exception 'La sala no existe'; end if;\n if message_input is null or char_length(btrim(message_input)) not between 1 and 500 then raise exception 'El mensaje debe tener entre 1 y 500 caracteres'; end if;\n if scheduled_at_input is null or scheduled_at_input <= now() or scheduled_at_input > now()+interval '90 days' then raise exception 'Elegí una fecha futura dentro de los próximos 90 días'; end if;\n insert into public.chat_scheduled_announcements(room_id,message,scheduled_at,created_by) values(room_id_input,btrim(message_input),scheduled_at_input,auth.uid()) returning id into new_id;\n return new_id;\nend $function$\n",
+      "identity_arguments": "pin_input text, room_id_input bigint, message_input text, scheduled_at_input timestamp with time zone"
+    },
+    {
+      "name": "admin_set_room_topic",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_set_room_topic(pin_input text, room_id_input bigint, topic_input text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  -- Verificar el PIN del administrador\n  if not coalesce(public.verify_admin_pin(pin_input), false) then\n    raise exception 'PIN de administrador incorrecto';\n  end if;\n\n  if room_id_input is null then\n    raise exception 'No se indicó una sala';\n  end if;\n\n  -- Si el tópico está vacío, borrarlo\n  if topic_input is null or btrim(topic_input) = '' then\n    delete from public.chat_room_topics\n    where room_id = room_id_input;\n  else\n    if char_length(btrim(topic_input)) > 180 then\n      raise exception 'El tópico no puede superar los 180 caracteres';\n    end if;\n\n    insert into public.chat_room_topics (room_id, topic)\n    values (room_id_input, btrim(topic_input))\n    on conflict (room_id)\n    do update set\n      topic = excluded.topic,\n      updated_at = now();\n  end if;\n\n  return true;\nend;\n$function$\n",
+      "identity_arguments": "pin_input text, room_id_input bigint, topic_input text"
+    },
+    {
+      "name": "admin_set_room_vip",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_set_room_vip(pin_input text, room_id_input bigint, vip_enabled boolean)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare pin_ok boolean;\nbegin\n select public.verify_admin_pin(pin_input) into pin_ok;\n if coalesce(pin_ok,false) is not true then raise exception 'PIN de administrador incorrecto'; end if;\n update public.rooms set is_vip=vip_enabled where id=room_id_input;\n return found;\nend;$function$\n",
+      "identity_arguments": "pin_input text, room_id_input bigint, vip_enabled boolean"
+    },
+    {
+      "name": "admin_set_room_welcome",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_set_room_welcome(pin_input text, room_id_input bigint, message_input text, enabled_input boolean)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nbegin\n if public.verify_admin_pin(pin_input) is distinct from true then raise exception 'PIN incorrecto'; end if;\n if not exists(select 1 from public.rooms where id=room_id_input) then raise exception 'La sala no existe'; end if;\n if message_input is null or char_length(btrim(message_input))=0 then\n   delete from public.chat_room_welcome_messages where room_id=room_id_input;\n   return true;\n end if;\n if char_length(btrim(message_input))>300 then raise exception 'El mensaje no puede superar 300 caracteres'; end if;\n insert into public.chat_room_welcome_messages(room_id,message,enabled,updated_at)\n values(room_id_input,btrim(message_input),coalesce(enabled_input,true),now())\n on conflict(room_id) do update set message=excluded.message,enabled=excluded.enabled,updated_at=now();\n return true;\nend; $function$\n",
+      "identity_arguments": "pin_input text, room_id_input bigint, message_input text, enabled_input boolean"
+    },
+    {
+      "name": "admin_set_vip_member",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_set_vip_member(pin_input text, nickname_input text, vip_enabled boolean)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare pin_ok boolean; target_user uuid; matches integer;\nbegin\n select public.verify_admin_pin(pin_input) into pin_ok;\n if coalesce(pin_ok,false) is not true then raise exception 'PIN de administrador incorrecto'; end if;\n if nickname_input is null or length(trim(nickname_input))<1 or length(trim(nickname_input))>24 then raise exception 'Nick no válido'; end if;\n select count(*),min(user_id::text)::uuid into matches,target_user from public.chat_profiles where lower(nickname)=lower(trim(nickname_input));\n if matches=0 then raise exception 'No se encontró ese usuario'; end if;\n if matches>1 then raise exception 'Hay más de un usuario con ese nick; no se modificó ninguna membresía'; end if;\n if vip_enabled then\n  insert into public.chat_vip_members(user_id,granted_by,note) values(target_user,'UNIX','Membresía otorgada desde el panel') on conflict(user_id) do nothing;\n else delete from public.chat_vip_members where user_id=target_user;\n end if;\n return true;\nend;$function$\n",
+      "identity_arguments": "pin_input text, nickname_input text, vip_enabled boolean"
+    },
+    {
+      "name": "admin_unban_user",
+      "definition": "CREATE OR REPLACE FUNCTION public.admin_unban_user(pin_input text, target_sender_id text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n    target_ip inet;\n    deleted_count integer := 0;\n    affected integer;\nBEGIN\n    IF NOT public.verify_admin_pin(pin_input) THEN\n        RAISE EXCEPTION 'PIN incorrecto';\n    END IF;\n\n    IF target_sender_id IS NULL OR trim(target_sender_id) = '' THEN\n        RAISE EXCEPTION 'Usuario no válido';\n    END IF;\n\n    SELECT client_ip\n    INTO target_ip\n    FROM public.wichat_user_ips\n    WHERE sender_id = target_sender_id;\n\n    DELETE FROM public.wichat_bans\n    WHERE sender_id = target_sender_id;\n\n    GET DIAGNOSTICS affected = ROW_COUNT;\n    deleted_count := deleted_count + affected;\n\n    DELETE FROM public.wichat_room_bans\n    WHERE sender_id = target_sender_id;\n\n    GET DIAGNOSTICS affected = ROW_COUNT;\n    deleted_count := deleted_count + affected;\n\n    DELETE FROM public.wichat_kicks\n    WHERE sender_id = target_sender_id;\n\n    GET DIAGNOSTICS affected = ROW_COUNT;\n    deleted_count := deleted_count + affected;\n\n    IF target_ip IS NOT NULL THEN\n        DELETE FROM public.wichat_ip_bans\n        WHERE client_ip = target_ip;\n\n        GET DIAGNOSTICS affected = ROW_COUNT;\n        deleted_count := deleted_count + affected;\n    END IF;\n\n    RETURN jsonb_build_object(\n        'success', true,\n        'deleted', deleted_count,\n        'message', 'Usuario desbloqueado correctamente'\n    );\nEND;\n$function$\n",
+      "identity_arguments": "pin_input text, target_sender_id text"
+    },
+    {
+      "name": "check_chat_access",
+      "definition": "CREATE OR REPLACE FUNCTION public.check_chat_access(sender_id_input text, room_id_input bigint)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare\n headers json;\n ip_text text;\n user_ip inet;\n sender_uuid uuid;\nbegin\n headers:=coalesce(nullif(current_setting('request.headers',true),'')::json,'{}'::json);\n ip_text:=nullif(trim(headers->>'cf-connecting-ip'),'');\n if ip_text is null then ip_text:=nullif(trim(split_part(coalesce(headers->>'x-forwarded-for',''),',',1)),''); end if;\n if ip_text is not null then\n  begin user_ip:=ip_text::inet; exception when others then user_ip:=null; end;\n end if;\n if user_ip is not null then\n  insert into public.wichat_user_ips(sender_id,client_ip,updated_at)\n  values(sender_id_input,user_ip,now())\n  on conflict(sender_id) do update set client_ip=excluded.client_ip,updated_at=now();\n else\n  select client_ip into user_ip from public.wichat_user_ips where sender_id=sender_id_input;\n end if;\n if exists(select 1 from public.wichat_bans where sender_id=sender_id_input and (expires_at is null or expires_at>now())) then return false; end if;\n if exists(select 1 from public.wichat_room_bans where sender_id=sender_id_input and room_id=room_id_input and expires_at>now()) then return false; end if;\n if user_ip is not null and exists(select 1 from public.wichat_ip_bans where client_ip=user_ip and room_id=room_id_input and expires_at>now()) then return false; end if;\n if exists(select 1 from public.rooms where id=room_id_input and is_vip=true) then\n  if auth.uid() is null or sender_id_input is distinct from auth.uid()::text then return false; end if;\n  sender_uuid:=auth.uid();\n  if not exists(select 1 from public.chat_vip_members where user_id=sender_uuid) then return false; end if;\n end if;\n return true;\nend;\n$function$\n",
+      "identity_arguments": "sender_id_input text, room_id_input bigint"
+    },
+    {
+      "name": "claim_chat_nickname",
+      "definition": "CREATE OR REPLACE FUNCTION public.claim_chat_nickname(nickname_input text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n    uid TEXT;\n    nick TEXT;\n    nick_key TEXT;\n    affected INTEGER;\nBEGIN\n    uid := auth.uid()::TEXT;\n    nick := trim(nickname_input);\n\n    IF uid IS NULL OR length(nick) < 2 OR length(nick) > 25 THEN\n        RETURN FALSE;\n    END IF;\n\n    nick_key := lower(\n        translate(\n            nick,\n            'ÁÉÍÓÚÜÑáéíóúüñ',\n            'AEIOUUNaeiouun'\n        )\n    );\n\n    DELETE FROM public.wichat_active_nicks\n    WHERE expires_at < now();\n\n    -- Renovar la reserva del mismo usuario\n    UPDATE public.wichat_active_nicks\n    SET nickname = nick,\n        nickname_key = nick_key,\n        expires_at = now() + interval '2 minutes'\n    WHERE sender_id = uid;\n\n    GET DIAGNOSTICS affected = ROW_COUNT;\n\n    IF affected > 0 THEN\n        RETURN TRUE;\n    END IF;\n\n    -- Crear una reserva nueva\n    INSERT INTO public.wichat_active_nicks\n        (nickname_key, nickname, sender_id, expires_at)\n    VALUES\n        (nick_key, nick, uid, now() + interval '2 minutes')\n    ON CONFLICT DO NOTHING;\n\n    GET DIAGNOSTICS affected = ROW_COUNT;\n\n    RETURN affected > 0;\nEND;\n$function$\n",
+      "identity_arguments": "nickname_input text"
+    },
+    {
+      "name": "get_chat_room_polls",
+      "definition": "CREATE OR REPLACE FUNCTION public.get_chat_room_polls(room_id_input bigint)\n RETURNS jsonb\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n select coalesce(jsonb_agg(jsonb_build_object(\n  'id',p.id,'room_id',p.room_id,'question',p.question,'options',p.options,\n  'is_closed',p.is_closed,'created_at',p.created_at,'updated_at',p.updated_at,\n  'votes',coalesce((select jsonb_agg(coalesce(v.cnt,0) order by opt.ord) from jsonb_array_elements_text(p.options) with ordinality opt(val,ord)\n   left join (select option_index,count(*)::int cnt from public.chat_room_poll_votes where poll_id=p.id group by option_index) v on v.option_index=opt.ord-1),'[]'::jsonb),\n  'total_votes',(select count(*) from public.chat_room_poll_votes where poll_id=p.id),\n  'my_vote',(select option_index from public.chat_room_poll_votes where poll_id=p.id and user_id=auth.uid() limit 1)\n ) order by p.created_at desc),'[]'::jsonb)\n from public.chat_room_polls p where p.room_id=room_id_input\n$function$\n",
+      "identity_arguments": "room_id_input bigint"
+    },
+    {
+      "name": "heartbeat_chat_nickname",
+      "definition": "CREATE OR REPLACE FUNCTION public.heartbeat_chat_nickname()\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n    affected INTEGER;\nBEGIN\n    UPDATE public.wichat_active_nicks\n    SET expires_at = now() + interval '2 minutes'\n    WHERE sender_id = auth.uid()::TEXT;\n\n    GET DIAGNOSTICS affected = ROW_COUNT;\n\n    RETURN affected > 0;\nEND;\n$function$\n",
+      "identity_arguments": ""
+    },
+    {
+      "name": "is_wichat_admin",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_wichat_admin(sender_id_input text)\n RETURNS boolean\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n    SELECT EXISTS (\n        SELECT 1\n        FROM public.wichat_admins\n        WHERE sender_id = sender_id_input\n          AND active = true\n    );\n$function$\n",
+      "identity_arguments": "sender_id_input text"
+    },
+    {
+      "name": "process_chat_scheduled_announcements",
+      "definition": "CREATE OR REPLACE FUNCTION public.process_chat_scheduled_announcements()\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare item record; sent_count integer := 0;\nbegin\n for item in select id,room_id,message from public.chat_scheduled_announcements where status='pending' and scheduled_at<=now() order by scheduled_at for update skip locked\n loop\n  insert into public.messages(nickname,message,content,room_id,sender_id,message_type) values('UNIX',item.message,item.message,item.room_id,null,'text');\n  update public.chat_scheduled_announcements set status='sent',sent_at=now() where id=item.id and status='pending';\n  if found then sent_count:=sent_count+1; end if;\n end loop;\n return sent_count;\nend $function$\n",
+      "identity_arguments": ""
+    },
+    {
+      "name": "release_chat_nickname",
+      "definition": "CREATE OR REPLACE FUNCTION public.release_chat_nickname()\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n    affected INTEGER;\nBEGIN\n    DELETE FROM public.wichat_active_nicks\n    WHERE sender_id = auth.uid()::TEXT;\n\n    GET DIAGNOSTICS affected = ROW_COUNT;\n\n    RETURN affected > 0;\nEND;\n$function$\n",
+      "identity_arguments": ""
+    },
+    {
+      "name": "verify_admin_pin",
+      "definition": "CREATE OR REPLACE FUNCTION public.verify_admin_pin(pin_input text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nDECLARE\n    crypto_schema text;\n    saved_hash text;\n    valid_pin boolean;\nBEGIN\n    SELECT n.nspname\n    INTO crypto_schema\n    FROM pg_extension e\n    JOIN pg_namespace n ON n.oid = e.extnamespace\n    WHERE e.extname = 'pgcrypto';\n\n    SELECT pin_hash\n    INTO saved_hash\n    FROM public.wichat_admin_config\n    WHERE singleton = true;\n\n    IF saved_hash IS NULL OR crypto_schema IS NULL THEN\n        RETURN false;\n    END IF;\n\n    EXECUTE format(\n        'SELECT %I.crypt($1, $2) = $2',\n        crypto_schema\n    )\n    INTO valid_pin\n    USING pin_input, saved_hash;\n\n    RETURN COALESCE(valid_pin, false);\nEND;\n$function$\n",
+      "identity_arguments": "pin_input text"
+    },
+    {
+      "name": "vote_chat_room_poll",
+      "definition": "CREATE OR REPLACE FUNCTION public.vote_chat_room_poll(poll_id_input uuid, option_index_input integer)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare p public.chat_room_polls%rowtype;\nbegin\n if auth.uid() is null then raise exception 'Tenés que iniciar sesión para votar'; end if;\n select * into p from public.chat_room_polls where id=poll_id_input for update;\n if not found then raise exception 'La encuesta no existe'; end if;\n if p.is_closed then raise exception 'La encuesta está cerrada'; end if;\n if option_index_input<0 or option_index_input>=jsonb_array_length(p.options) then raise exception 'Opción inválida'; end if;\n insert into public.chat_room_poll_votes(poll_id,user_id,option_index) values(poll_id_input,auth.uid(),option_index_input);\n update public.chat_room_polls set updated_at=now() where id=poll_id_input;\n return true;\nexception when unique_violation then raise exception 'Ya votaste en esta encuesta';\nend $function$\n",
+      "identity_arguments": "poll_id_input uuid, option_index_input integer"
+    },
+    {
+      "name": "wichat_acquire_nickname",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_acquire_nickname(p_nickname text, p_sender_id text, p_admin_pin text DEFAULT NULL::text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n  v_nick text := btrim(coalesce(p_nickname,''));\n  v_norm text;\nBEGIN\n  IF auth.uid() IS NULL OR auth.uid()::text <> p_sender_id THEN\n    RAISE EXCEPTION 'Sesión no válida.';\n  END IF;\n\n  IF length(v_nick) < 1 OR length(v_nick) > 25 THEN\n    RAISE EXCEPTION 'El Nick debe tener entre 1 y 25 caracteres.';\n  END IF;\n\n  v_norm := lower(v_nick);\n\n  IF v_norm = 'unix'\n     AND NOT coalesce(public.verify_admin_pin(coalesce(p_admin_pin,'')),false) THEN\n    RAISE EXCEPTION 'El Nick UNIX está reservado para el administrador.';\n  END IF;\n\n  -- Serializa intentos simultáneos para el mismo Nick, incluso desde dispositivos distintos.\n  PERFORM pg_advisory_xact_lock(hashtext(v_norm));\n\n  DELETE FROM public.wichat_nicknames\n  WHERE expires_at <= now();\n\n  -- No permitir que un invitado suplante un Nick que pertenece a una cuenta registrada.\n  IF EXISTS (\n    SELECT 1\n    FROM public.chat_profiles cp\n    WHERE cp.is_registered = true\n      AND lower(btrim(cp.nickname)) = v_norm\n      AND cp.user_id::text <> p_sender_id\n  ) THEN\n    RETURN false;\n  END IF;\n\n  -- Si otro usuario/dispositivo ya tiene el Nick activo, rechazar el ingreso.\n  IF EXISTS (\n    SELECT 1\n    FROM public.wichat_nicknames wn\n    WHERE wn.nickname_norm = v_norm\n      AND wn.sender_id <> p_sender_id\n      AND wn.expires_at > now()\n  ) THEN\n    RETURN false;\n  END IF;\n\n  INSERT INTO public.wichat_nicknames(sender_id,nickname,nickname_norm,expires_at)\n  VALUES(p_sender_id,v_nick,v_norm,now()+interval '2 minutes')\n  ON CONFLICT(sender_id) DO UPDATE\n    SET nickname=EXCLUDED.nickname,\n        nickname_norm=EXCLUDED.nickname_norm,\n        expires_at=EXCLUDED.expires_at;\n\n  RETURN true;\nEXCEPTION\n  WHEN unique_violation THEN\n    RETURN false;\nEND;\n$function$\n",
+      "identity_arguments": "p_nickname text, p_sender_id text, p_admin_pin text"
+    },
+    {
+      "name": "wichat_antispam_guard",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_antispam_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog', 'public'\nAS $function$\ndeclare\n v_sender text; v_body text; v_media text; v_hash text; v_context text;\n v_now timestamptz:=clock_timestamp(); v_recent_count integer;\n v_last_sent timestamptz; v_duplicate_count integer;\nbegin\n if coalesce(current_setting('request.jwt.claim.role',true),'')='service_role' then return new; end if;\n v_sender:=to_jsonb(new)->>'sender_id';\n if v_sender is null or btrim(v_sender)='' then return new; end if;\n v_body:=coalesce(to_jsonb(new)->>'message',to_jsonb(new)->>'content','');\n v_media:=coalesce(to_jsonb(new)->>'media_url','');\n v_context:=coalesce(to_jsonb(new)->>'room_id',to_jsonb(new)->>'recipient_id','chat');\n v_body:=lower(regexp_replace(btrim(v_body),'\\s+',' ','g'));\n if v_body='' then v_body:='media:'||v_media; end if;\n v_hash:=md5(v_body);\n perform pg_advisory_xact_lock(hashtextextended(v_sender,0));\n select count(*),max(sent_at) into v_recent_count,v_last_sent\n from public.chat_antispam_events where sender_id=v_sender and sent_at>v_now-interval '10 seconds';\n if v_recent_count>=6 then raise exception 'Estás enviando mensajes demasiado rápido. Esperá unos segundos.' using errcode='P0001'; end if;\n if v_last_sent is not null and v_now-v_last_sent<interval '1200 milliseconds' then\n  raise exception 'Esperá un momento antes de enviar otro mensaje.' using errcode='P0001';\n end if;\n select count(*) into v_duplicate_count from public.chat_antispam_events\n where sender_id=v_sender and body_hash=v_hash and sent_at>v_now-interval '60 seconds';\n if v_duplicate_count>=2 then\n  raise exception 'Detectamos mensajes repetidos. Cambiá el texto antes de volver a enviarlo.' using errcode='P0001';\n end if;\n insert into public.chat_antispam_events(sender_id,body_hash,context_key,sent_at)\n values(v_sender,v_hash,v_context,v_now);\n if mod(extract(epoch from v_now)::bigint,100)=0 then\n  delete from public.chat_antispam_events where sent_at<v_now-interval '1 day';\n end if;\n return new;\nend;\n$function$\n",
+      "identity_arguments": ""
+    },
+    {
+      "name": "wichat_apply_ip_ban",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_apply_ip_ban()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n  target_ip inet;\n  target_nickname text;\n  moderation_reason text;\nBEGIN\n  IF NEW.action <> 'ban' THEN\n    RETURN NEW;\n  END IF;\n\n  SELECT client_ip INTO target_ip\n  FROM public.wichat_user_ips\n  WHERE sender_id = NEW.sender_id;\n\n  IF target_ip IS NULL THEN\n    RETURN NEW;\n  END IF;\n\n  SELECT nickname INTO target_nickname\n  FROM public.wichat_bans\n  WHERE sender_id = NEW.sender_id\n  ORDER BY created_at DESC\n  LIMIT 1;\n\n  moderation_reason := COALESCE(\n    NULLIF(trim(NEW.reason), ''),\n    'Baneo por administrador'\n  );\n\n  INSERT INTO public.wichat_ip_bans (\n    client_ip, room_id, nickname, reason, expires_at\n  )\n  VALUES (\n    target_ip, NEW.room_id, target_nickname, moderation_reason,\n    now() + interval '5 minutes'\n  )\n  ON CONFLICT (client_ip, room_id)\n  DO UPDATE SET\n    nickname = EXCLUDED.nickname,\n    reason = EXCLUDED.reason,\n    created_at = now(),\n    expires_at = now() + interval '5 minutes';\n\n  RETURN NEW;\nEND;\n$function$\n",
+      "identity_arguments": ""
+    },
+    {
+      "name": "wichat_award_public_message_point",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_award_public_message_point()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog', 'public'\nAS $function$\ndeclare\n  v_uid uuid;\n  v_count integer;\n  v_body text;\nbegin\n  if coalesce(to_jsonb(new)->>'message_type','text') <> 'text' then\n    return new;\n  end if;\n  v_body := btrim(coalesce(to_jsonb(new)->>'message', to_jsonb(new)->>'content',''));\n  if char_length(v_body) < 3 then return new; end if;\n  if coalesce(to_jsonb(new)->>'sender_id','') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then\n    return new;\n  end if;\n  v_uid := (to_jsonb(new)->>'sender_id')::uuid;\n  perform pg_advisory_xact_lock(hashtextextended(v_uid::text || ':daily-points', 0));\n  select count(*) into v_count\n  from public.chat_points_ledger\n  where user_id = v_uid\n    and reason = 'mensaje_publico'\n    and created_at >= date_trunc('day', now());\n  if v_count >= 20 then return new; end if;\n\n  insert into public.chat_points_ledger(user_id,points_delta,reason,event_key)\n  values (v_uid,1,'mensaje_publico','public-message:' || new.id::text)\n  on conflict (event_key) do nothing;\n  return new;\nend;\n$function$\n",
+      "identity_arguments": ""
+    },
+    {
+      "name": "wichat_claim_account_session",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_claim_account_session(p_device_id text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n  v_uid uuid := auth.uid();\n  v_current_device text;\n  v_expires timestamptz;\nBEGIN\n  IF v_uid IS NULL THEN RAISE EXCEPTION 'Tenés que iniciar sesión.'; END IF;\n  IF p_device_id IS NULL OR length(p_device_id) < 16 OR length(p_device_id) > 128 THEN\n    RAISE EXCEPTION 'Identificador de dispositivo no válido.';\n  END IF;\n\n  PERFORM pg_advisory_xact_lock(hashtextextended(v_uid::text, 0));\n\n  SELECT device_id, expires_at INTO v_current_device, v_expires\n  FROM public.wichat_account_sessions WHERE user_id = v_uid;\n\n  IF FOUND AND v_expires > now() AND v_current_device <> p_device_id THEN\n    RETURN false;\n  END IF;\n\n  INSERT INTO public.wichat_account_sessions(user_id,device_id,expires_at,updated_at)\n  VALUES(v_uid,p_device_id,now()+interval '2 minutes',now())\n  ON CONFLICT(user_id) DO UPDATE\n    SET device_id=EXCLUDED.device_id,\n        expires_at=EXCLUDED.expires_at,\n        updated_at=now();\n\n  RETURN true;\nEND;\n$function$\n",
+      "identity_arguments": "p_device_id text"
+    },
+    {
+      "name": "wichat_contains_insult",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_contains_insult(txt text)\n RETURNS boolean\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog', 'public'\nAS $function$\ndeclare normalized text; custom_term text;\nbegin\n normalized:=public.wichat_normalize_moderation_text(txt);\n if normalized ~ '(^| )(pelotudo|pelotuda|boludo|boluda|boludeces|forro|forra|forros|puta|puto|putas|putos|mierda|mierdas|concha|hdp|pendejo|pendeja|gil|giles|idiota|idiotas|imbecil|estupido|estupida|tarado|tarada|cagada|cagado|cagon)( |$)' then\n  return true;\n end if;\n for custom_term in select normalized_term from public.chat_moderation_terms where active and category in ('insulto','custom')\n loop\n  if position(' '||custom_term||' ' in ' '||normalized||' ')>0 then return true; end if;\n end loop;\n return false;\nend;\n$function$\n",
+      "identity_arguments": "txt text"
+    },
+    {
+      "name": "wichat_limit_user_reports",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_limit_user_reports()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare recent_count integer;\nbegin\n select count(*) into recent_count from public.chat_user_reports\n where reporter_id=new.reporter_id and created_at>now()-interval '24 hours';\n if recent_count>=5 then raise exception 'Alcanzaste el límite de 5 denuncias por día.'; end if;\n if exists(select 1 from public.chat_user_reports where reporter_id=new.reporter_id and target_user_id=new.target_user_id and created_at>now()-interval '1 hour') then\n  raise exception 'Ya denunciaste a este usuario durante la última hora.';\n end if;\n return new;\nend $function$\n",
+      "identity_arguments": ""
+    },
+    {
+      "name": "wichat_moderate_message",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_moderate_message()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare\n total integer;\n active_ban boolean;\n clean_body text;\n spam_count integer;\n reason_text text;\nbegin\n if new.sender_id is null or new.room_id is null then return new; end if;\n select exists(select 1 from public.wichat_room_bans\n   where sender_id=new.sender_id and room_id=new.room_id and expires_at>now())\n into active_ban;\n if active_ban then return null; end if;\n\n clean_body:=coalesce(new.message,new.content,'');\n if public.wichat_contains_insult(clean_body) then\n  insert into public.wichat_insult_counts(sender_id,room_id,insult_count,updated_at)\n  values(new.sender_id,new.room_id,1,now())\n  on conflict(sender_id,room_id) do update\n    set insult_count=public.wichat_insult_counts.insult_count+1,updated_at=now()\n  returning insult_count into total;\n  if total<3 then\n   insert into public.wichat_moderation_events(sender_id,room_id,action,reason)\n   values(new.sender_id,new.room_id,'warning_'||total,'Mensaje bloqueado por lenguaje no permitido');\n   return null;\n  end if;\n  insert into public.wichat_room_bans(sender_id,room_id,nickname,reason,expires_at)\n  values(new.sender_id,new.room_id,new.nickname,'Tres infracciones por lenguaje no permitido',now()+interval '5 minutes')\n  on conflict(sender_id,room_id) do update set nickname=excluded.nickname,\n    reason=excluded.reason,created_at=now(),expires_at=excluded.expires_at;\n  insert into public.wichat_moderation_events(sender_id,room_id,action,reason,duration_minutes)\n  values(new.sender_id,new.room_id,'ban','Tres infracciones por lenguaje no permitido',5);\n  return null;\n end if;\n\n -- Spam repetitivo en la misma sala: tres repeticiones recientes generan advertencia/bloqueo.\n if coalesce(new.message_type,'text')='text' and length(trim(clean_body))>=4 then\n  select count(*) into spam_count from public.messages\n   where sender_id=new.sender_id and room_id=new.room_id\n     and created_at>now()-interval '60 seconds'\n     and public.wichat_normalize_moderation_text(message)=public.wichat_normalize_moderation_text(clean_body);\n  if spam_count>=2 then\n   insert into public.wichat_moderation_events(sender_id,room_id,action,reason)\n   values(new.sender_id,new.room_id,'spam_blocked','Mensaje repetido bloqueado automáticamente');\n   return null;\n  end if;\n end if;\n return new;\nend;\n$function$\n",
+      "identity_arguments": ""
+    },
+    {
+      "name": "wichat_normalize_moderation_text",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_normalize_moderation_text(txt text)\n RETURNS text\n LANGUAGE sql\n IMMUTABLE PARALLEL SAFE\nAS $function$\n select trim(regexp_replace(\n   regexp_replace(\n     translate(lower(coalesce(txt,'')), 'áéíóúüñ013457@$',\n                                      'aeiouunoieastas'),\n     '([a-z])\\1+', '\\1', 'g'\n   ),\n   '[^a-z0-9]+',' ','g'\n ));\n$function$\n",
+      "identity_arguments": "txt text"
+    },
+    {
+      "name": "wichat_refresh_account_session",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_refresh_account_session(p_device_id text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE v_uid uuid := auth.uid();\nBEGIN\n  IF v_uid IS NULL THEN RETURN false; END IF;\n  UPDATE public.wichat_account_sessions\n  SET expires_at=now()+interval '2 minutes', updated_at=now()\n  WHERE user_id=v_uid AND device_id=p_device_id AND expires_at>now();\n  RETURN FOUND;\nEND;\n$function$\n",
+      "identity_arguments": "p_device_id text"
+    },
+    {
+      "name": "wichat_refresh_nickname",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_refresh_nickname(p_sender_id text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nBEGIN\n    IF auth.uid() IS NULL OR auth.uid()::text <> p_sender_id THEN\n        RETURN false;\n    END IF;\n\n    UPDATE public.wichat_nicknames\n    SET expires_at = now() + interval '2 minutes'\n    WHERE sender_id = p_sender_id;\n\n    RETURN FOUND;\nEND;\n$function$\n",
+      "identity_arguments": "p_sender_id text"
+    },
+    {
+      "name": "wichat_release_account_session",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_release_account_session(p_device_id text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE v_uid uuid := auth.uid();\nBEGIN\n  IF v_uid IS NULL THEN RETURN false; END IF;\n  DELETE FROM public.wichat_account_sessions\n  WHERE user_id=v_uid AND device_id=p_device_id;\n  RETURN FOUND;\nEND;\n$function$\n",
+      "identity_arguments": "p_device_id text"
+    },
+    {
+      "name": "wichat_release_nickname",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_release_nickname(p_sender_id text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nBEGIN\n    IF auth.uid() IS NULL OR auth.uid()::text <> p_sender_id THEN\n        RETURN false;\n    END IF;\n\n    DELETE FROM public.wichat_nicknames\n    WHERE sender_id = p_sender_id;\n\n    RETURN true;\nEND;\n$function$\n",
+      "identity_arguments": "p_sender_id text"
+    },
+    {
+      "name": "wichat_send_message",
+      "definition": "CREATE OR REPLACE FUNCTION public.wichat_send_message(p_nickname text, p_message text, p_room_id bigint, p_sender_id text, p_admin_pin text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n  v_nick text := btrim(coalesce(p_nickname,''));\n  v_msg text := btrim(coalesce(p_message,''));\n  v_admin boolean := false;\n  v_count integer;\n  v_bad boolean;\nBEGIN\n  IF auth.uid() IS NULL OR auth.uid()::text<>p_sender_id THEN\n    RAISE EXCEPTION 'Sesión no válida.';\n  END IF;\n\n  IF length(v_nick)<1 OR length(v_nick)>25 THEN\n    RAISE EXCEPTION 'Nick inválido.';\n  END IF;\n\n  IF length(v_msg)<1 OR length(v_msg)>1000 THEN\n    RAISE EXCEPTION 'El mensaje debe tener entre 1 y 1000 caracteres.';\n  END IF;\n\n  IF NOT EXISTS(SELECT 1 FROM public.rooms WHERE id=p_room_id) THEN\n    RAISE EXCEPTION 'La sala no existe.';\n  END IF;\n\n  v_admin := lower(v_nick)='unix'\n    AND coalesce(public.verify_admin_pin(coalesce(p_admin_pin,'')),false);\n\n  IF lower(v_nick)='unix' AND NOT v_admin THEN\n    RAISE EXCEPTION 'El Nick UNIX está reservado.';\n  END IF;\n\n  IF NOT EXISTS(\n    SELECT 1 FROM public.wichat_nicknames\n    WHERE sender_id=p_sender_id\n      AND nickname_norm=lower(v_nick)\n      AND expires_at>now()\n  ) THEN\n    RAISE EXCEPTION 'La reserva de Nick venció. Volvé a ingresar.';\n  END IF;\n\n  IF NOT v_admin AND NOT public.check_chat_access(p_sender_id,p_room_id) THEN\n    RAISE EXCEPTION 'No tenés acceso a esta sala en este momento.';\n  END IF;\n\n  v_bad := v_msg ~* '(^|[^[:alnum:]_])(puta|puto|mierda|mierdas|forro|pelotudo|pelotuda|conchudo|conchuda|concha|verga|pija|cag[oó]n|hdp|h[.]?d[.]?p[.]?|hijo de puta|hija de puta)([^[:alnum:]_]|$)';\n\n  IF v_bad AND NOT v_admin THEN\n    INSERT INTO public.wichat_badword_counts(sender_id,room_id,violation_count,updated_at)\n    VALUES(p_sender_id,p_room_id,1,now())\n    ON CONFLICT(sender_id,room_id) DO UPDATE\n      SET violation_count=public.wichat_badword_counts.violation_count+1,\n          updated_at=now()\n    RETURNING violation_count INTO v_count;\n\n    IF v_count<3 THEN\n      INSERT INTO public.wichat_moderation_events(sender_id,room_id,action,created_at)\n      VALUES(\n        p_sender_id,\n        p_room_id,\n        CASE WHEN v_count=1 THEN 'warning_1' ELSE 'warning_2' END,\n        now()\n      );\n\n      RETURN jsonb_build_object(\n        'action',\n        CASE WHEN v_count=1 THEN 'warning_1' ELSE 'warning_2' END,\n        'count',v_count\n      );\n    END IF;\n\n    INSERT INTO public.wichat_room_bans(\n      sender_id,room_id,nickname,reason,created_at,expires_at\n    )\n    VALUES(\n      p_sender_id,p_room_id,v_nick,\n      'Tres infracciones por insultos',\n      now(),now()+interval '5 minutes'\n    )\n    ON CONFLICT(sender_id,room_id) DO UPDATE\n      SET nickname=EXCLUDED.nickname,\n          reason=EXCLUDED.reason,\n          created_at=now(),\n          expires_at=now()+interval '5 minutes';\n\n    INSERT INTO public.wichat_moderation_events(sender_id,room_id,action,created_at)\n    VALUES(p_sender_id,p_room_id,'auto_kick',now());\n\n    RETURN jsonb_build_object('action','auto_kick','count',v_count,'minutes',5);\n  END IF;\n\n  INSERT INTO public.messages(nickname,message,content,room_id,sender_id)\n  VALUES(v_nick,v_msg,v_msg,p_room_id,p_sender_id);\n\n  RETURN jsonb_build_object('action','sent');\nEND;\n$function$\n",
+      "identity_arguments": "p_nickname text, p_message text, p_room_id bigint, p_sender_id text, p_admin_pin text"
+    }
+  ],
+  "extensions": [
+    "pg_cron",
+    "pg_net",
+    "pg_stat_statements",
+    "pgcrypto",
+    "plpgsql",
+    "supabase_vault",
+    "uuid-ossp"
+  ]
+}

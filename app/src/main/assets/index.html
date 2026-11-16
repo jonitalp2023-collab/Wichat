@@ -125,7 +125,7 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 .profile-card textarea{min-height:90px;resize:vertical}
 .profile-card .profile-actions{display:flex;gap:8px;margin-top:16px}
 .profile-card .profile-actions button{flex:1}
-#moderationModal{display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:20px}
+.profile-view-overlay{display:none;position:fixed;inset:0;z-index:27000;background:#000c;align-items:center;justify-content:center;padding:20px}.profile-view-overlay.show{display:flex}.profile-view-card{position:relative;width:100%;max-width:390px;padding:25px 20px;background:linear-gradient(155deg,#192b49,#101a30);border:1px solid #278bd2;border-radius:20px;text-align:center;box-shadow:0 15px 45px #000b}.profile-view-close{position:absolute;right:12px;top:12px;padding:7px 10px}.profile-view-avatar{width:92px;height:92px;margin:5px auto 12px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#263d5c;border:2px solid #54b8ff;font-size:38px;overflow:hidden}.profile-view-avatar img{width:100%;height:100%;object-fit:cover}.profile-view-card h2{margin:8px 0;color:#fff;overflow-wrap:anywhere}.profile-view-badges{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:10px 0}.profile-view-badges span{padding:5px 9px;border-radius:20px;background:#263d5c;color:#dcecff;font-size:12px}.profile-view-status{color:#8fc9ff}.profile-view-bio{color:#d8e2f0;white-space:pre-wrap;overflow-wrap:anywhere}.user-badge{display:inline-flex;margin-left:5px;font-size:12px;vertical-align:middle}#moderationModal{display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:20px}
 #moderationModal.show{display:flex}
 .moderation-card{width:100%;max-width:400px;padding:25px;background:#141e35;border:1px solid #278bd2;border-radius:16px;text-align:center;box-shadow:0 10px 35px #000b}
 .moderation-card h2{color:#55b8ff;margin-top:0}
@@ -297,9 +297,20 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <button onclick="saveMyProfile()">Guardar</button>
 </div>
 </div></div>
+<div id="publicProfileModal" class="profile-view-overlay" onclick="if(event.target===this)closePublicProfile()">
+<div class="profile-view-card">
+<button class="secondary profile-view-close" onclick="closePublicProfile()">✕</button>
+<div id="publicProfileAvatar" class="profile-view-avatar">👤</div>
+<h2 id="publicProfileName">Perfil</h2>
+<div id="publicProfileBadges" class="profile-view-badges"></div>
+<p id="publicProfileStatus" class="profile-view-status"></p>
+<p id="publicProfileBio" class="profile-view-bio"></p>
+<p id="publicProfilePoints" class="muted"></p>
+</div></div>
 <div id="userMenuModal" onclick="if(event.target===this)closeUserMenu()">
 <div class="user-menu-card">
 <h3 id="userMenuTitle">Usuario</h3>
+<button class="secondary" onclick="userMenuViewProfile()">👤 Ver perfil</button>
 <button class="private-action" onclick="userMenuPrivate()">💬 Enviar mensaje privado</button>
 <div id="adminUserActions" class="hidden">
 <button class="kick-action" onclick="userMenuModerate('kick')">🚪 Echar usuario</button>
@@ -925,6 +936,32 @@ selectedMenuUser={id:user.id,nick:user.nick||"Usuario"};$("userMenuTitle").textC
 $("adminUserActions").classList.toggle("hidden",!isAdmin);$("userMenuModal").classList.add("show");
 }
 function closeUserMenu(){$("userMenuModal").classList.remove("show");}
+function closePublicProfile(){$("publicProfileModal").classList.remove("show");}
+async function userMenuViewProfile(){
+ if(!selectedMenuUser)return;const user={...selectedMenuUser};closeUserMenu();
+ const modal=$("publicProfileModal");modal.classList.add("show");
+ $("publicProfileName").textContent=user.nick;$("publicProfileStatus").textContent="Cargando perfil...";
+ $("publicProfileBio").textContent="";$("publicProfileBadges").textContent="";$("publicProfilePoints").textContent="";
+ $("publicProfileAvatar").textContent="👤";
+ try{
+  const [profileResult,badgeResult]=await Promise.all([
+   db.from("chat_profiles").select("avatar_url,status,bio").eq("user_id",user.id).maybeSingle(),
+   db.from("chat_public_profile_badges").select("is_vip,points,medal").eq("user_id",user.id).maybeSingle()
+  ]);
+  if(profileResult.error)throw profileResult.error;if(badgeResult.error)throw badgeResult.error;
+  const p=profileResult.data||{},b=badgeResult.data||{};
+  if(p.avatar_url&&/^https:\/\//i.test(p.avatar_url)){
+   const img=document.createElement("img");img.src=p.avatar_url;img.alt="Foto de "+user.nick;img.onerror=()=>{img.remove();};$("publicProfileAvatar").textContent="";$("publicProfileAvatar").appendChild(img);
+  }
+  $("publicProfileStatus").textContent=p.status||"Sin estado";
+  $("publicProfileBio").textContent=p.bio||"Este usuario todavía no agregó una descripción.";
+  const badges=$("publicProfileBadges");
+  if(b.is_vip===true){const vip=document.createElement("span");vip.textContent="👑 Usuario VIP";badges.appendChild(vip);}
+  const medal=document.createElement("span");medal.textContent=medalEmoji(b.medal)+" "+(b.medal||"Principiante");badges.appendChild(medal);
+  $("publicProfilePoints").textContent=Number(b.points||0).toLocaleString("es-AR")+" puntos";
+ }catch(error){$("publicProfileStatus").textContent="No se pudo cargar el perfil: "+error.message;}
+}
+
 async function userMenuPrivate(){if(!selectedMenuUser)return;const user={...selectedMenuUser};closeUserMenu();await openPrivateChat(user);}
 async function userMenuModerate(action){
 if(!isAdmin||!selectedMenuUser)return;
@@ -947,10 +984,14 @@ async function loadPublicProfilesForUsers(users){
   const missing=users.map(u=>String(u.id)).filter(id=>id&&!publicProfileCache.has(id)&&!publicProfilePending.has(id));
   if(!missing.length)return;
   missing.forEach(id=>publicProfilePending.add(id));
-  const {data,error}=await db.from("chat_profiles").select("user_id,avatar_url,status,bio").in("user_id",missing);
+  const [profilesResult,badgesResult]=await Promise.all([
+    db.from("chat_profiles").select("user_id,avatar_url,status,bio").in("user_id",missing),
+    db.from("chat_public_profile_badges").select("user_id,is_vip,points,medal").in("user_id",missing)
+  ]);
   missing.forEach(id=>publicProfilePending.delete(id));
-  if(error){console.warn("No se pudieron cargar los perfiles públicos:",error.message);return;}
-  (data||[]).forEach(profile=>publicProfileCache.set(String(profile.user_id),profile));
+  if(profilesResult.error){console.warn("No se pudieron cargar los perfiles públicos:",profilesResult.error.message);return;}
+  const badges=new Map((badgesResult.data||[]).map(b=>[String(b.user_id),b]));
+  (profilesResult.data||[]).forEach(profile=>publicProfileCache.set(String(profile.user_id),{...profile,...(badges.get(String(profile.user_id))||{})}));
   missing.forEach(id=>{if(!publicProfileCache.has(id))publicProfileCache.set(id,null);});
   renderUsers();
 }
@@ -1017,7 +1058,9 @@ const info=document.createElement("div");info.className="user-info";
 const name=document.createElement("span");name.className="user-name";
 if(u.registered||registeredUsers.has(String(u.id)))addRegisteredPlus(name);
 if(u.admin&&u.nick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";name.appendChild(star);}
-name.appendChild(document.createTextNode(u.nick));info.appendChild(name);
+name.appendChild(document.createTextNode(u.nick));
+const vipBadge=document.createElement("span");vipBadge.className="user-badge";if(profile&&profile.is_vip===true){vipBadge.textContent="👑";vipBadge.title="Usuario VIP";name.appendChild(vipBadge);}
+if(profile&&profile.medal&&profile.medal!=="Principiante"){const medalBadge=document.createElement("span");medalBadge.className="user-badge";medalBadge.textContent=medalEmoji(profile.medal);medalBadge.title=profile.medal;name.appendChild(medalBadge);}info.appendChild(name);
 if(profile&&profile.status){const status=document.createElement("span");status.className="user-profile-status";status.textContent=profile.status;info.appendChild(status);}
 if(profile&&profile.bio){const bio=document.createElement("span");bio.className="user-profile-bio";bio.textContent=profile.bio;info.appendChild(bio);}
 item.appendChild(info);

@@ -95,4 +95,18 @@ grant select on public.chat_points_ledger to authenticated;
 drop policy if exists chat_points_read_authenticated on public.chat_points_ledger;
 create policy chat_points_read_authenticated on public.chat_points_ledger for select to authenticated using (auth.uid() is not null);
 
+
+-- Habilita la sincronización en tiempo real de las reacciones.
+do $
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname='supabase_realtime'
+      and schemaname='public'
+      and tablename='chat_message_reactions'
+  ) then
+    alter publication supabase_realtime add table public.chat_message_reactions;
+  end if;
+end $;
+
 commit;

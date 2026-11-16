@@ -544,6 +544,16 @@ showError("");
 async function ensureAuthUser(){
 let {data:{session},error}=await db.auth.getSession();
 if(error)throw error;
+const requestedNick=$("nickname").value.trim().toUpperCase();
+if(authMode==="guest"&&session&&requestedNick!=="UNIX"){
+  const {data:adminIdentity,error:adminIdentityError}=await db.rpc("is_wichat_admin",{sender_id_input:session.user.id});
+  if(adminIdentityError)throw new Error("No se pudo verificar la identidad de acceso: "+adminIdentityError.message);
+  if(adminIdentity===true){
+    const {error:signOutError}=await db.auth.signOut();
+    if(signOutError)throw signOutError;
+    session=null;
+  }
+}
 if(authMode==="guest"&&session&&!session.user.is_anonymous){const {error:signOutError}=await db.auth.signOut();if(signOutError)throw signOutError;session=null;}
 if(authMode==="account"&&(!session||session.user.is_anonymous))throw new Error("No hay una sesión de cuenta activa. Iniciá sesión nuevamente.");
 if(!session){if(authMode!=="guest")throw new Error("No hay una sesión activa. Iniciá sesión nuevamente.");const result=await db.auth.signInAnonymously();if(result.error)throw result.error;session=result.data.session;}

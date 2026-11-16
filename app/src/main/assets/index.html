@@ -458,10 +458,20 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
     <div class="admin-section-heading"><div><span class="admin-eyebrow">RESUMEN</span><h3>Estadísticas</h3></div><span class="admin-heading-icon">📊</span></div>
     <div class="admin-stats admin-stats-large">
       <div class="admin-stat"><span>💬</span><small>SALAS CREADAS</small><strong id="adminStatRoomsDetail">0</strong></div>
-      <div class="admin-stat"><span>👥</span><small>USUARIOS EN SALA ACTUAL</small><strong id="adminStatUsersDetail">0</strong></div>
+      <div class="admin-stat"><span>🟢</span><small>USUARIOS EN ESTA SALA</small><strong id="adminStatUsersDetail">0</strong></div>
+      <div class="admin-stat"><span>📨</span><small>MENSAJES TOTALES</small><strong id="adminStatMessagesTotal">—</strong></div>
+      <div class="admin-stat"><span>⏱️</span><small>MENSAJES ÚLTIMAS 24 H</small><strong id="adminStatMessagesDay">—</strong></div>
+      <div class="admin-stat"><span>🔥</span><small>SALA MÁS ACTIVA (7 DÍAS)</small><strong id="adminStatTopRoom">—</strong></div>
       <div class="admin-stat"><span>🤖</span><small>BOTS CONFIGURADOS</small><strong id="adminStatBotsDetail">—</strong></div>
     </div>
-    <p class="muted">Estos indicadores muestran los datos disponibles en la sesión actual. No representan estadísticas históricas.</p>
+    <div class="admin-card">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h4>📡 Actividad en tiempo real</h4>
+        <button class="secondary" onclick="loadAdminLiveStats()">↻ Actualizar</button>
+      </div>
+      <p id="adminStatsUpdated" class="muted" aria-live="polite">Esperando datos…</p>
+      <p class="muted">Las cifras se actualizan al llegar mensajes nuevos y también periódicamente mientras el panel está abierto. Los mensajes privados no se incluyen en los conteos públicos.</p>
+    </div>
   </section>
 
   <section class="admin-section" id="adminSectionSettings">
@@ -1362,14 +1372,59 @@ function adminShowSection(section){
   const panel=$("adminPanel");
   if(panel)panel.scrollTop=0;
 }
+let adminStatsChannel=null,adminStatsInterval=null,adminStatsBusy=false,adminStatsPending=false;
 function updateAdminStats(){
   const roomCount=rooms.length;
   const userCount=roomUsers.size;
-  const values={
-    adminStatRooms:roomCount,adminStatUsers:userCount,
-    adminStatRoomsDetail:roomCount,adminStatUsersDetail:userCount
-  };
+  const values={adminStatRooms:roomCount,adminStatUsers:userCount,adminStatRoomsDetail:roomCount,adminStatUsersDetail:userCount};
   Object.entries(values).forEach(([id,value])=>{const el=$(id);if(el)el.textContent=String(value);});
+}
+async function loadAdminLiveStats(){
+  if(!isAdmin||$("adminPanel")?.classList.contains("hidden"))return;
+  if(adminStatsBusy){adminStatsPending=true;return;}
+  adminStatsBusy=true;
+  try{
+    const since24=new Date(Date.now()-24*60*60*1000).toISOString();
+    const since7=new Date(Date.now()-7*24*60*60*1000).toISOString();
+    const [totalResult,dayResult,recentResult]=await Promise.all([
+      db.from("messages").select("id",{count:"exact",head:true}),
+      db.from("messages").select("id",{count:"exact",head:true}).gte("created_at",since24),
+      db.from("messages").select("room_id").gte("created_at",since7).limit(3000)
+    ]);
+    if(totalResult.error)throw totalResult.error;
+    if(dayResult.error)throw dayResult.error;
+    if(recentResult.error)throw recentResult.error;
+    const total=$("adminStatMessagesTotal"),day=$("adminStatMessagesDay"),top=$("adminStatTopRoom");
+    if(total)total.textContent=Number(totalResult.count||0).toLocaleString("es-AR");
+    if(day)day.textContent=Number(dayResult.count||0).toLocaleString("es-AR");
+    const counts=new Map();
+    (recentResult.data||[]).forEach(row=>{if(row.room_id!=null){const key=String(row.room_id);counts.set(key,(counts.get(key)||0)+1);}});
+    let topId=null,topCount=0;
+    counts.forEach((count,id)=>{if(count>topCount){topId=id;topCount=count;}});
+    const room=rooms.find(item=>String(item.id)===String(topId));
+    if(top)top.textContent=room?room.name+" ("+topCount+")":(topCount?topCount+" mensajes":"Sin actividad");
+    const updated=$("adminStatsUpdated");
+    if(updated)updated.textContent="Actualizado: "+new Date().toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})+" · "+roomUsers.size+" usuarios en esta sala";
+  }catch(error){
+    const updated=$("adminStatsUpdated");
+    if(updated)updated.textContent="No se pudieron cargar las estadísticas: "+(error.message||error);
+  }finally{
+    adminStatsBusy=false;
+    if(adminStatsPending){adminStatsPending=false;loadAdminLiveStats();}
+  }
+}
+function startAdminStatsLive(){
+  stopAdminStatsLive();
+  loadAdminLiveStats();
+  adminStatsInterval=setInterval(loadAdminLiveStats,20000);
+  adminStatsChannel=db.channel("wichat-admin-live-stats")
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},()=>loadAdminLiveStats())
+    .on("postgres_changes",{event:"*",schema:"public",table:"rooms"},()=>loadAdminLiveStats())
+    .subscribe();
+}
+function stopAdminStatsLive(){
+  if(adminStatsInterval){clearInterval(adminStatsInterval);adminStatsInterval=null;}
+  if(adminStatsChannel){db.removeChannel(adminStatsChannel);adminStatsChannel=null;}
 }
 
 /* ADMINISTRACIÓN */
@@ -1388,8 +1443,9 @@ function openAdmin(){
   renderModerationUsers();
   loadBannedUsers();
   loadBots();
+  startAdminStatsLive();
 }
-function closeAdmin(){$("adminPanel").classList.add("hidden");}
+function closeAdmin(){stopAdminStatsLive();$("adminPanel").classList.add("hidden");}
 async function createRoom(){
 if(!isAdmin)return;const name=$("newRoomName").value.trim();
 if(!name){$("adminStatus").textContent="Escribí el nombre de la sala.";return;}

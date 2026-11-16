@@ -964,92 +964,113 @@ if(!rooms.length)throw new Error("No hay salas. Creá una desde Administración.
 }
 
 async function enterChat(){
-showError("");
-const name=$("nickname").value.trim();
-const btn=$("enterBtn");
+  showError("");
 
-if(!name){
-showError("Escribí tu Nick.");
-return;
-}
+  const name=$("nickname").value.trim();
+  const btn=$("enterBtn");
 
-nickname=name;
-isAdmin=false;
-adminPin="";
-btn.disabled=true;
+  if(!name){
+    showError("Escribí tu Nick.");
+    return;
+  }
 
-try{
+  nickname=name;
+  isAdmin=false;
+  adminPin="";
+  btn.disabled=true;
 
-senderId=await ensureAuthUser();
+  try{
+    senderId=await ensureAuthUser();
 
-if(name.toUpperCase()==="UNIX"){
-const pin=$("adminPin").value;
-if(!pin)throw new Error("Ingresá el PIN de administrador UNIX.");
+    if(name.trim().toUpperCase()==="UNIX"){
+      const pin=$("adminPin").value.trim();
+      if(!pin){
+        throw new Error("Ingresá el PIN de administrador UNIX.");
+      }
 
-const {data,error}=await db.rpc("verify_admin_pin",{pin_input:pin});
+      const {data,error}=await db.rpc(
+        "verify_admin_pin",
+        {pin_input:pin}
+      );
 
-if(error||data!==true)
-throw new Error("PIN incorrecto o falta ejecutar el SQL de configuración.");
+      console.log("Resultado de verificación UNIX:",data);
+      console.log("Error de verificación UNIX:",error);
 
-isAdmin=true;
-adminPin=pin;
-}
+      if(error){
+        throw new Error(
+          "Supabase no pudo verificar el PIN: "+error.message
+        );
+      }
 
-await fetchRooms();
+      const pinValido=data===true || data==="true";
+      if(!pinValido){
+        throw new Error(
+          "El servidor respondió que el PIN es incorrecto."
+        );
+      }
 
-currentRoom=$("initialRoom").value||rooms[0]?.id;
+      isAdmin=true;
+      adminPin=pin;
+    }
 
-if(!currentRoom)
-throw new Error("No hay salas disponibles.");
+    await fetchRooms();
 
-const selectedRoom=rooms.find(r=>String(r.id)===String(currentRoom));
+    currentRoom=$("initialRoom").value||rooms[0]?.id;
+    if(!currentRoom){
+      throw new Error("No hay salas disponibles.");
+    }
 
-const {data:allowed,error}=await db.rpc("check_chat_access",{
-sender_id_input:senderId,
-room_id_input:currentRoom
-});
+    const selectedRoom=rooms.find(
+      r=>String(r.id)===String(currentRoom)
+    );
 
-if(error)throw error;
+    const {data:allowed,error}=await db.rpc(
+      "check_chat_access",
+      {
+        sender_id_input:senderId,
+        room_id_input:currentRoom
+      }
+    );
 
-if(!allowed){
-currentRoom=null;
-showModerationModal("blocked",selectedRoom?.name||"esta sala",true);
-btn.disabled=false;
-return;
-}
+    if(error)throw error;
 
-const available=await claimNickname(nickname);
+    if(!allowed){
+      currentRoom=null;
+      showModerationModal(
+        "blocked",
+        selectedRoom?.name||"esta sala",
+        true
+      );
+      btn.disabled=false;
+      return;
+    }
 
-if(!available){
-currentRoom=null;
-throw new Error("Este Nick ya está en uso. Elegí otro.");
-}
+    const available=await claimNickname(nickname);
+    if(!available){
+      currentRoom=null;
+      throw new Error("Este Nick ya está en uso. Elegí otro.");
+    }
 
-$("login").style.display="none";
-$("chat").style.display="block";
-document.body.classList.add("chat-active");
+    $("login").style.display="none";
+    $("chat").style.display="block";
+    document.body.classList.add("chat-active");
 
-$("adminOpenBtn").classList.toggle("hidden",!isAdmin);
+    $("adminOpenBtn").classList.toggle("hidden",!isAdmin);
 
-renderTabs();
-await switchRoom(currentRoom);
+    renderTabs();
+    await switchRoom(currentRoom);
 
-subscribeRooms();
-subscribePrivateNotifications();
-subscribeModerationEvents();
+    subscribeRooms();
+    subscribePrivateNotifications();
+    subscribeModerationEvents();
 
-}catch(e){
-
-await releaseNickname();
-
-currentRoom=null;
-
-showError("No se pudo ingresar: "+e.message);
-
-btn.disabled=false;
-
-}
-
+  }catch(e){
+    await releaseNickname();
+    currentRoom=null;
+    console.error("Error al ingresar al chat:",e);
+    showError("No se pudo ingresar: "+(e.message||String(e)));
+    btn.disabled=false;
+  }
 }
 
 function closeEmojiPickers(){

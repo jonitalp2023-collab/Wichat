@@ -148,7 +148,7 @@ Deno.serve(async (req: Request) => {
             (topic !== null && topic.length > 180)) {
           return respond({ success: false, message: "Datos del tópico no válidos." }, 400);
         }
-        ({ data: result, error } = await adminDb.rpc("admin_set_room_topic", {
+        ({ data: result, error } = await userDb.rpc("admin_set_room_topic", {
           pin_input: pin,
           room_id_input: roomId,
           topic_input: topic,
@@ -162,7 +162,7 @@ Deno.serve(async (req: Request) => {
         if (!Number.isSafeInteger(roomId) || roomId <= 0 || typeof enabled !== "boolean") {
           return respond({ success: false, message: "Datos de sala VIP no válidos." }, 400);
         }
-        ({ data: result, error } = await adminDb.rpc("admin_set_room_vip", {
+        ({ data: result, error } = await userDb.rpc("admin_set_room_vip", {
           pin_input: pin,
           room_id_input: roomId,
           vip_enabled: enabled,
@@ -176,7 +176,7 @@ Deno.serve(async (req: Request) => {
         if (!nickname || nickname.length > 50 || typeof enabled !== "boolean") {
           return respond({ success: false, message: "Datos de membresía VIP no válidos." }, 400);
         }
-        ({ data: result, error } = await adminDb.rpc("admin_set_vip_member", {
+        ({ data: result, error } = await userDb.rpc("admin_set_vip_member", {
           pin_input: pin,
           nickname_input: nickname,
           vip_enabled: enabled,

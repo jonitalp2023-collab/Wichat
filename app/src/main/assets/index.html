@@ -1163,7 +1163,6 @@ const isActive=activePrivateUser&&String(activePrivateUser.id)===String(m.sender
 if(!isActive){
   privateUnread.add(String(m.sender_id));
   renderPrivateTabs();updateNotificationBadge();
-  showPrivateNotification(user.nick);
 }else{
   addPrivateMessage(m);
 }

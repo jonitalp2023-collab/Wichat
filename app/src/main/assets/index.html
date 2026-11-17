@@ -918,14 +918,13 @@ $("profileReadOnly").classList.remove("hidden");$("profileEditor").classList.tog
 $("profileAvatar").classList.add("hidden");$("profileStatus").textContent="";$("profileBio").textContent="";$("profileBadges").textContent="";
 $("profileModal").classList.add("show");
 try{
-const [{data,error},{data:badgeData,error:badgeError}]=await Promise.all([
-db.from("chat_profiles").select("nickname,bio,avatar_url,status,is_visible").eq("user_id",userId).maybeSingle(),
-db.from("chat_public_profile_badges").select("is_vip,points,medal").eq("user_id",userId).maybeSingle()
-]);
+const {data,error}=await db.from("chat_profiles").select("nickname,bio,avatar_url,status,is_visible").eq("user_id",userId).maybeSingle();
 if(error)throw error;
 if(requestId!==profileLoadRequestId)return;
-if(badgeError)console.warn("No se pudieron cargar los puntos y medallas:",badgeError.message);
 if(!own&&(!isRegisteredAccount||!data||data.is_visible!==true)){$("profileReadOnly").classList.add("hidden");$("profileFeedback").textContent="Este perfil es privado o no está disponible.";return;}
+const {data:badgeData,error:badgeError}=await db.from("chat_public_profile_badges").select("is_vip,points,medal").eq("user_id",userId).maybeSingle();
+if(requestId!==profileLoadRequestId)return;
+if(badgeError)console.warn("No se pudieron cargar los puntos y medallas:",badgeError.message);
 const p=data||{},badge=badgeData||{is_vip:false,points:0,medal:"Principiante"};
 $("profileBadges").textContent=(badge.is_vip?"⭐ VIP · ":"")+String(badge.points||0)+" puntos · Medalla "+(badge.medal||"Principiante");
 $("profileNickname").textContent=p.nickname||nick||"Usuario";

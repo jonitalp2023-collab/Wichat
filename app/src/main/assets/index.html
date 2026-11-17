@@ -91,6 +91,9 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .emoji-grid button{background:#192c49;padding:8px 2px;font-size:23px}
 #usersView,#roomsView{padding:15px;background:#222}
+.user-search{width:100%;box-sizing:border-box;margin:0 0 12px;padding:12px 14px;background:#303030;color:#fff;border:1px solid #484848;border-radius:10px;font:inherit;outline:none}
+.user-search:focus{border-color:#168bea;box-shadow:0 0 0 2px #168bea33}
+.user-search::placeholder{color:#a5a5a5}
 #usersView h3,#roomsView h3{margin:8px 0 12px;color:#55b8ff}
 .user-item{display:flex;align-items:center;gap:9px;padding:13px;margin-bottom:8px;background:#292929;border:1px solid #383838;border-radius:10px;cursor:pointer}
 .user-item:hover{background:#363636}
@@ -382,7 +385,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
 <input id="messageInput" maxlength="1000" placeholder="Escribí aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
 <div class="mention-wrap"><button id="mentionToggle" class="mention-toggle" type="button" aria-label="Mencionar usuario" title="Mencionar usuario" onclick="toggleMentionPicker()">#</button><div id="mentionPicker" class="mention-picker"></div></div><button id="sendBtn" class="send-button" onpointerdown="event.preventDefault()" onclick="sendMessage()">➤</button></div></div>
-<div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><div id="usersCountText" class="user-count">0 usuarios conectados</div><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
+<div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><div id="usersCountText" class="user-count">0 usuarios conectados</div><input id="userSearchInput" class="user-search" type="search" placeholder="🔎 Buscar usuario..." oninput="renderUsers()" autocomplete="off"><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
 <div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
 <div id="privateView" class="hidden"><div id="privateMessages"></div>
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
@@ -1026,16 +1029,24 @@ if(action==="ban")await loadBannedUsers();
 }
 function renderUsers(){
 const list=$("usersList");if(!list)return;
-const users=Array.from(roomUsers.values()).sort((a,b)=>{if(a.admin&&a.nick.toUpperCase()==="UNIX")return -1;if(b.admin&&b.nick.toUpperCase()==="UNIX")return 1;return a.nick.localeCompare(b.nick);});
-$("usersCountText").textContent=users.length+" "+(users.length===1?"usuario conectado":"usuarios conectados");list.innerHTML="";
+const query=($("userSearchInput")?.value||"").trim().toLocaleLowerCase();
+const users=Array.from(roomUsers.values()).sort((a,b)=>{
+const aUnix=String(a.nick||"").toUpperCase()==="UNIX",bUnix=String(b.nick||"").toUpperCase()==="UNIX";
+if(aUnix!==bUnix)return aUnix?-1:1;
+return String(a.nick||"").localeCompare(String(b.nick||""),"es",{sensitivity:"base",numeric:true});
+});
+$("usersCountText").textContent=users.length+" "+(users.length===1?"usuario conectado":"usuarios conectados");
+const filtered=users.filter(u=>String(u.nick||"").toLocaleLowerCase().includes(query));
+list.innerHTML="";
 if(!users.length){list.innerHTML='<p class="muted">Todavía no hay usuarios conectados.</p>';return;}
-users.forEach(u=>{
+if(!filtered.length){list.innerHTML='<p class="muted">No se encontraron usuarios con ese Nick.</p>';return;}
+filtered.forEach(u=>{
 const item=document.createElement("div");item.className="user-item";const dot=document.createElement("span");dot.className="online-dot";
 const name=document.createElement("span");name.className="user-name";
 if(u.registered||registeredUsers.has(String(u.id)))addRegisteredPlus(name);
-if(u.admin&&u.nick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";name.appendChild(at);name.classList.add("admin-unix");}
+if(String(u.nick||"").toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";name.appendChild(at);name.classList.add("admin-unix");}
 name.appendChild(document.createTextNode(u.nick));item.append(dot,name);
-if(u.id!==senderId){item.onclick=()=>openUserMenu(u);}else{item.title="Vos";}list.appendChild(item);
+if(String(u.id)!==String(senderId)){item.onclick=()=>openUserMenu(u);}else{item.title="Vos";}list.appendChild(item);
 });
 }
 function renderModerationUsers(){

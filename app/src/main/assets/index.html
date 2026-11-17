@@ -902,6 +902,7 @@ roomUsers=next;renderUsers();renderModerationUsers();updateAdminStats();
 }
 
 /* PERFILES PERSONALIZADOS */
+/* El administrador validado por Supabase también puede consultar perfiles privados registrados. */
 let profileEditingUserId=null,profileLoadRequestId=0;
 function closeProfileModal(){profileLoadRequestId++;$("profileModal").classList.remove("show");profileEditingUserId=null;$("navProfile").classList.remove("active");}
 function openMyProfile(){if(!isRegisteredAccount||!senderId)return;$("navProfile").classList.add("active");openProfile(senderId,nickname,true);}

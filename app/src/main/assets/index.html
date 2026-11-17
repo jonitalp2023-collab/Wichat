@@ -124,17 +124,31 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 .user-menu-card .private-action{background:#168bea}
 .user-menu-card .kick-action{background:#344361}
 .user-menu-card .ban-action{background:#bd394d}
-#profileModal{display:none;position:fixed;inset:0;z-index:26000;background:rgba(0,0,0,.82);align-items:center;justify-content:center;padding:18px}
+#profileModal{display:none;position:fixed;inset:0;z-index:26000;background:radial-gradient(ellipse at 50% 8%,rgba(22,116,190,.24),transparent 52%),rgba(2,7,18,.91);align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(7px)}
 #profileModal.show{display:flex}
-.profile-card{width:100%;max-width:390px;max-height:85vh;overflow-y:auto;background:#141e35;border:1px solid #278bd2;border-radius:17px;padding:21px;box-shadow:0 12px 38px #000c}
-.profile-photo{display:block;width:112px;height:112px;object-fit:cover;border-radius:50%;border:3px solid #278bd2;margin:0 auto 15px;background:#0c1427}.profile-photo-editor{display:flex;align-items:center;gap:14px;margin:10px 0 16px}.profile-photo-editor .profile-photo{width:86px;height:86px;flex:0 0 86px;margin:0}.profile-photo-editor input{max-width:100%}.profile-card h3{color:#55b8ff;text-align:center;margin:0 0 18px;overflow-wrap:anywhere}
+.profile-card{position:relative;width:100%;max-width:410px;max-height:90vh;overflow-y:auto;background:linear-gradient(160deg,#172944 0%,#101b30 48%,#0b1426 100%);border:1px solid rgba(76,174,255,.48);border-radius:25px;padding:24px 21px 20px;box-shadow:0 22px 65px #000d,inset 0 1px 0 rgba(255,255,255,.06)}
+.profile-card:before{content:"";display:block;width:54px;height:4px;border-radius:9px;background:linear-gradient(90deg,#168bea,#6bd5ff);margin:0 auto 19px}
+.profile-card h3{color:#eaf6ff;text-align:center;font-size:21px;letter-spacing:.2px;margin:0 0 18px;overflow-wrap:anywhere}
+.profile-hero{text-align:center;padding:4px 12px 18px;margin-bottom:16px;border-bottom:1px solid rgba(112,174,225,.16)}
+.profile-photo{display:block;width:126px;height:126px;object-fit:cover;border-radius:50%;border:4px solid #43baff;padding:3px;margin:0 auto 13px;background:linear-gradient(135deg,#1d8fe5,#142a49);box-shadow:0 0 0 6px rgba(42,151,231,.12),0 10px 28px #0007}
+.profile-nick-label{display:none!important}
+.profile-hero .profile-value{display:inline-block;min-height:0;margin:0;padding:0;border:0;background:transparent;color:#f4faff;font-size:21px;font-weight:700;text-align:center;line-height:1.35}
+.profile-hero .profile-value:before{content:"+";display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;margin-right:7px;border-radius:50%;background:#168bea;color:white;font-size:14px;vertical-align:2px}
+.profile-section{margin:13px 0 0}
+.profile-section label{display:block;color:#72c9ff;font-size:11px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;margin:0 0 7px 2px}
 .profile-card label{display:block;color:#a9bfdc;font-size:13px;margin:12px 0 5px}
-.profile-card input[type=text],.profile-card textarea{width:100%;padding:12px;border:1px solid #344361;border-radius:10px;background:#0c1427;color:white;font:16px Arial;margin:0}
+.profile-card input[type=text],.profile-card textarea{width:100%;padding:12px;border:1px solid #344d70;border-radius:12px;background:#0a1426;color:white;font:16px Arial;margin:0;box-sizing:border-box}
 .profile-card textarea{min-height:100px;resize:vertical}
-.profile-value{background:#0c1427;border:1px solid #263b5b;border-radius:10px;padding:12px;margin-top:7px;white-space:pre-wrap;overflow-wrap:anywhere;color:#f4f7fc;min-height:42px}
-.profile-privacy{display:flex;align-items:center;gap:10px;margin:14px 0;color:#d5e3f5;font-size:14px}
+.profile-value{background:rgba(5,14,29,.62);border:1px solid rgba(92,146,196,.2);border-radius:13px;padding:13px 14px;margin-top:0;white-space:pre-wrap;overflow-wrap:anywhere;color:#f4f7fc;min-height:43px;line-height:1.5}
+.profile-section.bio .profile-value{min-height:76px}
+.profile-privacy{display:flex!important;align-items:center;gap:10px;margin:14px 0!important;color:#d5e3f5!important;font-size:14px!important;letter-spacing:0!important;text-transform:none!important}
 .profile-privacy input{width:20px;height:20px;accent-color:#168bea}
-.profile-card button{width:100%;margin-top:10px}
+.profile-photo-editor{display:flex;align-items:center;gap:14px;margin:10px 0 16px;padding:12px;background:#0a1426;border:1px solid #263e5e;border-radius:14px}
+.profile-photo-editor .profile-photo{width:86px;height:86px;flex:0 0 86px;margin:0}
+.profile-photo-editor input{max-width:100%;font-size:12px}
+.profile-card button{width:100%;margin-top:10px;border-radius:12px}
+#profileSaveBtn{background:linear-gradient(100deg,#087bd5,#20a9ed);font-weight:700;box-shadow:0 7px 18px rgba(0,128,220,.22)}
+.profile-card>button.secondary{background:#243752;color:#c8d8ea;border:1px solid #385372}
 
 /* PANEL ADMIN: ventana fija con desplazamiento vertical propio */
 #adminPanel{
@@ -290,10 +304,11 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="profileModal" onclick="if(event.target===this)closeProfileModal()">
 <div class="profile-card">
 <h3 id="profileTitle">Perfil</h3>
-<div id="profileDisplay"><img id="profilePhotoDisplay" class="profile-photo hidden" alt="Foto de perfil">
-<label>Nick</label><div id="profileNickValue" class="profile-value"></div>
-<label>Estado</label><div id="profileStatusValue" class="profile-value"></div>
-<label>Sobre mí</label><div id="profileBioValue" class="profile-value"></div>
+<div id="profileDisplay">
+<div class="profile-hero"><img id="profilePhotoDisplay" class="profile-photo hidden" alt="Foto de perfil">
+<div class="profile-nick-label">Nick</div><div id="profileNickValue" class="profile-value"></div></div>
+<div class="profile-section"><label>Estado</label><div id="profileStatusValue" class="profile-value"></div></div>
+<div class="profile-section bio"><label>Sobre mí</label><div id="profileBioValue" class="profile-value"></div></div>
 </div>
 <div id="profileEditor" class="hidden"><div class="profile-photo-editor"><img id="profilePhotoPreview" class="profile-photo hidden" alt="Vista previa de la foto"><div><label for="profilePhotoInput">Foto de perfil</label><input id="profilePhotoInput" type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadProfilePhoto(this)"><small class="muted">JPG, PNG o WebP · máximo 3 MB</small></div></div>
 <label for="profileStatusInput">Estado</label><input id="profileStatusInput" type="text" maxlength="80" placeholder="¿Qué estás haciendo?">

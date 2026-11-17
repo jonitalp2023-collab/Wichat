@@ -847,17 +847,21 @@ $("userMenuTitle").textContent=selectedMenuUser.nick;
 $("viewProfileBtn").classList.add("hidden");
 $("adminUserActions").classList.toggle("hidden",!isAdmin);
 $("userMenuModal").classList.add("show");
-if(isRegisteredAccount&&selectedMenuUser.registered){
+if((isRegisteredAccount||isAdmin)&&selectedMenuUser.registered){
   const targetId=String(selectedMenuUser.id);
-  const {data,error}=await db.from("chat_profiles").select("user_id").eq("user_id",targetId).eq("is_registered",true).eq("is_visible",true).maybeSingle();
+  let profileQuery=db.from("chat_profiles").select("user_id").eq("user_id",targetId).eq("is_registered",true);
+  if(!isAdmin)profileQuery=profileQuery.eq("is_visible",true);
+  const {data,error}=await profileQuery.maybeSingle();
   if(!error&&data&&selectedMenuUser&&String(selectedMenuUser.id)===targetId)$("viewProfileBtn").classList.remove("hidden");
 }
 }
 function closeUserMenu(){$("userMenuModal").classList.remove("show");}
 async function userMenuViewProfile(){
-if(!selectedMenuUser||!isRegisteredAccount)return;
+if(!selectedMenuUser||(!isRegisteredAccount&&!isAdmin))return;
 const target={...selectedMenuUser};closeUserMenu();
-const {data,error}=await db.from("chat_profiles").select("nickname,status,bio").eq("user_id",String(target.id)).eq("is_registered",true).eq("is_visible",true).maybeSingle();
+let profileQuery=db.from("chat_profiles").select("nickname,status,bio").eq("user_id",String(target.id)).eq("is_registered",true);
+if(!isAdmin)profileQuery=profileQuery.eq("is_visible",true);
+const {data,error}=await profileQuery.maybeSingle();
 if(error||!data){alert("Este perfil es privado o no está disponible.");return;}
 showProfileDetails(data,false);
 }

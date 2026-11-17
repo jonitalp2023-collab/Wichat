@@ -99,7 +99,7 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .user-count{font-size:12px;color:#9baac5;margin-bottom:10px}
 .room-tab{width:100%;text-align:left;margin:5px 0;background:#292929;border:1px solid #383838}
 .room-tab.active{background:#07549a;border-color:#168bea}
-#bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:2000;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;background:#17191e;border-top:1px solid #292d35;padding:8px 10px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -5px 18px #0004}
+#bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:2000;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;background:#17191e;border-top:1px solid #292d35;padding:8px 10px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -5px 18px #0004}
 body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:none!important;transition:none!important;z-index:2000}
 .nav-btn{min-width:0;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:transparent;color:#aab3c2;border-radius:14px;padding:6px 2px;font-size:11px;font-weight:600;letter-spacing:.1px;transition:background .18s ease,color .18s ease,transform .18s ease}
 .nav-btn .nav-icon{width:25px;height:25px;display:flex;align-items:center;justify-content:center;line-height:1}
@@ -287,10 +287,22 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
  #adminPanel .admin-welcome h2{font-size:20px}
 }
 
+#notificationModal{display:none;position:fixed;inset:0;z-index:30000;background:#000b;align-items:flex-end;justify-content:center;padding:12px}
+#notificationModal.show{display:flex}
+.notification-card{width:100%;max-width:520px;max-height:min(75vh,650px);overflow:hidden;background:#121f35;border:1px solid #287bb5;border-radius:20px;box-shadow:0 15px 50px #000c;display:flex;flex-direction:column}
+.notification-head{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid #30445e;color:#8fd0ff;font-weight:bold}
+.notification-head button{padding:7px 11px;background:#344361}
+#notificationList{overflow-y:auto;padding:10px}
+.notification-item{display:flex;gap:10px;align-items:flex-start;width:100%;margin:5px 0;padding:13px;background:#1b2d47;border:1px solid #304966;border-radius:12px;color:#fff;text-align:left}
+.notification-item small{display:block;color:#9fb2cc;margin-top:4px;font-weight:normal}
+.notification-empty{padding:25px 12px;text-align:center;color:#9baac5}
+#notificationBadge{position:absolute;top:2px;right:calc(50% - 21px);min-width:18px;height:18px;padding:0 4px;border-radius:20px;background:#ed334f;color:#fff;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;border:2px solid #17191e}
+#notificationBadge.hidden{display:none!important}
 </style>
 </head>
 <body>
 <div id="privateNotice" role="status" aria-live="polite"></div>
+<div id="notificationModal" onclick="if(event.target===this)closeNotifications()"><section class="notification-card"><div class="notification-head"><span>🔔 Notificaciones</span><button onclick="closeNotifications()">Cerrar</button></div><div id="notificationList"></div></section></div>
 <div id="userMenuModal" onclick="if(event.target===this)closeUserMenu()">
 <div class="user-menu-card">
 <h3 id="userMenuTitle">Usuario</h3>
@@ -382,6 +394,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <button id="navUsers" class="nav-btn" onclick="showMainTab('users')" aria-label="Usuarios"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Usuarios</span></button>
 <button id="navChat" class="nav-btn" onclick="showMainTab('chat')" aria-label="Chat"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></span><span>Chat</span></button>
 <button id="navProfile" class="nav-btn hidden" onclick="openMyProfile()" aria-label="Mi perfil"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span>Perfil</span></button><button id="adminOpenBtn" class="nav-btn hidden" onclick="openAdmin()" aria-label="Administración"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 3z"/><path d="M8 20h8"/></svg></span><span>ADMIN</span></button>
+<button id="navNotifications" class="nav-btn" onclick="openNotifications()" aria-label="Notificaciones"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></span><span>Avisos</span><span id="notificationBadge" class="hidden">0</span></button>
 <button id="navExit" class="nav-btn exit" onclick="exitChat()" aria-label="Salir"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></span><span>Salir</span></button>
 </nav>
 <div id="adminPanel" class="panel admin-box hidden">
@@ -518,6 +531,16 @@ let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=nu
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
 let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
+let mentionNotifications=[];
+function notificationStorageKey(){return "wichat-mentions-"+String(senderId||"");}
+function loadMentionNotifications(){try{mentionNotifications=JSON.parse(localStorage.getItem(notificationStorageKey())||"[]");if(!Array.isArray(mentionNotifications))mentionNotifications=[];}catch(_){mentionNotifications=[];}}
+function saveMentionNotifications(){try{localStorage.setItem(notificationStorageKey(),JSON.stringify(mentionNotifications.slice(-100)));}catch(_){}}
+function notificationCount(){return mentionNotifications.length+privateUnread.size;}
+function updateNotificationBadge(){const badge=$("notificationBadge");if(!badge)return;const count=notificationCount();badge.textContent=count>99?"99+":String(count);badge.classList.toggle("hidden",count===0);}
+function addMentionNotification(m){const body=String(m?.message||m?.content||"").toLowerCase();if(!body||String(m.sender_id)===String(senderId)||!nickname||!body.includes("#"+nickname.toLowerCase()))return;const key=String(m.id||"");if(mentionNotifications.some(n=>n.id===key))return;const room=rooms.find(r=>String(r.id)===String(m.room_id));mentionNotifications.push({id:key,room_id:m.room_id,room_name:room?.name||"Sala",nick:m.nickname||"Usuario",message:String(m.message||m.content||"").slice(0,180),created_at:m.created_at||new Date().toISOString()});saveMentionNotifications();updateNotificationBadge();}
+function openNotifications(){renderNotifications();$("notificationModal").classList.add("show");}
+function closeNotifications(){$("notificationModal").classList.remove("show");}
+function renderNotifications(){const list=$("notificationList");if(!list)return;list.innerHTML="";let count=0;mentionNotifications.slice().reverse().forEach(n=>{count++;const b=document.createElement("button");b.className="notification-item";const icon=document.createElement("span");icon.textContent="💬";const content=document.createElement("span");const strong=document.createElement("strong");strong.textContent=n.nick+" te mencionó en #"+n.room_name;const small=document.createElement("small");small.textContent=n.message;content.append(strong,small);b.append(icon,content);b.onclick=async()=>{mentionNotifications=mentionNotifications.filter(x=>x.id!==n.id);saveMentionNotifications();closeNotifications();await switchRoom(n.room_id);updateNotificationBadge();};list.appendChild(b);});privateUnread.forEach(id=>{count++;const user=privateChats.find(u=>String(u.id)===String(id));const b=document.createElement("button");b.className="notification-item";const icon=document.createElement("span");icon.textContent="✉️";const content=document.createElement("span");const strong=document.createElement("strong");strong.textContent="Mensaje privado sin leer";const small=document.createElement("small");small.textContent="De "+(user?.nick||"Usuario");content.append(strong,small);b.append(icon,content);b.onclick=()=>{closeNotifications();if(user)switchPrivateTab(user.id);};list.appendChild(b);});if(!count)list.innerHTML='<div class="notification-empty">No tenés notificaciones pendientes.</div>';updateNotificationBadge();}
 let authMode="home";
 let isRegisteredAccount=false;
 const registeredUsers=new Set();
@@ -824,6 +847,7 @@ if(error)throw error;
 if(!allowed){currentRoom=null;showModerationModal("blocked",selectedRoom?.name||"esta sala",true);btn.disabled=false;return;}
 const available=await claimNickname(nickname);if(!available){currentRoom=null;throw new Error("Este Nick ya está en uso. Elegí otro.");}
 await saveChatProfile();
+loadMentionNotifications();updateNotificationBadge();
 await loadRegisteredProfiles();
 $("navProfile").classList.toggle("hidden",!isRegisteredAccount);
 $("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
@@ -898,7 +922,7 @@ currentRoom=id;showMainTab("chat");$("roomTopic").style.display="flex";$("roomTo
 topicChannel=db.channel("wichat-room-topic-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id)).subscribe();
 receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();renderUsers();renderMentionUsers();
 const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";
-messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new)).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
+messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new,true)).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
 presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
 presenceChannel.on("presence",{event:"sync"},updatePresenceList).on("presence",{event:"join"},updatePresenceList).on("presence",{event:"leave"},updatePresenceList).subscribe(async state=>{
 if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,is_registered:isRegisteredAccount,online_at:new Date().toISOString()});updatePresenceList();}
@@ -1021,8 +1045,8 @@ if(Array.from(s.options).some(o=>o.value===old))s.value=old;
 }
 
 /* MENSAJES PÚBLICOS */
-function addMessage(m){
-if(!m||receivedIds.has(m.id))return;receivedIds.add(m.id);
+function addMessage(m,notifyMention=false){
+if(!m||receivedIds.has(m.id))return;receivedIds.add(m.id);if(notifyMention)addMentionNotification(m);
 const div=document.createElement("div");div.className="message";const n=document.createElement("strong");n.className="nickname";const nick=m.nickname||"Usuario";let hash=0;
 for(let i=0;i<nick.length;i++)hash=nick.charCodeAt(i)+((hash<<5)-hash);
 const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];n.style.color=colors[Math.abs(hash)%colors.length];
@@ -1127,7 +1151,7 @@ if(!user){user={id:m.sender_id,nick:m.sender_nickname||"Usuario"};privateChats.p
 const isActive=activePrivateUser&&String(activePrivateUser.id)===String(m.sender_id);
 if(!isActive){
   privateUnread.add(String(m.sender_id));
-  renderPrivateTabs();
+  renderPrivateTabs();updateNotificationBadge();
   showPrivateNotification(user.nick);
 }else{
   addPrivateMessage(m);
@@ -1150,7 +1174,7 @@ async function openPrivateChat(user){
 if(!user||String(user.id)===String(senderId))return;let existing=privateChats.find(u=>String(u.id)===String(user.id));if(!existing)privateChats.push({id:user.id,nick:user.nick});await switchPrivateTab(user.id);
 }
 async function switchPrivateTab(userId){
-const user=privateChats.find(u=>String(u.id)===String(userId));if(!user)return;activePrivateUser=user;privateUnread.delete(String(userId));renderPrivateTabs();privateReceivedIds.clear();
+const user=privateChats.find(u=>String(u.id)===String(userId));if(!user)return;activePrivateUser=user;privateUnread.delete(String(userId));renderPrivateTabs();updateNotificationBadge();privateReceivedIds.clear();
 $("chatView").classList.add("hidden");$("usersView").classList.add("hidden");$("roomsView").classList.add("hidden");$("privateView").classList.remove("hidden");$("roomTopic").style.display="none";
 $("navUsers").classList.remove("active");$("navRooms").classList.remove("active");$("navChat").classList.remove("active");
 $("privateMessages").innerHTML='<p class="muted">Cargando conversación...</p>';
@@ -1497,7 +1521,7 @@ if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await presenceChannel.untrack();await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null;}
 if(privateNoticeTimer){clearTimeout(privateNoticeTimer);privateNoticeTimer=null;}
-$("privateNotice").style.display="none";receivedIds.clear();privateReceivedIds.clear();roomUsers.clear();activePrivateUser=null;privateChats=[];privateUnread.clear();
+$("privateNotice").style.display="none";closeNotifications();mentionNotifications=[];receivedIds.clear();privateReceivedIds.clear();roomUsers.clear();activePrivateUser=null;privateChats=[];privateUnread.clear();
 adminPin="";isAdmin=false;isRegisteredAccount=false;$("navProfile").classList.add("hidden");registeredUsers.clear();checkedProfiles.clear();currentRoom=null;nickname="";senderId="";renderTabs();
 $("chat").style.display="none";$("login").style.display="block";document.body.classList.remove("chat-active");$("enterBtn").disabled=false;showLoginMode("home");
 $("messages").innerHTML="";$("privateMessages").innerHTML="";$("privateInput").value="";$("messageInput").value="";

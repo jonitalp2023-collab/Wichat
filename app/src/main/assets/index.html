@@ -843,9 +843,8 @@ if(error)throw error;
 if(!allowed){currentRoom=null;if(selectedRoom?.is_vip&&!isAdmin)showModerationModal("vip_required",selectedRoom?.name||"VIP");else showModerationModal("blocked",selectedRoom?.name||"esta sala",true);btn.disabled=false;return;}
 const available=await claimNickname(nickname);if(!available){currentRoom=null;throw new Error("Este Nick ya está en uso. Elegí otro.");}
 await saveChatProfile();
-await loadRegisteredProfiles();
 $("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
-$("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom);
+$("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom,true);loadRegisteredProfiles().catch(error=>console.warn("Perfiles registrados:",error));
 subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
 }catch(e){await releaseNickname();await releaseAccountDeviceSession();currentRoom=null;console.error("Error al ingresar al chat:",e);showError("No se pudo ingresar: "+(e.message||String(e)));btn.disabled=false;}
 }
@@ -869,21 +868,24 @@ const b=document.createElement("button");b.className="room-tab"+(active?" active
 });
 renderPrivateTabs();
 }
-async function switchRoom(id){
+async function switchRoom(id,accessAlreadyChecked=false){
+if(!accessAlreadyChecked){
 const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:id});
 if(accessError){$("status").textContent="Error de acceso: "+accessError.message;return;}
 if(!allowed){const room=rooms.find(r=>String(r.id)===String(id));if(room?.is_vip&&!isAdmin)showModerationModal("vip_required",room.name||"VIP");else $("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";return;}
+}
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
 if(reactionChannel){await db.removeChannel(reactionChannel);reactionChannel=null;}
 roomReactionRows.clear();
-currentRoom=id;showMainTab("chat");$("roomTopic").style.display="flex";$("roomTopicText").textContent="Cargando tópico...";$("roomTopic").classList.add("empty");await loadRoomTopic(id);
+currentRoom=id;showMainTab("chat");$("roomTopic").style.display="flex";$("roomTopicText").textContent="Cargando tópico...";$("roomTopic").classList.add("empty");
+loadRoomTopic(id);
 topicChannel=db.channel("wichat-room-topic-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id)).subscribe();
 receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();renderUsers();
 const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";
-messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new)).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
-reactionChannel=db.channel("wichat-reactions-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_message_reactions"},()=>loadRoomReactions(id)).subscribe();
+messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new)).subscribe(s=>{if(s==="SUBSCRIBED")$("status").textContent="● Conectado";});
+loadRoomMessages(id);
 presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
 presenceChannel.on("presence",{event:"sync"},updatePresenceList).on("presence",{event:"join"},updatePresenceList).on("presence",{event:"leave"},updatePresenceList).subscribe(async state=>{
 if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,is_registered:isRegisteredAccount,online_at:new Date().toISOString()});updatePresenceList();}
@@ -1107,7 +1109,6 @@ const {data,error}=await db.from("messages").select("*").eq("room_id",roomId).gt
 if(error){console.error("Error cargando historial:",error);$("status").textContent="Error cargando mensajes: "+error.message;return;}
 if(String(currentRoom)!==String(roomId))return;(data||[]).forEach(addMessage);if(!data||data.length<pageSize)break;from+=pageSize;
 }
-await loadRoomReactions(roomId);
 }
 
 /* PROTECCIÓN ANTI-SPAM EN EL CLIENTE.

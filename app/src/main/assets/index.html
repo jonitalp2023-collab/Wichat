@@ -75,7 +75,7 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .private-message.mine{background:transparent}
 .nickname{font-weight:bold;white-space:nowrap;font-size:15px}
 .admin-at{color:#38a5ff;font-weight:900;margin-right:3px}.admin-unix{color:#38a5ff!important}
-.registered-plus{color:#20d66b;font-weight:900;margin-right:5px;font-size:17px;text-shadow:0 0 6px rgba(32,214,107,.35)}
+.registered-check{display:inline-flex;align-items:center;justify-content:center;color:#35d879;font-weight:900;margin-right:5px;font-size:15px;line-height:1;text-shadow:0 0 6px rgba(53,216,121,.35)}
 .msgtext{color:#f4f4f4;white-space:pre-wrap;min-width:0;overflow-wrap:anywhere;font-size:15px;line-height:1.35}
 .composer{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;background:#222}
 .composer input{margin:0;min-width:0;flex:1;padding:15px 17px;background:#303030;border:0;border-radius:30px;color:white;font-size:16px}
@@ -811,8 +811,8 @@ async function loadRegisteredProfiles(){
   (data||[]).forEach(p=>{if(p.user_id){registeredUsers.add(String(p.user_id));checkedProfiles.add(String(p.user_id));}});
 }
 function addRegisteredPlus(element){
-  if(!element||element.querySelector(".registered-plus"))return;
-  const mark=document.createElement("span");mark.className="registered-plus";mark.textContent="+";mark.setAttribute("aria-label","Usuario registrado");
+  if(!element||element.querySelector(".registered-check"))return;
+  const mark=document.createElement("span");mark.className="registered-check";mark.textContent="✓";mark.setAttribute("aria-label","Usuario registrado");mark.title="Usuario registrado";
   element.insertBefore(mark,element.firstChild);
 }
 async function ensureRegisteredStatus(userId,element){

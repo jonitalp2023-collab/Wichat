@@ -929,7 +929,7 @@ if(!own&&(!isRegisteredAccount||!data||data.is_visible!==true)){$("profileReadOn
 const p=data||{},badge=badgeData||{is_vip:false,points:0,medal:"Principiante"};
 $("profileBadges").textContent=(badge.is_vip?"⭐ VIP · ":"")+String(badge.points||0)+" puntos · Medalla "+(badge.medal||"Principiante");
 $("profileNickname").textContent=p.nickname||nick||"Usuario";
-if(p.avatar_url){let photoUrl="";if(/^https?:\/\//i.test(p.avatar_url)){photoUrl=p.avatar_url;}else{const {data:signedData,error:signedError}=await db.storage.from("chat-profile-photos").createSignedUrl(p.avatar_url,3600);if(signedError)console.warn("No se pudo abrir la foto del perfil:",signedError.message);else photoUrl=signedData?.signedUrl||"";}if(photoUrl){$("profileAvatar").src=photoUrl;$("profileAvatar").classList.remove("hidden");}}
+if(p.avatar_url){let photoUrl="";if(/^https?:\/\//i.test(p.avatar_url)){photoUrl=p.avatar_url;}else{const {data:signedData,error:signedError}=await db.storage.from("chat-profile-photos").createSignedUrl(p.avatar_url,300);if(signedError)console.warn("No se pudo abrir la foto del perfil:",signedError.message);else photoUrl=signedData?.signedUrl||"";}if(photoUrl){$("profileAvatar").src=photoUrl;$("profileAvatar").classList.remove("hidden");}}
 $("profileStatus").textContent=p.status||"Sin estado";
 $("profileBio").textContent=p.bio||"Todavía no agregó una descripción.";
 if(own){$("profileAvatarPath").value=p.avatar_url||"";$("profileAvatarFile").value="";$("profileStatusInput").value=p.status||"";$("profileBioInput").value=p.bio||"";$("profileVisibleInput").checked=p.is_visible===true;}
@@ -939,7 +939,7 @@ $("profileFeedback").textContent="";
 async function saveProfileEditor(){
 if(!profileEditingUserId||profileEditingUserId!==String(senderId)||!isRegisteredAccount)return;
 const saveRequestId=profileLoadRequestId,saveUserId=profileEditingUserId;
-const selectedFile=$("profileAvatarFile").files?.[0]||null,status=$("profileStatusInput").value.trim(),bio=$("profileBioInput").value.trim(),isVisible=$("profileVisibleInput").checked;
+const selectedFile=$("profileAvatarFile").files?.[0]||null,status=$("profileStatusInput").value.trim(),bio=$("profileBioInput").value.trim(),isVisible=$("profileVisibleInput").checked,previousAvatarPath=$("profileAvatarPath").value.trim();
 if(status.length>40||bio.length>160){$("profileFeedback").textContent="El estado admite 40 caracteres y la descripción 160.";return;}
 if(selectedFile&&(!["image/jpeg","image/png","image/webp"].includes(selectedFile.type)||selectedFile.size>5*1024*1024)){$("profileFeedback").textContent="La imagen debe ser JPG, PNG o WEBP y no superar 5 MB.";return;}
 let avatarPath=$("profileAvatarPath").value.trim(),uploadedPath=null;
@@ -948,11 +948,12 @@ try{
 if(selectedFile){const extension=selectedFile.type==="image/png"?"png":selectedFile.type==="image/webp"?"webp":"jpg";uploadedPath=senderId+"/"+crypto.randomUUID()+"."+extension;const {error:uploadError}=await db.storage.from("chat-profile-photos").upload(uploadedPath,selectedFile,{cacheControl:"3600",upsert:false,contentType:selectedFile.type});if(uploadError)throw uploadError;avatarPath=uploadedPath;}
 const {error}=await db.from("chat_profiles").upsert({user_id:senderId,nickname:nickname,is_registered:true,bio:bio||null,avatar_url:avatarPath||null,status:status||null,is_visible:isVisible,updated_at:new Date().toISOString()},{onConflict:"user_id"});
 if(error)throw error;
+if(previousAvatarPath&&previousAvatarPath!==avatarPath&&!/^https?:\/\//i.test(previousAvatarPath)){const {error:removeError}=await db.storage.from("chat-profile-photos").remove([previousAvatarPath]);if(removeError)console.warn("No se pudo borrar la foto anterior:",removeError.message);}
 if(saveRequestId!==profileLoadRequestId||saveUserId!==profileEditingUserId)return;
 $("profileAvatarPath").value=avatarPath;$("profileAvatarFile").value="";
 $("profileFeedback").textContent="Perfil actualizado correctamente.";
 $("profileNickname").textContent=nickname;$("profileStatus").textContent=status||"Sin estado";$("profileBio").textContent=bio||"Todavía no agregó una descripción.";
-if(avatarPath){if(/^https?:\/\//i.test(avatarPath)){$("profileAvatar").src=avatarPath;}else{const {data:signedData,error:signedError}=await db.storage.from("chat-profile-photos").createSignedUrl(avatarPath,3600);if(signedError)throw signedError;$("profileAvatar").src=signedData.signedUrl;}$("profileAvatar").classList.remove("hidden");}else{$("profileAvatar").removeAttribute("src");$("profileAvatar").classList.add("hidden");}
+if(avatarPath){if(/^https?:\/\//i.test(avatarPath)){$("profileAvatar").src=avatarPath;}else{const {data:signedData,error:signedError}=await db.storage.from("chat-profile-photos").createSignedUrl(avatarPath,300);if(signedError)throw signedError;$("profileAvatar").src=signedData.signedUrl;}$("profileAvatar").classList.remove("hidden");}else{$("profileAvatar").removeAttribute("src");$("profileAvatar").classList.add("hidden");}
 }catch(e){if(uploadedPath){await db.storage.from("chat-profile-photos").remove([uploadedPath]).catch(()=>{});}if(saveRequestId===profileLoadRequestId&&saveUserId===profileEditingUserId)$("profileFeedback").textContent="No se pudo guardar: "+e.message;}
 }
 

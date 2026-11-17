@@ -35,15 +35,13 @@ class MainActivity : Activity() {
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val uri = request?.url ?: return false
-                // Google blocks OAuth inside embedded WebViews. Open Supabase's
-                // authorization URL in the system browser; Supabase redirects
-                // back to this app through the registered deep link.
-                if (uri.host == "pqnnzkqxkndzelsbtxvv.supabase.co" &&
-                    uri.path?.startsWith("/auth/v1/authorize") == true) {
-                    startActivity(Intent(Intent.ACTION_VIEW, uri))
-                    return true
-                }
-                return false
+                return openAuthInSystemBrowser(uri)
+            }
+
+            @Suppress("DEPRECATION")
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                if (url.isNullOrBlank()) return false
+                return openAuthInSystemBrowser(Uri.parse(url))
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
@@ -55,11 +53,23 @@ class MainActivity : Activity() {
         web.loadUrl("file:///android_asset/index.html")
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingAuthCallback = intent?.data?.takeIf { it.scheme == "com.wichat.app" }?.toString()
         deliverPendingAuthCallback()
+    }
+
+    private fun openAuthInSystemBrowser(uri: Uri): Boolean {
+        // Google blocks OAuth inside embedded WebViews. Open Supabase's
+        // authorization URL in the system browser; Supabase redirects
+        // back to this app through the registered deep link.
+        if (uri.host == "pqnnzkqxkndzelsbtxvv.supabase.co" &&
+            uri.path?.startsWith("/auth/v1/authorize") == true) {
+            startActivity(Intent(Intent.ACTION_VIEW, uri))
+            return true
+        }
+        return false
     }
 
     private fun deliverPendingAuthCallback() {

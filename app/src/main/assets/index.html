@@ -304,6 +304,26 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 .notification-empty{padding:25px 12px;text-align:center;color:#9baac5}
 #notificationBadge{position:absolute;top:2px;right:calc(50% - 21px);min-width:18px;height:18px;padding:0 4px;border-radius:20px;background:#ed334f;color:#fff;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;border:2px solid #17191e}
 #notificationBadge.hidden{display:none!important}
+
+/* AJUSTE SAFARI iOS / VIEWPORT VISUAL */
+@supports (-webkit-touch-callout: none){
+  html,body{height:100%;min-height:100%;}
+  body.chat-active #chat{
+    top:var(--visual-top,0px);
+    height:var(--app-height,100dvh);
+  }
+  body.chat-active #roomPills{
+    top:calc(var(--visual-top,0px) + env(safe-area-inset-top));
+  }
+  body.chat-active #roomTopic{
+    top:calc(var(--visual-top,0px) + 62px + env(safe-area-inset-top));
+  }
+  body.chat-active #bottomNav{
+    top:calc(var(--visual-top,0px) + var(--app-height,100dvh) - 76px - env(safe-area-inset-bottom));
+    bottom:auto;
+  }
+  #messageInput,#privateInput{font-size:16px!important;}
+}
 </style>
 </head>
 <body>
@@ -1651,25 +1671,39 @@ $("bannedUsersList").innerHTML='<p class="muted">Presioná actualizar para ver l
 /* INICIO */
 (async()=>{try{await fetchRooms();await restoreGoogleLogin();}catch(e){$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';showError(e.message);}})();
 
-/* CONTROL DEL TECLADO ANDROID */
+/* CONTROL DEL VIEWPORT Y TECLADO: iOS Safari + Chrome + Android */
 (function(){
-const root=document.documentElement,viewport=window.visualViewport;
+const root=document.documentElement;
+const viewport=window.visualViewport;
+let frame=0;
 function updateScreen(){
-if(!document.body.classList.contains("chat-active"))return;
-if(viewport){const height=Math.round(viewport.height);root.style.setProperty("--app-height",height+"px");}
-else{root.style.setProperty("--app-height",window.innerHeight+"px");}
+  cancelAnimationFrame(frame);
+  frame=requestAnimationFrame(function(){
+    if(!document.body.classList.contains("chat-active"))return;
+    if(viewport){
+      root.style.setProperty("--app-height",Math.max(1,Math.round(viewport.height))+"px");
+      root.style.setProperty("--visual-top",Math.max(0,Math.round(viewport.offsetTop))+"px");
+    }else{
+      root.style.setProperty("--app-height",window.innerHeight+"px");
+      root.style.setProperty("--visual-top","0px");
+    }
+  });
 }
 if(viewport){
-  // El teclado puede desplazar el visualViewport; solo reaccionamos a cambios
-  // reales de tamaño, no a cada movimiento/scroll, para evitar saltos del chat.
-  viewport.addEventListener("resize",updateScreen);
+  viewport.addEventListener("resize",updateScreen,{passive:true});
+  viewport.addEventListener("scroll",updateScreen,{passive:true});
 }
-window.addEventListener("resize",updateScreen);
+window.addEventListener("resize",updateScreen,{passive:true});
+window.addEventListener("orientationchange",function(){setTimeout(updateScreen,250);},{passive:true});
 document.addEventListener("focusin",function(event){
-  if(event.target.matches("#messageInput,#privateInput"))requestAnimationFrame(updateScreen);
+  if(event.target.matches("#messageInput,#privateInput")){
+    updateScreen();
+    setTimeout(updateScreen,100);
+    setTimeout(updateScreen,300);
+  }
 });
 document.addEventListener("focusout",function(event){
-  if(event.target.matches("#messageInput,#privateInput"))setTimeout(updateScreen,180);
+  if(event.target.matches("#messageInput,#privateInput"))setTimeout(updateScreen,250);
 });
 updateScreen();
 })();

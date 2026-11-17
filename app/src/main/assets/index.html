@@ -98,7 +98,7 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .user-count{font-size:12px;color:#9baac5;margin-bottom:10px}
 .room-tab{width:100%;text-align:left;margin:5px 0;background:#292929;border:1px solid #383838}
 .room-tab.active{background:#07549a;border-color:#168bea}
-#bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:2000;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;background:#17191e;border-top:1px solid #292d35;padding:8px 10px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -5px 18px #0004}
+#bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:2000;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;background:#17191e;border-top:1px solid #292d35;padding:8px 10px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -5px 18px #0004}
 body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:none!important;transition:none!important;z-index:2000}
 .nav-btn{min-width:0;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:transparent;color:#aab3c2;border-radius:14px;padding:6px 2px;font-size:11px;font-weight:600;letter-spacing:.1px;transition:background .18s ease,color .18s ease,transform .18s ease}
 .nav-btn .nav-icon{width:25px;height:25px;display:flex;align-items:center;justify-content:center;line-height:1}
@@ -127,7 +127,7 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 #profileModal{display:none;position:fixed;inset:0;z-index:26000;background:rgba(0,0,0,.82);align-items:center;justify-content:center;padding:18px}
 #profileModal.show{display:flex}
 .profile-card{width:100%;max-width:390px;max-height:85vh;overflow-y:auto;background:#141e35;border:1px solid #278bd2;border-radius:17px;padding:21px;box-shadow:0 12px 38px #000c}
-.profile-card h3{color:#55b8ff;text-align:center;margin:0 0 18px;overflow-wrap:anywhere}
+.profile-photo{display:block;width:112px;height:112px;object-fit:cover;border-radius:50%;border:3px solid #278bd2;margin:0 auto 15px;background:#0c1427}.profile-photo-editor{display:flex;align-items:center;gap:14px;margin:10px 0 16px}.profile-photo-editor .profile-photo{width:86px;height:86px;flex:0 0 86px;margin:0}.profile-photo-editor input{max-width:100%}.profile-card h3{color:#55b8ff;text-align:center;margin:0 0 18px;overflow-wrap:anywhere}
 .profile-card label{display:block;color:#a9bfdc;font-size:13px;margin:12px 0 5px}
 .profile-card input[type=text],.profile-card textarea{width:100%;padding:12px;border:1px solid #344361;border-radius:10px;background:#0c1427;color:white;font:16px Arial;margin:0}
 .profile-card textarea{min-height:100px;resize:vertical}
@@ -290,12 +290,12 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="profileModal" onclick="if(event.target===this)closeProfileModal()">
 <div class="profile-card">
 <h3 id="profileTitle">Perfil</h3>
-<div id="profileDisplay">
+<div id="profileDisplay"><img id="profilePhotoDisplay" class="profile-photo hidden" alt="Foto de perfil">
 <label>Nick</label><div id="profileNickValue" class="profile-value"></div>
 <label>Estado</label><div id="profileStatusValue" class="profile-value"></div>
 <label>Sobre mí</label><div id="profileBioValue" class="profile-value"></div>
 </div>
-<div id="profileEditor" class="hidden">
+<div id="profileEditor" class="hidden"><div class="profile-photo-editor"><img id="profilePhotoPreview" class="profile-photo hidden" alt="Vista previa de la foto"><div><label for="profilePhotoInput">Foto de perfil</label><input id="profilePhotoInput" type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadProfilePhoto(this)"><small class="muted">JPG, PNG o WebP · máximo 3 MB</small></div></div>
 <label for="profileStatusInput">Estado</label><input id="profileStatusInput" type="text" maxlength="80" placeholder="¿Qué estás haciendo?">
 <label for="profileBioInput">Sobre mí</label><textarea id="profileBioInput" maxlength="300" placeholder="Contá algo sobre vos..."></textarea>
 <label class="profile-privacy"><input id="profileVisibleInput" type="checkbox"> Mi perfil es visible para otros usuarios registrados</label>
@@ -354,7 +354,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
 <input id="messageInput" maxlength="1000" placeholder="Escribí aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
 <button id="sendBtn" class="send-button" onclick="sendMessage()">➤</button></div></div>
-<div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><button id="myProfileBtn" class="secondary hidden" onclick="openMyProfile()">👤 Mi perfil</button><div id="usersCountText" class="user-count">0 usuarios conectados</div><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
+<div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><div id="usersCountText" class="user-count">0 usuarios conectados</div><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
 <div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
 <div id="privateView" class="hidden"><div id="privateMessages"></div>
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
@@ -365,7 +365,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <button id="navRooms" class="nav-btn active" onclick="showMainTab('rooms')" aria-label="Salas"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5"/><rect x="3" y="12" width="18" height="8" rx="1.5"/><path d="M7 6.5h.01M7 16h.01"/></svg></span><span>Salas</span></button>
 <button id="navUsers" class="nav-btn" onclick="showMainTab('users')" aria-label="Usuarios"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Usuarios</span></button>
 <button id="navChat" class="nav-btn" onclick="showMainTab('chat')" aria-label="Chat"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></span><span>Chat</span></button>
-<button id="adminOpenBtn" class="nav-btn hidden" onclick="openAdmin()" aria-label="Administración"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 3z"/><path d="M8 20h8"/></svg></span><span>ADMIN</span></button>
+<button id="navProfile" class="nav-btn hidden" onclick="openMyProfile()" aria-label="Mi perfil"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span>Perfil</span></button><button id="adminOpenBtn" class="nav-btn hidden" onclick="openAdmin()" aria-label="Administración"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 3z"/><path d="M8 20h8"/></svg></span><span>ADMIN</span></button>
 <button id="navExit" class="nav-btn exit" onclick="exitChat()" aria-label="Salir"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></span><span>Salir</span></button>
 </nav>
 <div id="adminPanel" class="panel admin-box hidden">
@@ -809,7 +809,7 @@ if(!allowed){currentRoom=null;showModerationModal("blocked",selectedRoom?.name||
 const available=await claimNickname(nickname);if(!available){currentRoom=null;throw new Error("Este Nick ya está en uso. Elegí otro.");}
 await saveChatProfile();
 await loadRegisteredProfiles();
-$("myProfileBtn").classList.toggle("hidden",!isRegisteredAccount);
+$("navProfile").classList.toggle("hidden",!isRegisteredAccount);
 $("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
 $("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom);
 subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
@@ -818,7 +818,7 @@ subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
 function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");}
 
 /* NAVEGACIÓN */
-function showMainTab(which){
+function showMainTab(which){$("navProfile").classList.remove("active");
 $("chatView").classList.toggle("hidden",which!=="chat");$("usersView").classList.toggle("hidden",which!=="users");$("roomsView").classList.toggle("hidden",which!=="rooms");$("privateView").classList.add("hidden");
 $("navUsers").classList.toggle("active",which==="users");$("navRooms").classList.toggle("active",which==="rooms");$("navChat").classList.toggle("active",which==="chat");
 $("roomTopic").style.display=(which==="chat"&&document.body.classList.contains("chat-active"))?"flex":"none";activePrivateUser=null;
@@ -876,47 +876,59 @@ if((isRegisteredAccount||isAdmin)&&selectedMenuUser.registered){
 }
 function closeUserMenu(){$("userMenuModal").classList.remove("show");}
 async function userMenuViewProfile(){
-if(!selectedMenuUser||(!isRegisteredAccount&&!isAdmin))return;
-const target={...selectedMenuUser};closeUserMenu();
-let profileQuery=db.from("chat_profiles").select("nickname,status,bio").eq("user_id",String(target.id)).eq("is_registered",true);
-if(!isAdmin)profileQuery=profileQuery.eq("is_visible",true);
-const {data,error}=await profileQuery.maybeSingle();
-if(error||!data){alert("Este perfil es privado o no está disponible.");return;}
-showProfileDetails(data,false);
+ if(!selectedMenuUser||(!isRegisteredAccount&&!isAdmin))return;
+ const target={...selectedMenuUser};closeUserMenu();
+ let profileQuery=db.from("chat_profiles").select("nickname,status,bio,avatar_url").eq("user_id",String(target.id)).eq("is_registered",true);
+ if(!isAdmin)profileQuery=profileQuery.eq("is_visible",true);
+ const {data,error}=await profileQuery.maybeSingle();
+ if(error||!data){alert("Este perfil es privado o no está disponible.");return;}
+ await showProfileDetails(data,false);
 }
-function showProfileDetails(profile,editable){
-$("profileTitle").textContent=editable?"Mi perfil":"Perfil de "+(profile.nickname||"usuario");
-$("profileNickValue").textContent=profile.nickname||"";
-$("profileStatusValue").textContent=profile.status||"Sin estado";
-$("profileBioValue").textContent=profile.bio||"Este usuario todavía no escribió una descripción.";
-$("profileDisplay").classList.remove("hidden");
-$("profileEditor").classList.toggle("hidden",!editable);
-$("profileModal").classList.add("show");
+async function resolveProfilePhoto(path){
+ if(!path)return "";
+ const {data,error}=await db.storage.from("chat-profile-photos").createSignedUrl(path,3600);
+ if(error){console.warn("No se pudo mostrar la foto de perfil:",error.message);return "";}
+ return data?.signedUrl||"";
+}
+async function showProfileDetails(profile,editable){
+ $("profileTitle").textContent=editable?"Mi perfil":"Perfil de "+(profile.nickname||"usuario");
+ $("profileNickValue").textContent=profile.nickname||"";
+ $("profileStatusValue").textContent=profile.status||"Sin estado";
+ $("profileBioValue").textContent=profile.bio||"Este usuario todavía no escribió una descripción.";
+ const photo=await resolveProfilePhoto(profile.avatar_url);
+ ["profilePhotoDisplay","profilePhotoPreview"].forEach(id=>{const img=$(id);if(img){img.src=photo;img.classList.toggle("hidden",!photo);}});
+ $("profileDisplay").classList.remove("hidden");$("profileEditor").classList.toggle("hidden",!editable);$("profileModal").classList.add("show");
 }
 async function openMyProfile(){
-if(!isRegisteredAccount||!senderId)return;
-const {data,error}=await db.from("chat_profiles").select("nickname,status,bio,is_visible").eq("user_id",senderId).maybeSingle();
-if(error){alert("No se pudo cargar tu perfil: "+error.message);return;}
-const profile=data||{nickname,status:"",bio:"",is_visible:true};
-showProfileDetails(profile,true);
-$("profileStatusInput").value=profile.status||"";
-$("profileBioInput").value=profile.bio||"";
-$("profileVisibleInput").checked=profile.is_visible!==false;
+ if(!isRegisteredAccount||!senderId)return;
+ const {data,error}=await db.from("chat_profiles").select("nickname,status,bio,is_visible,avatar_url").eq("user_id",senderId).maybeSingle();
+ if(error){alert("No se pudo cargar tu perfil: "+error.message);return;}
+ const profile=data||{nickname,status:"",bio:"",is_visible:true,avatar_url:""};
+ await showProfileDetails(profile,true);
+ $("profileStatusInput").value=profile.status||"";$("profileBioInput").value=profile.bio||"";$("profileVisibleInput").checked=profile.is_visible!==false;$("profilePhotoInput").value="";$("navProfile").classList.add("active");
 }
-function closeProfileModal(){$("profileModal").classList.remove("show");}
+async function uploadProfilePhoto(input){
+ if(!isRegisteredAccount||!senderId)return;
+ const file=input.files&&input.files[0];if(!file)return;
+ if(!["image/jpeg","image/png","image/webp"].includes(file.type)){alert("Elegí una imagen JPG, PNG o WebP.");input.value="";return;}
+ if(file.size>3*1024*1024){alert("La foto no puede superar los 3 MB.");input.value="";return;}
+ const ext=file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg",path=senderId+"/avatar."+ext;
+ const {error:uploadError}=await db.storage.from("chat-profile-photos").upload(path,file,{upsert:true,contentType:file.type,cacheControl:"3600"});
+ if(uploadError){alert("No se pudo cargar la foto: "+uploadError.message);return;}
+ const {error:profileError}=await db.from("chat_profiles").upsert({user_id:senderId,nickname,is_registered:true,avatar_url:path,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+ if(profileError){alert("La foto se subió, pero no se pudo guardar en el perfil: "+profileError.message);return;}
+ const url=await resolveProfilePhoto(path);["profilePhotoDisplay","profilePhotoPreview"].forEach(id=>{const img=$(id);img.src=url;img.classList.toggle("hidden",!url);});alert("¡Foto de perfil actualizada!");
+}
+function closeProfileModal(){$("profileModal").classList.remove("show");$("navProfile").classList.remove("active");}
 async function saveMyProfile(){
-if(!isRegisteredAccount||!senderId)return;
-const btn=$("profileSaveBtn");btn.disabled=true;
-try{
-const profile={user_id:senderId,nickname:nickname,is_registered:true,is_visible:$("profileVisibleInput").checked,status:$("profileStatusInput").value.trim(),bio:$("profileBioInput").value.trim(),updated_at:new Date().toISOString()};
-const {error}=await db.from("chat_profiles").upsert(profile,{onConflict:"user_id"});
-if(error)throw error;
-$("profileStatusValue").textContent=profile.status||"Sin estado";
-$("profileBioValue").textContent=profile.bio||"Este usuario todavía no escribió una descripción.";
-alert("Tu perfil se guardó correctamente.");
-closeProfileModal();
-}catch(error){alert("No se pudo guardar tu perfil: "+(error.message||String(error)));}
-finally{btn.disabled=false;}
+ if(!isRegisteredAccount||!senderId)return;
+ const btn=$("profileSaveBtn");btn.disabled=true;
+ try{
+ const profile={user_id:senderId,nickname:nickname,is_registered:true,is_visible:$("profileVisibleInput").checked,status:$("profileStatusInput").value.trim(),bio:$("profileBioInput").value.trim(),updated_at:new Date().toISOString()};
+ const {error}=await db.from("chat_profiles").upsert(profile,{onConflict:"user_id"});if(error)throw error;
+ $("profileStatusValue").textContent=profile.status||"Sin estado";$("profileBioValue").textContent=profile.bio||"Este usuario todavía no escribió una descripción.";alert("Tu perfil se guardó correctamente.");closeProfileModal();
+ }catch(error){alert("No se pudo guardar tu perfil: "+(error.message||String(error)));}
+ finally{btn.disabled=false;}
 }
 async function userMenuPrivate(){if(!selectedMenuUser)return;const user={...selectedMenuUser};closeUserMenu();await openPrivateChat(user);}
 async function userMenuModerate(action){
@@ -1471,7 +1483,7 @@ if(presenceChannel){await presenceChannel.untrack();await db.removeChannel(prese
 if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null;}
 if(privateNoticeTimer){clearTimeout(privateNoticeTimer);privateNoticeTimer=null;}
 $("privateNotice").style.display="none";receivedIds.clear();privateReceivedIds.clear();roomUsers.clear();activePrivateUser=null;privateChats=[];privateUnread.clear();
-adminPin="";isAdmin=false;isRegisteredAccount=false;$("myProfileBtn").classList.add("hidden");registeredUsers.clear();checkedProfiles.clear();currentRoom=null;nickname="";senderId="";renderTabs();
+adminPin="";isAdmin=false;isRegisteredAccount=false;$("navProfile").classList.add("hidden");registeredUsers.clear();checkedProfiles.clear();currentRoom=null;nickname="";senderId="";renderTabs();
 $("chat").style.display="none";$("login").style.display="block";document.body.classList.remove("chat-active");$("enterBtn").disabled=false;showLoginMode("home");
 $("messages").innerHTML="";$("privateMessages").innerHTML="";$("privateInput").value="";$("messageInput").value="";
 $("adminPanel").classList.add("hidden");$("adminOpenBtn").classList.add("hidden");$("adminPin").value="";$("adminPinWrap").classList.add("hidden");$("error").textContent="";

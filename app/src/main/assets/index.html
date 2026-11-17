@@ -598,7 +598,7 @@ async function showGoogleSetup(user){
   $("guestForm").classList.add("hidden");
   $("googleForm").classList.remove("hidden");
   const metadata=user?.user_metadata||{};
-  let suggested=String(metadata.full_name||metadata.name||metadata.given_name||"").trim().replace(/\\s+/g," ").slice(0,25);
+  let suggested=String(metadata.full_name||metadata.name||metadata.given_name||"").trim().replace(/\s+/g," ").slice(0,25);
   try{
     const {data,error}=await db.from("chat_profiles").select("nickname").eq("user_id",user.id).maybeSingle();
     if(error)console.warn("No se pudo recuperar el Nick de Google:",error.message);

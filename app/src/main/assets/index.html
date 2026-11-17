@@ -1012,7 +1012,9 @@ async function sendMessage(){
     const requestBody={
       message:value,
       nickname:senderNickname,
-      room_id:roomId
+      room_id:roomId,
+      sender_id:senderId,
+      request_id:crypto.randomUUID()
     };
 
     console.log("ACTIVANDO CHAT-BOT:",requestBody);

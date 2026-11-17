@@ -636,6 +636,14 @@ async function enterGoogleChat(){
   const name=$("googleNickname").value.trim();
   if(!name){showError("Elegí un Nick para ingresar.");return;}
   if(name.toUpperCase()==="UNIX"){showError("El Nick UNIX está reservado para el administrador.");return;}
+  try{
+    const {data:{session},error:sessionError}=await db.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(!session?.user?.id||!isGoogleUser(session.user))throw new Error("La sesión de Google venció. Volvé a ingresar.");
+    const {data:existing,error}=await db.from("chat_profiles").select("user_id").ilike("nickname",name).eq("is_registered",true).neq("user_id",session.user.id).limit(1);
+    if(error)throw error;
+    if(existing?.length)throw new Error("Ese Nick ya pertenece a otra cuenta registrada. Elegí otro.");
+  }catch(error){showError(error.message||String(error));return;}
   $("nickname").value=name;
   $("initialRoom").value=$("googleInitialRoom").value;
   authMode="google";
@@ -934,7 +942,7 @@ async function ensureRegisteredStatus(userId,element){
 
 async function enterChat(){
 if(authMode==="home")authMode="guest";
-showError("");const name=$("nickname").value.trim(),btn=$("enterBtn");
+showError("");const name=$("nickname").value.trim(),btn=$(authMode==="google"?"googleEnterBtn":"enterBtn");
 if(!name){showError("Escribí tu Nick.");return;}
 nickname=name;isAdmin=false;adminPin="";btn.disabled=true;
 try{

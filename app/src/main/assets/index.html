@@ -80,6 +80,7 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .composer{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;background:#222}
 .composer input{margin:0;min-width:0;flex:1;padding:15px 17px;background:#303030;border:0;border-radius:30px;color:white;font-size:16px}
 .send-button{width:53px;height:53px;min-width:53px;border-radius:50%;background:#08a9ed;font-size:25px;padding:0}
+.mention-wrap{position:relative;flex:0 0 auto}.mention-toggle{width:43px;height:43px;min-width:43px;border-radius:50%;background:#263f5e;border:1px solid #398bd0;color:#7fcaff;font-size:20px;font-weight:900;padding:0}.mention-picker{display:none;position:absolute;bottom:55px;right:0;width:min(290px,calc(100vw - 32px));max-height:260px;overflow-y:auto;background:#101d33;border:1px solid #278bd2;border-radius:13px;padding:10px;z-index:800;box-shadow:0 8px 24px #000b}.mention-picker.open{display:block}.mention-picker-title{font-size:13px;color:#9fcfff;font-weight:700;padding:3px 5px 9px}.mention-user{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:#192c49;border:1px solid #304966;padding:10px;margin:4px 0;border-radius:9px;color:#fff}.mention-user:active{background:#07549a}.mention-empty{font-size:13px;color:#9baac5;padding:9px 5px}
 .emoji-wrap{position:relative;flex:0 0 auto}
 .emoji-toggle{font-size:22px;padding:8px;background:transparent}
 .emoji-picker{display:none;position:absolute;bottom:54px;left:0;width:min(340px,calc(100vw - 30px));max-height:270px;overflow-y:auto;background:#101d33;border:1px solid #278bd2;border-radius:13px;padding:9px;z-index:700;box-shadow:0 8px 24px #000b}
@@ -368,7 +369,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="messages"></div>
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
 <input id="messageInput" maxlength="1000" placeholder="Escribí aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
-<button id="sendBtn" class="send-button" onpointerdown="event.preventDefault()" onclick="sendMessage()">➤</button></div></div>
+<div class="mention-wrap"><button id="mentionToggle" class="mention-toggle" type="button" aria-label="Mencionar usuario" title="Mencionar usuario" onclick="toggleMentionPicker()">#</button><div id="mentionPicker" class="mention-picker"></div></div><button id="sendBtn" class="send-button" onpointerdown="event.preventDefault()" onclick="sendMessage()">➤</button></div></div>
 <div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><div id="usersCountText" class="user-count">0 usuarios conectados</div><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
 <div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
 <div id="privateView" class="hidden"><div id="privateMessages"></div>
@@ -830,7 +831,30 @@ $("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchR
 subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
 }catch(e){await releaseNickname();await releaseAccountDeviceSession();currentRoom=null;console.error("Error al ingresar al chat:",e);showError("No se pudo ingresar: "+(e.message||String(e)));btn.disabled=false;}
 }
-function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");}
+function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");$("mentionPicker").classList.remove("open");}
+
+function toggleMentionPicker(){
+ const picker=$("mentionPicker");const opening=!picker.classList.contains("open");closeEmojiPickers();
+ if(opening){renderMentionUsers();picker.classList.add("open");}
+}
+function renderMentionUsers(){
+ const picker=$("mentionPicker");if(!picker)return;picker.innerHTML="";
+ const title=document.createElement("div");title.className="mention-picker-title";title.textContent="Elegí a quién mencionar";picker.appendChild(title);
+ const users=Array.from(roomUsers.values()).sort((a,b)=>a.nick.localeCompare(b.nick,"es",{sensitivity:"base"}));
+ if(!users.length){const empty=document.createElement("div");empty.className="mention-empty";empty.textContent="No hay usuarios conectados en esta sala.";picker.appendChild(empty);return;}
+ users.forEach(user=>{const option=document.createElement("button");option.type="button";option.className="mention-user";const dot=document.createElement("span");dot.className="online-dot";const nick=document.createElement("span");nick.textContent=user.nick;option.append(dot,nick);option.onclick=()=>insertMention(user.nick);picker.appendChild(option);});
+}
+function insertMention(nick){
+ const input=$("messageInput"),token="#"+String(nick||"").replace(/^#/,"");
+ const start=Number.isInteger(input.selectionStart)?input.selectionStart:input.value.length;
+ const end=Number.isInteger(input.selectionEnd)?input.selectionEnd:start;
+ const before=input.value.slice(0,start),after=input.value.slice(end);
+ const needsSpace=before.length>0&&!/\s$/.test(before);
+ const insertion=(needsSpace?" ":"")+token+" ";
+ input.value=before+insertion+after;
+ const cursor=(before+insertion).length;input.focus();input.setSelectionRange(cursor,cursor);
+ $("mentionPicker").classList.remove("open");
+}
 
 /* NAVEGACIÓN */
 function showMainTab(which){$("navProfile").classList.remove("active");
@@ -859,7 +883,7 @@ if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
 currentRoom=id;showMainTab("chat");$("roomTopic").style.display="flex";$("roomTopicText").textContent="Cargando tópico...";$("roomTopic").classList.add("empty");await loadRoomTopic(id);
 topicChannel=db.channel("wichat-room-topic-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id)).subscribe();
-receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();renderUsers();
+receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();renderUsers();renderMentionUsers();
 const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";
 messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new)).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
 presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
@@ -870,7 +894,7 @@ if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderI
 function updatePresenceList(){
 if(!presenceChannel)return;const state=presenceChannel.presenceState(),next=new Map();
 Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length){const p=entries[entries.length-1],id=p.sender_id||key;next.set(id,{id,nick:p.nickname||"Usuario",admin:p.is_admin===true,registered:p.is_registered===true||registeredUsers.has(String(id))});}});
-roomUsers=next;renderUsers();renderModerationUsers();
+roomUsers=next;renderUsers();renderModerationUsers();renderMentionUsers();
 }
 
 /* MENÚ DE USUARIO */

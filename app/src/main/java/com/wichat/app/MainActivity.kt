@@ -2,9 +2,12 @@ package com.wichat.app
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -15,6 +18,8 @@ class MainActivity : Activity() {
     private lateinit var web: WebView
     private val mainHandler = Handler(Looper.getMainLooper())
     private var pauseWebViewRunnable: Runnable? = null
+    private var filePathCallback: ValueCallback<Array<Uri>>? = null
+    private val fileChooserRequestCode = 1001
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,10 +33,48 @@ class MainActivity : Activity() {
         web.settings.cacheMode = WebSettings.LOAD_NO_CACHE
 
         web.webViewClient = WebViewClient()
-        web.webChromeClient = WebChromeClient()
+        web.webChromeClient = object : WebChromeClient() {
+            override fun onShowFileChooser(
+                webView: WebView?,
+                filePathCallback: ValueCallback<Array<Uri>>?,
+                fileChooserParams: FileChooserParams?
+            ): Boolean {
+                this@MainActivity.filePathCallback?.onReceiveValue(null)
+                this@MainActivity.filePathCallback = filePathCallback
+
+                return try {
+                    val chooserIntent = fileChooserParams?.createIntent()
+                        ?: Intent(Intent.ACTION_GET_CONTENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "image/*"
+                        }
+                    startActivityForResult(chooserIntent, fileChooserRequestCode)
+                    true
+                } catch (error: Exception) {
+                    this@MainActivity.filePathCallback?.onReceiveValue(null)
+                    this@MainActivity.filePathCallback = null
+                    false
+                }
+            }
+        }
 
         setContentView(web)
         web.loadUrl("https://jonitalp2023-collab.github.io/Wichat/")
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != fileChooserRequestCode) return
+
+        val callback = filePathCallback ?: return
+        filePathCallback = null
+        val results = if (resultCode == Activity.RESULT_OK) {
+            WebChromeClient.FileChooserParams.parseResult(resultCode, data)
+        } else {
+            null
+        }
+        callback.onReceiveValue(results)
     }
 
     override fun onPause() {
@@ -59,5 +102,11 @@ class MainActivity : Activity() {
                 null
             )
         }
+    }
+
+    override fun onDestroy() {
+        filePathCallback?.onReceiveValue(null)
+        filePathCallback = null
+        super.onDestroy()
     }
 }

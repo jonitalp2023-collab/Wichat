@@ -829,7 +829,7 @@ if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}closeEm
 function renderTabs(){
 const list=$("roomTabs"),pills=$("roomPills");list.innerHTML="";pills.innerHTML="";
 rooms.forEach(r=>{
-const active=String(r.id)===String(currentRoom),baseRoomName=String(r.name).trim().toLowerCase()==="general"?"General":"#"+String(r.name).replace(/^#/,""),roomName=(r.is_vip?"🔒 ":"")+baseRoomName;
+const active=String(r.id)===String(currentRoom),baseRoomName="#"+String(r.name).replace(/^#/,""),roomName=(r.is_vip?"🔒 ":"")+baseRoomName;
 const pill=document.createElement("button");pill.className="room-pill"+(active?" active":"");pill.textContent=roomName;pill.onclick=()=>switchRoom(r.id);pills.appendChild(pill);
 const b=document.createElement("button");b.className="room-tab"+(active?" active":"");b.textContent=roomName;b.onclick=()=>switchRoom(r.id);list.appendChild(b);
 });

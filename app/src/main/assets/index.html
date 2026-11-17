@@ -906,7 +906,7 @@ let profileEditingUserId=null,profileLoadRequestId=0;
 function closeProfileModal(){profileLoadRequestId++;$("profileModal").classList.remove("show");profileEditingUserId=null;$("navProfile").classList.remove("active");}
 function openMyProfile(){if(!isRegisteredAccount||!senderId)return;$("navProfile").classList.add("active");openProfile(senderId,nickname,true);}
 function previewProfilePhoto(){const file=$("profileAvatarFile")?.files?.[0];if(!file)return;const allowed=["image/jpeg","image/png","image/webp"];if(!allowed.includes(file.type)||file.size>5*1024*1024){$("profileFeedback").textContent="Elegí una imagen JPG, PNG o WEBP de hasta 5 MB."; $("profileAvatarFile").value="";return;}const previewUrl=URL.createObjectURL(file);$("profileAvatar").src=previewUrl;$("profileAvatar").classList.remove("hidden");}
-async function userMenuViewProfile(){if(!selectedMenuUser||!selectedMenuUser.registered||!isRegisteredAccount)return;const u={...selectedMenuUser};closeUserMenu();await openProfile(u.id,u.nick,false);}
+async function userMenuViewProfile(){if(!selectedMenuUser||!selectedMenuUser.registered||(!isRegisteredAccount&&!isAdmin))return;const u={...selectedMenuUser};closeUserMenu();await openProfile(u.id,u.nick,false);}
 async function openProfile(userId,nick,own){
 if(!userId)return;
 const requestId=++profileLoadRequestId;
@@ -918,10 +918,10 @@ $("profileReadOnly").classList.remove("hidden");$("profileEditor").classList.tog
 $("profileAvatar").classList.add("hidden");$("profileStatus").textContent="";$("profileBio").textContent="";$("profileBadges").textContent="";
 $("profileModal").classList.add("show");
 try{
-const {data,error}=await db.from("chat_profiles").select("nickname,bio,avatar_url,status,is_visible").eq("user_id",userId).maybeSingle();
+const {data,error}=await db.from("chat_profiles").select("nickname,bio,avatar_url,status,is_visible").eq("user_id",userId).eq("is_registered",true).maybeSingle();
 if(error)throw error;
 if(requestId!==profileLoadRequestId)return;
-if(!own&&(!isRegisteredAccount||!data||data.is_visible!==true)){$("profileReadOnly").classList.add("hidden");$("profileFeedback").textContent="Este perfil es privado o no está disponible.";return;}
+if(!own&&(!data||(!isAdmin&&(!isRegisteredAccount||data.is_visible!==true)))){$("profileReadOnly").classList.add("hidden");$("profileFeedback").textContent="Este perfil es privado o no está disponible.";return;}
 const {data:badgeData,error:badgeError}=await db.from("chat_public_profile_badges").select("is_vip,points,medal").eq("user_id",userId).maybeSingle();
 if(requestId!==profileLoadRequestId)return;
 if(badgeError)console.warn("No se pudieron cargar los puntos y medallas:",badgeError.message);
@@ -960,7 +960,7 @@ if(avatarPath){if(/^https?:\/\//i.test(avatarPath)){$("profileAvatar").src=avata
 function openUserMenu(user){
 if(!user||!user.id||String(user.id)===String(senderId))return;
 selectedMenuUser={id:user.id,nick:user.nick||"Usuario",registered:user.registered===true||registeredUsers.has(String(user.id))};$("userMenuTitle").textContent=selectedMenuUser.nick;
-$("userMenuProfileBtn").classList.toggle("hidden",!selectedMenuUser.registered||!isRegisteredAccount);$("adminUserActions").classList.toggle("hidden",!isAdmin);$("userMenuModal").classList.add("show");
+$("userMenuProfileBtn").classList.toggle("hidden",!selectedMenuUser.registered||(!isRegisteredAccount&&!isAdmin));$("adminUserActions").classList.toggle("hidden",!isAdmin);$("userMenuModal").classList.add("show");
 }
 function closeUserMenu(){$("userMenuModal").classList.remove("show");}
 async function userMenuPrivate(){if(!selectedMenuUser)return;const user={...selectedMenuUser};closeUserMenu();await openPrivateChat(user);}

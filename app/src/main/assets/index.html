@@ -113,7 +113,7 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 #adminOpenBtn{color:#facc15}
 #adminOpenBtn.active{background:#51400c;color:#facc15}
 #adminOpenBtn:active{background:#51400c}
-#privateNotice{display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);width:calc(100% - 30px);max-width:500px;background:#168bea;color:white;padding:15px;border-radius:12px;z-index:9999;text-align:center;font-weight:bold;box-shadow:0 5px 20px #0008}
+
 #moderationModal{display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:20px}
 #moderationModal.show{display:flex}
 .moderation-card{width:100%;max-width:400px;padding:25px;background:#141e35;border:1px solid #278bd2;border-radius:16px;text-align:center;box-shadow:0 10px 35px #000b}
@@ -304,7 +304,6 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 </style>
 </head>
 <body>
-<div id="privateNotice" role="status" aria-live="polite"></div>
 <div id="notificationModal" onclick="if(event.target===this)closeNotifications()"><section class="notification-card"><div class="notification-head"><span>🔔 Notificaciones</span><button onclick="closeNotifications()">Cerrar</button></div><div id="notificationList"></div></section></div>
 <div id="userMenuModal" onclick="if(event.target===this)closeUserMenu()">
 <div class="user-menu-card">
@@ -533,7 +532,7 @@ let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;let accountSessionHeartbeatTimer=null,accountSessionLeaseActive=false,accountDeviceId=null;
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
-let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
+let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",selectedMenuUser=null;
 let mentionNotifications=[];
 function notificationStorageKey(){return "wichat-mentions-"+String(senderId||"");}
 function loadMentionNotifications(){try{mentionNotifications=JSON.parse(localStorage.getItem(notificationStorageKey())||"[]");if(!Array.isArray(mentionNotifications))mentionNotifications=[];}catch(_){mentionNotifications=[];}}
@@ -1149,10 +1148,6 @@ input.value=input.value.slice(0,start)+emoji+input.value.slice(end);input.focus(
 }
 
 /* NOTIFICACIONES PRIVADAS */
-function showPrivateNotification(senderNick){
-const notice=$("privateNotice");notice.textContent="🔔 "+senderNick+" te está hablando por privado";notice.style.display="block";
-if(privateNoticeTimer)clearTimeout(privateNoticeTimer);privateNoticeTimer=setTimeout(()=>{notice.style.display="none";},5000);
-}
 function subscribePrivateNotifications(){
 if(privateNoticeChannel){db.removeChannel(privateNoticeChannel);privateNoticeChannel=null;}if(!senderId)return;
 privateNoticeChannel=db.channel("wichat-private-notifications-"+senderId).on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages",filter:"recipient_id=eq."+senderId},async payload=>{
@@ -1530,8 +1525,7 @@ if(moderationChannel){await db.removeChannel(moderationChannel);moderationChanne
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await presenceChannel.untrack();await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null;}
-if(privateNoticeTimer){clearTimeout(privateNoticeTimer);privateNoticeTimer=null;}
-$("privateNotice").style.display="none";closeNotifications();mentionNotifications=[];receivedIds.clear();privateReceivedIds.clear();roomUsers.clear();activePrivateUser=null;privateChats=[];privateUnread.clear();
+closeNotifications();mentionNotifications=[];receivedIds.clear();privateReceivedIds.clear();roomUsers.clear();activePrivateUser=null;privateChats=[];privateUnread.clear();
 adminPin="";isAdmin=false;isRegisteredAccount=false;$("navProfile").classList.add("hidden");registeredUsers.clear();checkedProfiles.clear();currentRoom=null;nickname="";senderId="";renderTabs();
 $("chat").style.display="none";$("login").style.display="block";document.body.classList.remove("chat-active");$("enterBtn").disabled=false;showLoginMode("home");
 $("messages").innerHTML="";$("privateMessages").innerHTML="";$("privateInput").value="";$("messageInput").value="";

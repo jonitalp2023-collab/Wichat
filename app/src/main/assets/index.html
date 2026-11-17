@@ -408,6 +408,19 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
     <div class="admin-card">
       <h4>➕ Crear una sala</h4><p class="muted">Agregá un nuevo espacio de conversación.</p>
       <div class="row"><input id="newRoomName" maxlength="30" placeholder="Nombre de la sala"><button onclick="createRoom()">Crear sala</button></div>
+      <label class="admin-setting-row" style="justify-content:flex-start;gap:10px"><input id="newRoomVip" type="checkbox" style="width:18px;height:18px"> 🔒 Crear como sala VIP (solo miembros)</label>
+    </div>
+    <div class="admin-card">
+      <h4>🔐 Configurar salas VIP</h4><p class="muted">Elegí una sala para convertirla en VIP o volverla pública.</p>
+      <select id="roomVipSelect"><option value="">Elegí una sala</option></select>
+      <div class="row"><button onclick="setSelectedRoomVip(true)">🔒 Hacer VIP</button><button class="secondary" onclick="setSelectedRoomVip(false)">Hacer pública</button></div>
+      <p id="roomVipStatus" class="muted"></p>
+    </div>
+    <div class="admin-card">
+      <h4>⭐ Membresías VIP</h4><p class="muted">Ingresá el Nick exacto de una cuenta registrada para otorgarle o quitarle la membresía VIP.</p>
+      <input id="vipMemberNickname" maxlength="24" placeholder="Nick del usuario registrado">
+      <div class="row"><button onclick="setVipMember(true)">➕ Dar membresía</button><button class="secondary" onclick="setVipMember(false)">Quitar membresía</button></div>
+      <p id="vipMemberStatus" class="muted"></p>
     </div>
     <div class="admin-card admin-card-danger">
       <h4>🗑️ Eliminar una sala</h4><p class="muted">Esta acción elimina la sala seleccionada. Confirmá antes de continuar.</p>
@@ -697,7 +710,13 @@ if(!error){$("roomTopicInput").value="";await loadRoomTopic(currentRoom);}
 /* MODERACIÓN */
 function showModerationModal(action,roomName,blocked=false,reason=""){
 const title=$("moderationTitle"),message=$("moderationMessage"),button=$("moderationModal").querySelector("button");
-if(blocked){title.textContent="⛔ Acceso restringido";message.textContent="No podés entrar a la sala "+roomName+". Tu expulsión o baneo sigue vigente. Podrás volver cuando termine el plazo.";}
+if(blocked){
+  const blockedRoom=rooms.find(r=>String(r.name)===String(roomName));
+  title.textContent=blockedRoom?.is_vip?"🔒 Sala exclusiva para miembros VIP":"⛔ Acceso restringido";
+  message.textContent=blockedRoom?.is_vip
+    ?"La sala "+roomName+" es exclusiva para miembros VIP. Para entrar necesitás tener una cuenta registrada y que el administrador te otorgue la membresía VIP."
+    :"No podés entrar a la sala "+roomName+". Tu expulsión o baneo sigue vigente. Podrás volver cuando termine el plazo.";
+}
 else if(action==="warning_1"){title.textContent="⚠️ Primera advertencia";message.textContent="El bot de CHAT ARGENTINA te avisa que está prohibido escribir insultos. Por favor, respetá a los demás usuarios. A la tercera infracción serás expulsado durante cinco minutos.";}
 else if(action==="warning_2"){title.textContent="🚨 Segunda advertencia";message.textContent="Esta es tu segunda advertencia por utilizar insultos. Si volvés a hacerlo, serás expulsado automáticamente durante cinco minutos.";}
 else if(action==="ban"){title.textContent="🚫 Fuiste baneado";message.textContent="UNIX te baneó de CHAT ARGENTINA en la sala "+roomName+" durante cinco minutos.";}
@@ -819,7 +838,7 @@ renderPrivateTabs();
 async function switchRoom(id){
 const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:id});
 if(accessError){$("status").textContent="Error de acceso: "+accessError.message;return;}
-if(!allowed){const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";return;}
+if(!allowed){const room=rooms.find(r=>String(r.id)===String(id));if(room?.is_vip){showModerationModal("blocked",room.name,true);}else{$("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";}return;}
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
@@ -1225,6 +1244,7 @@ function openAdmin(){
   updateAdminStats();
   if(currentRoom)loadRoomTopic(currentRoom);
   renderRoomDelete();
+  renderRoomVipSelect();
   renderModerationUsers();
   loadBannedUsers();
   loadBots();
@@ -1234,16 +1254,48 @@ async function createRoom(){
 if(!isAdmin)return;const name=$("newRoomName").value.trim();
 if(!name){$("adminStatus").textContent="Escribí el nombre de la sala.";return;}
 try{
-await callAdminApi("create_room",{room_name:name});
-$("adminStatus").textContent="Sala creada correctamente.";$("newRoomName").value="";
-await fetchRooms();renderTabs();renderRoomDelete();
+const created=await callAdminApi("create_room",{room_name:name});
+if($("newRoomVip")?.checked){
+  const newRoomId=created?.id;
+  if(!newRoomId)throw new Error("La sala se creó, pero no se pudo identificar para marcarla como VIP.");
+  await callAdminApi("set_room_vip",{room_id_input:newRoomId,vip_enabled:true});
+}
+$("adminStatus").textContent=$("newRoomVip")?.checked?"Sala VIP creada correctamente.":"Sala creada correctamente.";
+$("newRoomName").value="";if($("newRoomVip"))$("newRoomVip").checked=false;
+await fetchRooms();renderTabs();renderRoomDelete();renderRoomVipSelect();
 }catch(error){$("adminStatus").textContent="Error al crear sala: "+error.message;}
 }
 function renderRoomDelete(){
 const select=$("roomToDelete");if(!select)return;const previous=select.value;
 select.innerHTML='<option value="">Elegí una sala</option>';
-rooms.forEach(r=>{const option=document.createElement("option");option.value=r.id;option.textContent=r.name;select.appendChild(option);});
+rooms.forEach(r=>{const option=document.createElement("option");option.value=r.id;option.textContent=(r.is_vip?"🔒 ":"")+r.name;select.appendChild(option);});
 if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
+}
+function renderRoomVipSelect(){
+const select=$("roomVipSelect");if(!select)return;const previous=select.value;
+select.innerHTML='<option value="">Elegí una sala</option>';
+rooms.forEach(r=>{const option=document.createElement("option");option.value=r.id;option.textContent=(r.is_vip?"🔒 VIP · ":"🌐 Pública · ")+r.name;select.appendChild(option);});
+if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
+}
+async function setSelectedRoomVip(enabled){
+if(!isAdmin)return;
+const id=String($("roomVipSelect")?.value||"");
+const status=$("roomVipStatus");
+if(!id){status.textContent="Elegí una sala.";return;}
+try{
+ await callAdminApi("set_room_vip",{room_id_input:id,vip_enabled:enabled});
+ await fetchRooms();renderTabs();renderRoomDelete();renderRoomVipSelect();
+ status.textContent=enabled?"La sala ahora es VIP.":"La sala ahora es pública.";
+}catch(error){status.textContent="No se pudo actualizar la sala: "+error.message;}
+}
+async function setVipMember(enabled){
+if(!isAdmin)return;
+const nicknameInput=$("vipMemberNickname"),status=$("vipMemberStatus"),target=nicknameInput.value.trim();
+if(!target){status.textContent="Ingresá el Nick del usuario registrado.";return;}
+try{
+ await callAdminApi("set_vip_member",{nickname_input:target,vip_enabled:enabled});
+ status.textContent=enabled?"Membresía VIP otorgada a "+target+".":"Membresía VIP quitada a "+target+".";
+}catch(error){status.textContent="No se pudo actualizar la membresía: "+error.message;}
 }
 async function deleteRoom(){
 if(!isAdmin)return;

@@ -424,6 +424,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
   <nav class="admin-tabs" aria-label="Secciones de administración">
     <button class="admin-tab active" data-admin-section="rooms" onclick="adminShowSection('rooms')"><span>💬</span>Salas</button>
     <button class="admin-tab" data-admin-section="users" onclick="adminShowSection('users')"><span>👥</span>Usuarios</button>
+    <button class="admin-tab" data-admin-section="admins" onclick="adminShowSection('admins')"><span>🛡️</span>Administradores</button>
     <button class="admin-tab" data-admin-section="bots" onclick="adminShowSection('bots')"><span>🤖</span>Bots</button>
     <button class="admin-tab" data-admin-section="moderation" onclick="adminShowSection('moderation')"><span>🛡️</span>Moderación</button>
     <button class="admin-tab" data-admin-section="stats" onclick="adminShowSection('stats')"><span>📊</span>Estadísticas</button>
@@ -555,7 +556,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <script>
 const SUPABASE_URL="https://pqnnzkqxkndzelsbtxvv.supabase.co";
 const SUPABASE_KEY="sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{flowType:"pkce"}});
 const $=id=>document.getElementById(id);
 let nickname="",senderId="",currentRoom=null,rooms=[];
 let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,reactionChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;let accountSessionHeartbeatTimer=null,accountSessionLeaseActive=false,accountDeviceId=null;
@@ -626,7 +627,7 @@ async function signInWithGoogle(){
       const {error}=await db.auth.signOut();
       if(error)throw error;
     }
-    const redirectTo=window.Android
+    const redirectTo=(window.Android||/Android/i.test(navigator.userAgent))
       ?"com.wichat.app://auth/callback"
       :(window.location.origin+window.location.pathname);
     const {error}=await db.auth.signInWithOAuth({
@@ -982,7 +983,7 @@ const {data,error}=await db.rpc("verify_admin_pin",{pin_input:pin});
 console.log("Resultado de verificación UNIX:",data);console.log("Error de verificación UNIX:",error);
 if(error)throw new Error("Supabase no pudo verificar el PIN: "+error.message);
 const pinValido=data===true||data==="true";if(!pinValido)throw new Error("El servidor respondió que el PIN es incorrecto.");
-isAdmin=true;adminPin=pin;
+isAdmin=true;adminRole="owner";adminPin=pin;
 }else if(isRegisteredAccount){
 const {data:adminData,error:adminError}=await db.functions.invoke("admin-api",{body:{action:"check_admin_role"}});
 if(!adminError&&adminData?.success===true&&["owner","admin"].includes(adminData?.data?.role)){
@@ -1614,7 +1615,8 @@ renderTabs();if(currentRoom)await switchRoom(currentRoom);
 
 /* NAVEGACIÓN DEL PANEL ADMINISTRATIVO */
 function adminShowSection(section){
-  const allowed=["rooms","users","bots","moderation","stats","settings"];
+  const allowed=["rooms","users","admins","bots","moderation","stats","settings"];
+  if(section==="admins"&&adminRole!=="owner")return;
   if(!allowed.includes(section))return;
   document.querySelectorAll("#adminPanel .admin-tab").forEach(button=>{
     button.classList.toggle("active",button.dataset.adminSection===section);
@@ -1664,11 +1666,13 @@ function openAdmin(){
     return;
   }
   const panel=$("adminPanel");
+  document.querySelectorAll("[data-owner-only]").forEach(el=>el.classList.toggle("hidden",adminRole!=="owner"));
   panel.classList.remove("hidden");
   panel.scrollTop=0;
   adminShowSection("rooms");
   updateAdminStats();
   if(currentRoom)loadRoomTopic(currentRoom);
+  if(adminRole==="owner")loadAdminManagement();
   renderRoomDelete();
   renderModerationUsers();
   loadBannedUsers();
@@ -1981,7 +1985,7 @@ if(presenceChannel){await presenceChannel.untrack();await db.removeChannel(prese
 if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null;}
 if(privateNoticeTimer){clearTimeout(privateNoticeTimer);privateNoticeTimer=null;}
 $("privateNotice").style.display="none";receivedIds.clear();privateReceivedIds.clear();roomUsers.clear();activePrivateUser=null;privateChats=[];privateUnread.clear();
-adminPin="";isAdmin=false;isRegisteredAccount=false;registeredUsers.clear();checkedProfiles.clear();currentRoom=null;nickname="";senderId="";renderTabs();
+adminPin="";isAdmin=false;adminRole="";adminUsers.clear();isRegisteredAccount=false;registeredUsers.clear();checkedProfiles.clear();currentRoom=null;nickname="";senderId="";renderTabs();
 closeProfileModal();$("navProfile").classList.add("hidden");$("chat").style.display="none";$("login").style.display="block";document.body.classList.remove("chat-active");$("enterBtn").disabled=false;showLoginMode("home");
 $("messages").innerHTML="";$("privateMessages").innerHTML="";$("privateInput").value="";$("messageInput").value="";
 $("adminPanel").classList.add("hidden");$("adminOpenBtn").classList.add("hidden");$("adminPin").value="";$("adminPinWrap").classList.add("hidden");$("error").textContent="";
@@ -1989,7 +1993,7 @@ $("bannedUsersList").innerHTML='<p class="muted">Presioná actualizar para ver l
 }
 
 /* INICIO */
-(async()=>{try{await fetchRooms();}catch(e){$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';showError(e.message);}})();
+(async()=>{try{await fetchRooms();await restoreGoogleLogin();}catch(e){$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';showError(e.message);}})();
 
 /* CONTROL DEL TECLADO ANDROID */
 (function(){

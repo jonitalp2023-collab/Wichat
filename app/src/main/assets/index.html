@@ -77,7 +77,7 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .private-message{display:block;background:transparent;padding:5px 0;margin-bottom:9px;overflow-wrap:anywhere}
 .private-message.mine{background:transparent}
 .nickname{font-weight:bold;white-space:nowrap;font-size:15px}
-.admin-star{color:#ffd34d;margin-right:4px}
+.admin-star{color:#ffd34d;margin-right:4px}.admin-role-badge{display:inline-flex;align-items:center;justify-content:center;margin:0 4px 0 2px;font-size:13px;line-height:1;vertical-align:middle;filter:drop-shadow(0 0 4px #65b8ff55)}
 .registered-plus{color:#20d66b;font-weight:900;margin-right:5px;font-size:17px;text-shadow:0 0 6px rgba(32,214,107,.35)}
 .msgtext{color:#f4f4f4;white-space:pre-wrap;min-width:0;overflow-wrap:anywhere;font-size:15px;line-height:1.35}
 .composer{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;background:#222}
@@ -957,6 +957,12 @@ function addRegisteredPlus(element){
   const mark=document.createElement("span");mark.className="registered-plus";mark.textContent="+";mark.setAttribute("aria-label","Usuario registrado");
   element.insertBefore(mark,element.firstChild);
 }
+function addAdminBadge(element,isOwner=false){
+  if(!element||element.querySelector(".admin-role-badge,.admin-star"))return;
+  const badge=document.createElement("span");badge.className=isOwner?"admin-star":"admin-role-badge";badge.textContent=isOwner?"⭐":"🛡️";badge.title=isOwner?"Propietario de WiChat":"Administrador de WiChat";
+  const nickText=Array.from(element.childNodes).find(node=>node.nodeType===Node.TEXT_NODE);
+  if(nickText)element.insertBefore(badge,nickText);else element.appendChild(badge);
+}
 async function ensureRegisteredStatus(userId,element){
   const id=String(userId||"");if(!id)return false;
   if(registeredUsers.has(id)){addRegisteredPlus(element);return true;}
@@ -1059,8 +1065,8 @@ roomUsers.clear();renderUsers();renderModerationUsers();
 }
 function updatePresenceList(){
 if(!presenceChannel)return;const state=presenceChannel.presenceState(),next=new Map();
-Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length){const p=entries[entries.length-1],id=p.sender_id||key;next.set(id,{id,nick:p.nickname||"Usuario",admin:p.is_admin===true,registered:p.is_registered===true||registeredUsers.has(String(id))});}});
-roomUsers=next;renderUsers();renderModerationUsers();updateAdminStats();
+Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length){const p=entries[entries.length-1],id=String(p.sender_id||key),admin=p.is_admin===true;next.set(id,{id,nick:p.nickname||"Usuario",admin,registered:p.is_registered===true||registeredUsers.has(id)});}});
+roomUsers=next;adminUsers.clear();roomUsers.forEach(user=>{if(user.admin)adminUsers.add(String(user.id));});renderUsers();refreshAdminMessageBadges();renderModerationUsers();updateAdminStats();
 }
 
 /* PERFILES PERSONALIZADOS */
@@ -1144,6 +1150,7 @@ $("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos."
 if(action==="ban")await loadBannedUsers();
 }catch(error){alert("No se pudo moderar al usuario: "+error.message);}
 }
+function refreshAdminMessageBadges(){document.querySelectorAll("#messages .message").forEach(message=>{const id=String(message.dataset.senderId||"");const nick=message.querySelector(".nickname");if(!id||!nick||!adminUsers.has(id)||nick.querySelector(".admin-role-badge,.admin-star"))return;addAdminBadge(nick,String(nick.dataset.nickname||"").toUpperCase()==="UNIX");});}
 function renderUsers(){
 const list=$("usersList");if(!list)return;
 const users=Array.from(roomUsers.values()).sort((a,b)=>{if(a.admin&&a.nick.toUpperCase()==="UNIX")return -1;if(b.admin&&b.nick.toUpperCase()==="UNIX")return 1;return a.nick.localeCompare(b.nick);});
@@ -1153,7 +1160,7 @@ users.forEach(u=>{
 const item=document.createElement("div");item.className="user-item";const dot=document.createElement("span");dot.className="online-dot";
 const name=document.createElement("span");name.className="user-name";
 if(u.registered||registeredUsers.has(String(u.id)))addRegisteredPlus(name);
-if(u.admin&&u.nick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";name.appendChild(star);}
+if(u.admin)addAdminBadge(name,u.nick.toUpperCase()==="UNIX");
 name.appendChild(document.createTextNode(u.nick));item.append(dot,name);
 if(u.id!==senderId){item.onclick=()=>openUserMenu(u);}else{item.title="Vos";}list.appendChild(item);
 });
@@ -1254,12 +1261,13 @@ finally{button.disabled=false;}
 }
 function addMessage(m){
 if(!m||receivedIds.has(m.id))return;receivedIds.add(m.id);
-const div=document.createElement("div");div.className="message";div.dataset.messageId=String(m.id);
+const div=document.createElement("div");div.className="message";div.dataset.messageId=String(m.id);div.dataset.senderId=String(m.sender_id||"");
 const n=document.createElement("strong");n.className="nickname";const nick=m.nickname||"Usuario";let hash=0;
 for(let i=0;i<nick.length;i++)hash=nick.charCodeAt(i)+((hash<<5)-hash);
 const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];n.style.color=colors[Math.abs(hash)%colors.length];
 if(m.sender_id&&registeredUsers.has(String(m.sender_id)))addRegisteredPlus(n);
-if(nick.toUpperCase()==="UNIX"){const star=document.createElement("span");star.className="admin-star";star.textContent="⭐";n.appendChild(star);}
+if(nick.toUpperCase()==="UNIX")addAdminBadge(n,true);else if(m.sender_id&&adminUsers.has(String(m.sender_id)))addAdminBadge(n,false);
+n.dataset.nickname=nick;
 n.appendChild(document.createTextNode(nick));
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,n);

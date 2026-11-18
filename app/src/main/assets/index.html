@@ -542,7 +542,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <h4>Acciones sobre usuarios</h4><p class="muted">Seleccioná primero un usuario en la sección Usuarios.</p>
       <div class="row"><button class="secondary" onclick="moderateUser('kick')">🚪 Expulsar</button><button class="danger" onclick="moderateUser('ban')">🚫 Banear 5 minutos</button></div>
     </div>
-    <div class="admin-card">
+    <div class="admin-card" data-owner-only>
       <h4>🚫 Usuarios baneados</h4><p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
       <button class="secondary" onclick="loadBannedUsers()">↻ Actualizar lista</button>
       <div id="bannedUsersList" class="admin-list"><p class="muted">Presioná actualizar para ver los baneados.</p></div>

@@ -30,6 +30,9 @@ button:disabled{opacity:.5}
 #login .login-subtitle{color:#a9bad4;font-size:14px;margin:8px 0 23px;line-height:1.5}
 #login .login-choice{width:100%;min-height:66px;margin:9px 0;display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:13px 17px;border:1px solid #36577f;border-radius:14px;background:#1c3150;color:white;text-align:left;font-size:15px;transition:.2s}
 #login .login-choice:active{transform:scale(.98);background:#24558a}
+#login .google-choice{background:#fff;color:#263238;border-color:#d9e0e7}
+#login .google-choice small{color:#65717d}
+#login .google-choice .choice-icon{font-family:Arial,sans-serif;font-weight:900;color:#4285f4}
 #login .choice-icon{font-size:27px;width:35px;text-align:center;flex:0 0 35px}
 #login .login-choice small{display:block;color:#a9bfdc;font-size:12px;font-weight:normal;margin-top:4px}
 #login .login-form{text-align:left;margin-top:15px}
@@ -335,6 +338,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <h1>CHAT ARGENTINA 🇦🇷</h1>
 <p class="login-subtitle">Conectate, conocé gente y disfrutá de conversar.</p>
 <div id="loginChoices">
+<button class="login-choice google-choice" onclick="signInWithGoogle()"><span class="choice-icon">G</span><span><strong>CONTINUAR CON GOOGLE</strong><small>Ingresá con tu cuenta de Google</small></span></button>
 <button class="login-choice" onclick="showLoginMode('register')"><span class="choice-icon">👤</span><span><strong>CREAR CUENTA</strong><small>Registrate gratis en CHAT ARGENTINA</small></span></button>
 <button class="login-choice" onclick="showLoginMode('login')"><span class="choice-icon">🔐</span><span><strong>INICIAR SESIÓN</strong><small>Ya tengo una cuenta</small></span></button>
 <button class="login-choice" onclick="showLoginMode('guest')"><span class="choice-icon">💬</span><span><strong>ENTRAR COMO INVITADO</strong><small>Ingresá sin registrarte</small></span></button>
@@ -360,6 +364,14 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="adminPinWrap" class="hidden"><label for="adminPin">PIN de administrador UNIX</label><input id="adminPin" type="password" placeholder="PIN de administrador UNIX"><p class="muted">El Nick UNIX está reservado para el administrador.</p></div>
 <label class="muted" for="initialRoom">Elegí una sala</label><select id="initialRoom"><option value="">Cargando salas...</option></select>
 <button id="enterBtn" class="login-main-button" onclick="enterChat()">ENTRAR AL CHAT</button>
+<button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
+</div>
+<div id="googleForm" class="login-form hidden">
+<h2>🌐 Ingresar con Google</h2>
+<p class="muted">Elegí el Nick que vas a usar en Wichat. Tu cuenta de Google quedará vinculada a tu perfil.</p>
+<label for="googleNickname">Tu Nick en el chat</label><input id="googleNickname" maxlength="25" placeholder="Elegí tu Nick" autocomplete="nickname">
+<label class="muted" for="googleInitialRoom">Elegí una sala</label><select id="googleInitialRoom"><option value="">Cargando salas...</option></select>
+<button id="googleEnterBtn" class="login-main-button" onclick="enterGoogleChat()">ENTRAR AL CHAT</button>
 <button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
 </div>
 <p id="error"></p>
@@ -459,6 +471,26 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
     </div>
   </section>
 
+  <section class="admin-section" id="adminSectionAdmins" data-owner-only>
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">PERMISOS</span><h3>Administradores de WiChat</h3></div><span class="admin-heading-icon">🛡️</span></div>
+    <div class="admin-card">
+      <h4>👑 Administrador principal</h4>
+      <p class="muted">UNIX conserva el control total. Solo el propietario puede nombrar o quitar administradores.</p>
+      <div id="adminOwnersList" class="admin-list"><p class="muted">UNIX · Propietario</p></div>
+    </div>
+    <div class="admin-card">
+      <h4>➕ Asignar permisos</h4>
+      <p class="muted">Buscá una cuenta registrada y activá o quitá sus permisos de administrador.</p>
+      <input id="adminManagementSearch" type="search" placeholder="🔎 Buscar usuario registrado..." oninput="renderAdminManagement()" autocomplete="off">
+      <div id="adminManagementList" class="admin-list"><p class="muted">Cargando usuarios...</p></div>
+      <p id="adminManagementStatus" class="muted" aria-live="polite"></p>
+    </div>
+    <div class="admin-card">
+      <h4>🛡️ Administradores activos</h4>
+      <div id="activeAdminsList" class="admin-list"><p class="muted">Cargando administradores...</p></div>
+    </div>
+  </section>
+
   <section class="admin-section" id="adminSectionBots">
     <div class="admin-section-heading"><div><span class="admin-eyebrow">INTELIGENCIA ARTIFICIAL</span><h3>Administración de bots</h3></div><span class="admin-heading-icon">🤖</span></div>
     <div class="admin-card">
@@ -530,7 +562,7 @@ let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=nu
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="",privateConversationRequestId=0;
 let adminStatsChannel=null,adminStatsMessageCount=null,adminStatsRefreshTimer=null,adminStatsRefreshRequest=0;
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
-let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",privateNoticeTimer=null,selectedMenuUser=null;
+let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",adminRole="",adminUsers=new Set(),adminManagementUsers=[],privateNoticeTimer=null,selectedMenuUser=null;
 let authMode="home";
 let isRegisteredAccount=false;
 const registeredUsers=new Set();
@@ -542,7 +574,109 @@ $("loginChoices").classList.toggle("hidden",mode!=="home");
 $("registerForm").classList.toggle("hidden",mode!=="register");
 $("emailLoginForm").classList.toggle("hidden",mode!=="login");
 $("guestForm").classList.toggle("hidden",mode!=="guest");
+$("googleForm").classList.toggle("hidden",mode!=="google");
 showError("");
+}
+
+function isGoogleUser(user){
+  return Boolean(user && !user.is_anonymous &&
+    (user.app_metadata?.provider==="google" ||
+     (Array.isArray(user.identities)&&user.identities.some(identity=>identity.provider==="google"))));
+}
+async function populateGoogleRoomOptions(){
+  const select=$("googleInitialRoom");
+  if(!select)return;
+  const previous=select.value;
+  select.innerHTML="";
+  rooms.forEach(room=>{
+    const option=document.createElement("option");
+    option.value=room.id;
+    option.textContent=room.name+(room.is_vip?" 🔒":"");
+    select.appendChild(option);
+  });
+  if(rooms.some(room=>String(room.id)===String(previous)))select.value=previous;
+  else if(rooms.length)select.value=String(rooms.find(room=>String(room.name).trim().toLowerCase()==="general")?.id||rooms[0].id);
+}
+async function showGoogleSetup(user){
+  authMode="google";
+  $("loginChoices").classList.add("hidden");
+  $("registerForm").classList.add("hidden");
+  $("emailLoginForm").classList.add("hidden");
+  $("guestForm").classList.add("hidden");
+  $("googleForm").classList.remove("hidden");
+  const metadata=user?.user_metadata||{};
+  let suggested=String(metadata.full_name||metadata.name||metadata.given_name||"").trim().replace(/\s+/g," ").slice(0,25);
+  try{
+    const {data,error}=await db.from("chat_profiles").select("nickname").eq("user_id",user.id).maybeSingle();
+    if(error)console.warn("No se pudo recuperar el Nick de Google:",error.message);
+    if(data?.nickname)suggested=data.nickname;
+  }catch(error){console.warn("No se pudo recuperar el Nick:",error);}
+  $("googleNickname").value=suggested;
+  await populateGoogleRoomOptions();
+  showError("");
+}
+async function signInWithGoogle(){
+  const button=document.querySelector("#loginChoices .google-choice");
+  showError("");
+  if(button)button.disabled=true;
+  try{
+    const {data:{session},error:sessionError}=await db.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(session&&!isGoogleUser(session.user)){
+      const {error}=await db.auth.signOut();
+      if(error)throw error;
+    }
+    const redirectTo=window.Android
+      ?"com.wichat.app://auth/callback"
+      :(window.location.origin+window.location.pathname);
+    const {error}=await db.auth.signInWithOAuth({
+      provider:"google",
+      options:{redirectTo,queryParams:{prompt:"select_account"}}
+    });
+    if(error)throw error;
+  }catch(error){
+    showError("No se pudo iniciar con Google: "+(error.message||String(error)));
+    if(button)button.disabled=false;
+  }
+}
+async function enterGoogleChat(){
+  const name=$("googleNickname").value.trim();
+  if(!name){showError("Elegí un Nick para ingresar.");return;}
+  if(name.toUpperCase()==="UNIX"){showError("El Nick UNIX está reservado para el administrador.");return;}
+  try{
+    const {data:{session},error:sessionError}=await db.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(!session?.user?.id||!isGoogleUser(session.user))throw new Error("La sesión de Google venció. Volvé a ingresar.");
+    const {data:existing,error}=await db.from("chat_profiles").select("user_id").ilike("nickname",name).eq("is_registered",true).neq("user_id",session.user.id).limit(1);
+    if(error)throw error;
+    if(existing?.length)throw new Error("Ese Nick ya pertenece a otra cuenta registrada. Elegí otro.");
+  }catch(error){showError(error.message||String(error));return;}
+  $("nickname").value=name;
+  $("initialRoom").value=$("googleInitialRoom").value;
+  authMode="google";
+  await enterChat();
+}
+async function handleGoogleAuthCallback(callbackUrl){
+  try{
+    const parsed=new URL(callbackUrl);
+    const code=parsed.searchParams.get("code");
+    if(!code)throw new Error("Google no devolvió el código de acceso.");
+    const {data,error}=await db.auth.exchangeCodeForSession(code);
+    if(error)throw error;
+    if(!data?.user||!isGoogleUser(data.user))throw new Error("No se pudo validar la cuenta de Google.");
+    await showGoogleSetup(data.user);
+  }catch(error){
+    console.error("Error al completar el acceso con Google:",error);
+    showError("No se pudo completar el ingreso con Google: "+(error.message||String(error)));
+    showLoginMode("home");
+  }
+}
+async function restoreGoogleLogin(){
+  try{
+    const {data:{session},error}=await db.auth.getSession();
+    if(error)throw error;
+    if(session&&isGoogleUser(session.user))await showGoogleSetup(session.user);
+  }catch(error){console.warn("No se pudo restaurar la sesión de Google:",error);}
 }
 
 async function ensureAuthUser(){
@@ -559,7 +693,7 @@ if(authMode==="guest"&&session&&requestedNick!=="UNIX"){
   }
 }
 if(authMode==="guest"&&session&&!session.user.is_anonymous){const {error:signOutError}=await db.auth.signOut();if(signOutError)throw signOutError;session=null;}
-if(authMode==="account"&&(!session||session.user.is_anonymous))throw new Error("No hay una sesión de cuenta activa. Iniciá sesión nuevamente.");
+if((authMode==="account"||authMode==="google")&&(!session||session.user.is_anonymous))throw new Error("No hay una sesión de cuenta activa. Iniciá sesión nuevamente.");
 if(!session){if(authMode!=="guest")throw new Error("No hay una sesión activa. Iniciá sesión nuevamente.");const result=await db.auth.signInAnonymously();if(result.error)throw result.error;session=result.data.session;}
 if(!session?.user?.id)throw new Error("No se pudo identificar al usuario.");
 return session.user.id;
@@ -613,7 +747,8 @@ finally{btn.disabled=false;}
 
 /* TODAS LAS ACCIONES ADMINISTRATIVAS PASAN POR LA EDGE FUNCTION admin-api */
 async function callAdminApi(action,extra={}){
-if(!isAdmin||!adminPin)throw new Error("No tenés permisos de administrador.");
+if(!isAdmin)throw new Error("No tenés permisos de administrador.");
+if(adminRole==="owner"&&!adminPin)throw new Error("Ingresá el PIN del propietario.");
 const {data,error}=await db.functions.invoke("admin-api",{body:{action,pin_input:adminPin,...extra}});
 if(error){
 let message=error.message||"Error al comunicarse con Admin API.";
@@ -834,12 +969,12 @@ async function ensureRegisteredStatus(userId,element){
 
 async function enterChat(){
 if(authMode==="home")authMode="guest";
-showError("");const name=$("nickname").value.trim(),btn=$("enterBtn");
+showError("");const name=$("nickname").value.trim(),btn=$(authMode==="google"?"googleEnterBtn":"enterBtn");
 if(!name){showError("Escribí tu Nick.");return;}
-nickname=name;isAdmin=false;adminPin="";btn.disabled=true;
+nickname=name;isAdmin=false;adminPin="";adminRole="";adminUsers.clear();btn.disabled=true;
 try{
 senderId=await ensureAuthUser();
-isRegisteredAccount=authMode==="account";
+isRegisteredAccount=authMode==="account"||authMode==="google";
 await claimAccountDeviceSession();
 if(name.trim().toUpperCase()==="UNIX"){
 const pin=$("adminPin").value.trim();if(!pin)throw new Error("Ingresá el PIN de administrador UNIX.");
@@ -848,6 +983,11 @@ console.log("Resultado de verificación UNIX:",data);console.log("Error de verif
 if(error)throw new Error("Supabase no pudo verificar el PIN: "+error.message);
 const pinValido=data===true||data==="true";if(!pinValido)throw new Error("El servidor respondió que el PIN es incorrecto.");
 isAdmin=true;adminPin=pin;
+}else if(isRegisteredAccount){
+const {data:adminData,error:adminError}=await db.functions.invoke("admin-api",{body:{action:"check_admin_role"}});
+if(!adminError&&adminData?.success===true&&["owner","admin"].includes(adminData?.data?.role)){
+isAdmin=true;adminRole=adminData.data.role;
+}
 }
 await fetchRooms();currentRoom=$("initialRoom").value||rooms[0]?.id;if(!currentRoom)throw new Error("No hay salas disponibles.");
 const selectedRoom=rooms.find(r=>String(r.id)===String(currentRoom));
@@ -1656,6 +1796,66 @@ $("adminStatus").textContent=data?.message||"Usuario desbloqueado correctamente.
 }catch(error){$("adminStatus").textContent="Error al desbanear: "+error.message;}
 }
 
+
+/* GESTIÓN DE ADMINISTRADORES · SOLO PROPIETARIO */
+async function loadAdminManagement(){
+  if(!isAdmin||adminRole!=="owner")return;
+  const list=$("adminManagementList");
+  if(list)list.innerHTML='<p class="muted">Cargando cuentas registradas...</p>';
+  try{
+    const [users,admins]=await Promise.all([
+      callAdminApi("list_registered_users"),
+      callAdminApi("list_admins")
+    ]);
+    adminManagementUsers=Array.isArray(users)?users:[];
+    renderAdminManagement();
+    const active=(Array.isArray(admins)?admins:[]).filter(item=>item.active);
+    const box=$("activeAdminsList");
+    if(box){
+      box.innerHTML="";
+      const owner=document.createElement("div");owner.className="admin-setting-row";
+      const ownerName=document.createElement("strong");ownerName.textContent="♛ UNIX";
+      const ownerRole=document.createElement("span");ownerRole.textContent="Propietario principal";
+      owner.append(ownerName,ownerRole);box.appendChild(owner);
+      active.filter(item=>item.role!=="owner").forEach(item=>{
+        const row=document.createElement("div");row.className="admin-setting-row";
+        const name=document.createElement("strong");name.textContent="🛡️ "+item.nickname;
+        const role=document.createElement("span");role.textContent="Administrador";
+        row.append(name,role);box.appendChild(row);
+      });
+      if(!active.some(item=>item.role!=="owner")){const empty=document.createElement("p");empty.className="muted";empty.textContent="Todavía no agregaste otros administradores.";box.appendChild(empty);}
+    }
+  }catch(error){
+    if(list)list.textContent="No se pudieron cargar los usuarios: "+error.message;
+    const status=$("adminManagementStatus");if(status)status.textContent=error.message;
+  }
+}
+function renderAdminManagement(){
+  const list=$("adminManagementList");if(!list)return;
+  const term=String($("adminManagementSearch")?.value||"").trim().toLocaleLowerCase("es");
+  const users=adminManagementUsers.filter(user=>String(user.nickname||"").toLocaleLowerCase("es").includes(term));
+  list.innerHTML="";
+  if(!users.length){list.innerHTML='<p class="muted">No hay cuentas registradas que coincidan con la búsqueda.</p>';return;}
+  users.forEach(user=>{
+    const row=document.createElement("div");row.className="admin-setting-row";
+    const name=document.createElement("strong");name.textContent=(user.is_admin?"🛡️ ":"✓ ")+user.nickname;
+    const action=document.createElement("button");action.className=user.is_admin?"secondary":"";
+    action.textContent=user.is_admin?"Quitar admin":"Hacer administrador";
+    action.onclick=()=>setAdminRole(user.user_id,!user.is_admin,user.nickname);
+    row.append(name,action);list.appendChild(row);
+  });
+}
+async function setAdminRole(userId,enabled,nick){
+  if(!isAdmin||adminRole!=="owner")return;
+  const action=enabled?"dar permisos de administrador a ":"quitar los permisos de administrador a ";
+  if(!confirm("¿Querés "+action+(nick||"este usuario")+"?"))return;
+  const status=$("adminManagementStatus");status.textContent="Guardando cambios...";
+  try{
+    await callAdminApi("set_admin_role",{target_user_id:userId,enabled});
+    status.textContent=enabled?"Permisos de administrador otorgados a "+nick+".":"Permisos de administrador quitados a "+nick+".";
+    await loadAdminManagement();
+  }catch(error){status.textContent="No se pudo cambiar el permiso: "+error.message;}
+}
 
 /* ADMINISTRACIÓN DE BOTS */
 let editingBotId = null;

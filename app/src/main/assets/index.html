@@ -665,7 +665,7 @@ async function signInWithGoogle(){
     }
     const redirectTo=window.Android
       ?"com.wichat.app://auth/callback"
-      :(window.location.origin+window.location.pathname);
+      :"https://jonitalp2023-collab.github.io/Wichat/";
     const {error}=await db.auth.signInWithOAuth({
       provider:"google",
       options:{redirectTo,queryParams:{prompt:"select_account"}}

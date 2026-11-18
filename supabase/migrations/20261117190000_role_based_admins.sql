@@ -48,6 +48,10 @@ declare
   applied_minutes integer;
   moderator_role text;
 begin
+  if auth.uid() is null or auth.uid() <> moderator_id_input then
+    raise exception 'La sesión no corresponde al administrador indicado';
+  end if;
+
   select role into moderator_role
   from public.wichat_admins
   where sender_id = moderator_id_input::text and active = true;
@@ -156,3 +160,5 @@ begin
   );
 end;
 $function$;
+
+GRANT EXECUTE ON FUNCTION public.admin_moderate_user(text,text,bigint,text,text,integer,uuid) TO authenticated;

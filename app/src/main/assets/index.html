@@ -672,17 +672,26 @@ let appSessionSuspended=false;
 window.chatAppOnBackground=async function(){
 if(!document.body.classList.contains("chat-active")||appSessionSuspended)return;
 appSessionSuspended=true;
+// Al pasar a segundo plano, retirar al usuario de la lista de conectados
+// y liberar su Nick para que no quede figurando como activo.
+await stopRoomPresence();
+await releaseNickname();
 await releaseAccountDeviceSession();
 };
 window.chatAppOnForeground=async function(){
 if(!appSessionSuspended)return;
 appSessionSuspended=false;
-if(!document.body.classList.contains("chat-active")||!isRegisteredAccount)return;
+if(!document.body.classList.contains("chat-active"))return;
 try{
-await claimAccountDeviceSession();
+if(isRegisteredAccount)await claimAccountDeviceSession();
+if(nickname&&senderId){
+const nickClaimed=await claimNickname(nickname);
+if(!nickClaimed)throw new Error("No se pudo recuperar tu Nick al volver a la aplicación.");
+}
+startRoomPresence();
 }catch(error){
-console.warn("No se pudo recuperar la sesión exclusiva al volver:",error);
-alert("Tu cuenta se abrió en otro dispositivo mientras esta aplicación estaba cerrada. Ingresá nuevamente para continuar.");
+console.warn("No se pudo recuperar la sesión al volver:",error);
+alert("No se pudo recuperar tu sesión. Ingresá nuevamente para continuar.");
 await exitChat();
 }
 };
@@ -890,10 +899,22 @@ receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();re
 const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";
 messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new)).subscribe(s=>{if(s==="SUBSCRIBED")$("status").textContent="● Conectado";});
 loadRoomMessages(id);
-presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
-presenceChannel.on("presence",{event:"sync"},updatePresenceList).on("presence",{event:"join"},updatePresenceList).on("presence",{event:"leave"},updatePresenceList).subscribe(async state=>{
-if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,is_registered:isRegisteredAccount,online_at:new Date().toISOString()});updatePresenceList();}
+startRoomPresence();
+}
+function startRoomPresence(){
+if(!currentRoom||!senderId||presenceChannel)return;
+const channel=db.channel("wichat-presence-"+currentRoom,{config:{presence:{key:senderId}}});
+presenceChannel=channel;
+channel.on("presence",{event:"sync"},updatePresenceList).on("presence",{event:"join"},updatePresenceList).on("presence",{event:"leave"},updatePresenceList).subscribe(async state=>{
+if(state==="SUBSCRIBED"&&presenceChannel===channel){await channel.track({nickname,sender_id:senderId,is_admin:isAdmin,is_registered:isRegisteredAccount,online_at:new Date().toISOString()});updatePresenceList();}
 });
+}
+async function stopRoomPresence(){
+if(!presenceChannel)return;
+const channel=presenceChannel;presenceChannel=null;
+try{await channel.untrack();}catch(error){console.warn("No se pudo retirar la presencia:",error);}
+try{await db.removeChannel(channel);}catch(error){console.warn("No se pudo cerrar el canal de presencia:",error);}
+roomUsers.clear();renderUsers();renderModerationUsers();
 }
 function updatePresenceList(){
 if(!presenceChannel)return;const state=presenceChannel.presenceState(),next=new Map();

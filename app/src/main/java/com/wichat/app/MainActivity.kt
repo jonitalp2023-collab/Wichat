@@ -2,6 +2,7 @@ package com.wichat.app
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -20,6 +21,7 @@ class MainActivity : Activity() {
     private var pauseWebViewRunnable: Runnable? = null
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private val fileChooserRequestCode = 1001
+    private var pendingAuthCallback: String? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,7 +34,24 @@ class MainActivity : Activity() {
         // Consultar siempre la versión actual de GitHub Pages
         web.settings.cacheMode = WebSettings.LOAD_NO_CACHE
 
-        web.webViewClient = WebViewClient()
+        pendingAuthCallback = intent?.data?.takeIf { it.scheme == "com.wichat.app" }?.toString()
+        web.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                val uri = request?.url ?: return false
+                return openAuthInSystemBrowser(uri)
+            }
+
+            @Suppress("DEPRECATION")
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                if (url.isNullOrBlank()) return false
+                return openAuthInSystemBrowser(Uri.parse(url))
+            }
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                deliverPendingAuthCallback()
+            }
+        }
         web.webChromeClient = object : WebChromeClient() {
             override fun onShowFileChooser(
                 webView: WebView?,
@@ -60,6 +79,34 @@ class MainActivity : Activity() {
 
         setContentView(web)
         web.loadUrl("https://jonitalp2023-collab.github.io/Wichat/")
+    }
+
+    private fun openAuthInSystemBrowser(uri: Uri): Boolean {
+        // Google bloquea OAuth dentro de WebView: abrir la autorización en el navegador del sistema.
+        if (uri.host == "pqnnzkqxkndzelsbtxvv.supabase.co" &&
+            uri.path?.startsWith("/auth/v1/authorize") == true) {
+            startActivity(Intent(Intent.ACTION_VIEW, uri))
+            return true
+        }
+        return false
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingAuthCallback = intent.data?.takeIf { it.scheme == "com.wichat.app" }?.toString()
+        deliverPendingAuthCallback()
+    }
+
+    private fun deliverPendingAuthCallback() {
+        val callback = pendingAuthCallback ?: return
+        if (!::web.isInitialized) return
+        pendingAuthCallback = null
+        web.evaluateJavascript(
+            "if(window.handleGoogleAuthCallback){window.handleGoogleAuthCallback(" +
+                org.json.JSONObject.quote(callback) + ");}",
+            null
+        )
     }
 
     @Deprecated("Deprecated in Java")

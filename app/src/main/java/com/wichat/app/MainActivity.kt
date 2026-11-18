@@ -86,7 +86,8 @@ class MainActivity : Activity() {
                 null
             )
             pauseWebViewRunnable = Runnable { if (::web.isInitialized) web.onPause() }
-            mainHandler.postDelayed(pauseWebViewRunnable!!, 400)
+            // Dar tiempo a Supabase para cerrar presencia y liberar el Nick antes de pausar WebView.
+            mainHandler.postDelayed(pauseWebViewRunnable!!, 1500)
         }
         super.onPause()
     }

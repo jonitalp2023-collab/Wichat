@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
     // La cuenta autenticada también debe estar habilitada en wichat_admins.
     const { data: activeAdmin, error: adminLookupError } = await adminDb
       .from("wichat_admins")
-      .select("sender_id")
+      .select("sender_id,nickname,role")
       .eq("sender_id", authData.user.id)
       .eq("active", true)
       .maybeSingle();
@@ -82,14 +82,23 @@ Deno.serve(async (req: Request) => {
     }
 
     const action = String(body.action ?? "");
-    const pin = String(body.pin_input ?? "").trim();
-    if (!pin) return respond({ success: false, message: "Ingresá el PIN." }, 400);
+    const isOwner = activeAdmin.role === "owner" || activeAdmin.nickname === "UNIX";
+    if (action === "check_admin_role") {
+      return respond({ success: true, data: { role: isOwner ? "owner" : "admin", nickname: activeAdmin.nickname } });
+    }
+    if (!isOwner && action !== "moderate_user") {
+      return respond({ success: false, message: "Esta acción está reservada al propietario de WiChat." }, 403);
+    }
 
-    const { data: pinValid, error: pinError } = await userDb.rpc("verify_admin_pin", {
-      pin_input: pin,
-    });
-    if (pinError) throw pinError;
-    if (pinValid !== true) return respond({ success: false, message: "PIN incorrecto." }, 403);
+    const pin = String(body.pin_input ?? "").trim();
+    if (isOwner) {
+      if (!pin) return respond({ success: false, message: "Ingresá el PIN." }, 400);
+      const { data: pinValid, error: pinError } = await userDb.rpc("verify_admin_pin", {
+        pin_input: pin,
+      });
+      if (pinError) throw pinError;
+      if (pinValid !== true) return respond({ success: false, message: "PIN incorrecto." }, 403);
+    }
 
     if (action === "verify_pin") return respond({ success: true, data: true });
 
@@ -189,6 +198,82 @@ Deno.serve(async (req: Request) => {
         break;
       }
 
+      case "list_admins": {
+        const { data: admins, error: adminsError } = await adminDb
+          .from("wichat_admins")
+          .select("sender_id,nickname,active,role,created_at")
+          .order("role", { ascending: true })
+          .order("nickname", { ascending: true });
+        if (adminsError) throw adminsError;
+        result = admins || [];
+        break;
+      }
+
+      case "list_registered_users": {
+        const { data: profiles, error: profilesError } = await adminDb
+          .from("chat_profiles")
+          .select("user_id,nickname,is_registered")
+          .eq("is_registered", true)
+          .order("nickname", { ascending: true });
+        if (profilesError) throw profilesError;
+        const { data: admins, error: adminsError } = await adminDb
+          .from("wichat_admins")
+          .select("sender_id,active,role")
+          .eq("active", true);
+        if (adminsError) throw adminsError;
+        const activeIds = new Set((admins || []).map((item) => item.sender_id));
+        result = (profiles || []).map((profile) => ({
+          ...profile,
+          is_admin: activeIds.has(profile.user_id),
+        }));
+        break;
+      }
+
+      case "set_admin_role": {
+        const targetId = String(body.target_user_id ?? "").trim();
+        const enabled = body.enabled;
+        if (!UUID_RE.test(targetId) || typeof enabled !== "boolean") {
+          return respond({ success: false, message: "Usuario o permiso no válido." }, 400);
+        }
+        const { data: targetProfile, error: targetError } = await adminDb
+          .from("chat_profiles")
+          .select("user_id,nickname,is_registered")
+          .eq("user_id", targetId)
+          .eq("is_registered", true)
+          .maybeSingle();
+        if (targetError) throw targetError;
+        if (!targetProfile) return respond({ success: false, message: "Solo podés nombrar administradores a cuentas registradas." }, 404);
+        const { data: existingAdmin, error: existingError } = await adminDb
+          .from("wichat_admins")
+          .select("role")
+          .eq("sender_id", targetId)
+          .maybeSingle();
+        if (existingError) throw existingError;
+        if (existingAdmin?.role === "owner") {
+          return respond({ success: false, message: "No se puede modificar el administrador principal." }, 403);
+        }
+        if (enabled) {
+          const { data: saved, error: saveError } = await adminDb
+            .from("wichat_admins")
+            .upsert({ sender_id: targetId, nickname: targetProfile.nickname, active: true, role: "admin" }, { onConflict: "sender_id" })
+            .select("sender_id,nickname,active,role,created_at")
+            .single();
+          if (saveError) throw saveError;
+          result = saved;
+        } else {
+          const { data: saved, error: saveError } = await adminDb
+            .from("wichat_admins")
+            .update({ active: false })
+            .eq("sender_id", targetId)
+            .neq("role", "owner")
+            .select("sender_id,nickname,active,role,created_at")
+            .maybeSingle();
+          if (saveError) throw saveError;
+          result = saved || { sender_id: targetId, active: false };
+        }
+        break;
+      }
+
       case "moderate_user": {
         const target = String(body.target_sender_id ?? "").trim();
         const roomId = String(body.room_id_input ?? body.room_id ?? "").trim();
@@ -208,7 +293,7 @@ Deno.serve(async (req: Request) => {
           return respond({ success: false, message: "ID de sala fuera de rango." }, 400);
         }
 
-        ({ data: result, error } = await adminDb.rpc("admin_moderate_user", {
+        ({ data: result, error } = await userDb.rpc("admin_moderate_user", {
           pin_input: pin,
           target_sender_id: target,
           room_id_input: numericRoomId,

@@ -331,9 +331,31 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
   }
   #messageInput,#privateInput{font-size:16px!important;}
 }
+
+/* Pantalla neutral de edad para acceso exclusivo de adultos */
+#ageGate{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(7,12,22,.98);overflow:auto}
+#ageGate.hidden{display:none!important}
+.age-gate-card{width:100%;max-width:430px;padding:28px 23px;border:1px solid #36577f;border-radius:22px;background:linear-gradient(155deg,#192b49,#101a30);box-shadow:0 18px 55px #0009;text-align:center}
+.age-gate-card h1{font-size:24px;margin:0 0 12px;color:#fff}
+.age-gate-card p{color:#b9cce5;font-size:14px;line-height:1.55}
+.age-gate-card label{display:block;text-align:left;color:#d6e4f5;font-size:13px;margin:20px 0 6px}
+.age-gate-card input{width:100%;height:52px;padding:12px;border:1px solid #456487;border-radius:11px;background:#0b1528;color:#fff;font-size:17px}
+.age-gate-card button{width:100%;min-height:49px;margin-top:16px;background:linear-gradient(110deg,#0879d0,#16a9ef);border-radius:12px;font-size:15px}
+#ageGateError{min-height:22px;color:#ff9292;font-size:13px;margin-top:10px}
 </style>
 </head>
 <body>
+<div id="ageGate" role="dialog" aria-modal="true" aria-labelledby="ageGateTitle">
+  <section class="age-gate-card">
+    <h1 id="ageGateTitle">CHAT ARGENTINA 🇦🇷</h1>
+    <p>Antes de continuar, ingresá tu fecha de nacimiento.</p>
+    <label for="ageGateBirthDate">Fecha de nacimiento</label>
+    <input id="ageGateBirthDate" type="date" autocomplete="bday" inputmode="numeric">
+    <button id="ageGateContinue" type="button" onclick="submitAgeGate()">Continuar</button>
+    <div id="ageGateError" role="status" aria-live="polite"></div>
+    <p class="muted">ChatArgentina está destinado exclusivamente a personas mayores de 18 años. La fecha ingresada se utiliza para calcular la edad y no se guarda.</p>
+  </section>
+</div>
 <div id="notificationModal" onclick="if(event.target===this)closeNotifications()"><section class="notification-card"><div class="notification-head"><span>🔔 Notificaciones</span><button onclick="closeNotifications()">Cerrar</button></div><div id="notificationList"></div></section></div>
 <div id="userMenuModal" onclick="if(event.target===this)closeUserMenu()">
 <div class="user-menu-card">
@@ -707,6 +729,8 @@ async function showGoogleSetup(user){
   showError("");
 }
 async function signInWithGoogle(){
+if(!requireAdultAccess())return;
+
   const button=document.querySelector("#loginChoices .google-choice");
   showError("");
   if(button)button.disabled=true;
@@ -731,6 +755,8 @@ async function signInWithGoogle(){
   }
 }
 async function enterGoogleChat(){
+if(!requireAdultAccess())return;
+
   const name=$("googleNickname").value.trim();
   if(!name){showError("Elegí un Nick para ingresar.");return;}
   if(name.toUpperCase()==="UNIX"){showError("El Nick UNIX está reservado para el administrador.");return;}
@@ -748,6 +774,8 @@ async function enterGoogleChat(){
   await enterChat();
 }
 async function handleGoogleAuthCallback(callbackUrl){
+if(!hasAdultAccess()){try{sessionStorage.setItem("chatargentina_pending_oauth_callback",String(callbackUrl));}catch(_){}return;}
+
   try{
     const parsed=new URL(callbackUrl);
     const code=parsed.searchParams.get("code");
@@ -763,6 +791,8 @@ async function handleGoogleAuthCallback(callbackUrl){
   }
 }
 async function restoreGoogleLogin(){
+if(!hasAdultAccess())return;
+
   try{
     const {data:{session},error}=await db.auth.getSession();
     if(error)throw error;
@@ -790,6 +820,8 @@ function nicknameAuthEmail(name){
 }
 
 async function registerAccount(){
+if(!requireAdultAccess())return;
+
 showError("");
 const name=$("registerNickname").value.trim(),password=$("registerPassword").value,confirmation=$("registerPasswordConfirm").value,btn=$("registerBtn");
 if(!name||!password||!confirmation){showError("Completá todos los campos.");return;}
@@ -811,6 +843,8 @@ finally{btn.disabled=false;}
 }
 
 async function loginAccount(){
+if(!requireAdultAccess())return;
+
 showError("");
 const name=$("accountNickname").value.trim(),password=$("loginPassword").value,btn=$("accountLoginBtn");
 if(!name||!password){showError("Ingresá tu Nick y contraseña.");return;}
@@ -1046,6 +1080,8 @@ async function ensureRegisteredStatus(userId,element){
 }
 
 async function enterChat(){
+if(!requireAdultAccess())return;
+
 if(authMode==="home")authMode="guest";
 showError("");const name=$("nickname").value.trim(),btn=$(authMode==="google"?"googleEnterBtn":"enterBtn");
 if(!name){showError("Escribí tu Nick.");return;}
@@ -1881,6 +1917,58 @@ $("messages").innerHTML="";$("privateMessages").innerHTML="";$("privateInput").v
 $("adminPanel").classList.add("hidden");$("adminOpenBtn").classList.add("hidden");$("adminPin").value="";$("adminPinWrap").classList.add("hidden");$("error").textContent="";
 $("bannedUsersList").innerHTML='<p class="muted">Presioná actualizar para ver los baneados.</p>';showMainTab("chat");renderUsers();
 }
+
+
+/* CONTROL DE EDAD: se conserva solo la confirmación de mayoría de edad, nunca la fecha de nacimiento. */
+const AGE_GATE_KEY="chatargentina_adult_access_v1";
+function hasAdultAccess(){
+  try{return localStorage.getItem(AGE_GATE_KEY)==="adult";}
+  catch(_){return false;}
+}
+function requireAdultAccess(){
+  if(hasAdultAccess())return true;
+  showAgeGate();
+  return false;
+}
+function showAgeGate(){
+  const gate=document.getElementById("ageGate");
+  if(gate)gate.classList.remove("hidden");
+}
+function calculateAge(birthDate,today=new Date()){
+  let age=today.getFullYear()-birthDate.getFullYear();
+  const beforeBirthday=today.getMonth()<birthDate.getMonth()||
+    (today.getMonth()===birthDate.getMonth()&&today.getDate()<birthDate.getDate());
+  if(beforeBirthday)age--;
+  return age;
+}
+async function submitAgeGate(){
+  const input=document.getElementById("ageGateBirthDate");
+  const error=document.getElementById("ageGateError");
+  const value=input?.value||"";
+  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)){
+    error.textContent="Ingresá una fecha de nacimiento válida.";
+    return;
+  }
+  const birthDate=new Date(value+"T12:00:00");
+  const now=new Date();
+  if(Number.isNaN(birthDate.getTime())||birthDate>now||birthDate.getFullYear()<1900){
+    error.textContent="Revisá la fecha ingresada.";
+    return;
+  }
+  if(calculateAge(birthDate,now)<18){
+    error.textContent="No podés ingresar a ChatArgentina. El servicio es exclusivo para mayores de 18 años.";
+    input.value="";
+    return;
+  }
+  try{localStorage.setItem(AGE_GATE_KEY,"adult");}
+  catch(_){error.textContent="No se pudo guardar la confirmación en este dispositivo. Habilitá el almacenamiento para continuar.";return;}
+  document.getElementById("ageGate").classList.add("hidden");
+  let pending="";
+  try{pending=sessionStorage.getItem("chatargentina_pending_oauth_callback")||"";sessionStorage.removeItem("chatargentina_pending_oauth_callback");}catch(_){}
+  if(pending)await handleGoogleAuthCallback(pending);
+  else await restoreGoogleLogin();
+}
+if(!hasAdultAccess())showAgeGate();
 
 /* INICIO */
 (async()=>{try{await fetchRooms();await restoreGoogleLogin();}catch(e){$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';showError(e.message);}})();

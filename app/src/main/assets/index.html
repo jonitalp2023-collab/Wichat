@@ -637,6 +637,17 @@ const SUPABASE_KEY="sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{flowType:"pkce"}});
 const $=id=>document.getElementById(id);
 let nickname="",senderId="",currentRoom=null,rooms=[];
+
+// Registra de forma privada el token FCM del usuario autenticado en Supabase.
+window.onNativeFcmToken=async function(token){
+  if(!token||!senderId)return;
+  const {error}=await db.from("chat_push_tokens").upsert({
+    user_id:senderId,
+    fcm_token:token,
+    updated_at:new Date().toISOString()
+  },{onConflict:"user_id"});
+  if(error)console.warn("No se pudo registrar el dispositivo para notificaciones:",error.message);
+};
 let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;let accountSessionHeartbeatTimer=null,accountSessionLeaseActive=false,accountDeviceId=null;
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
@@ -1135,6 +1146,7 @@ $("navProfile").classList.toggle("hidden",!isRegisteredAccount);
 $("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
 $("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom);
 subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
+if(window.ChatArgentinaNative&&typeof window.ChatArgentinaNative.requestFcmToken==="function")window.ChatArgentinaNative.requestFcmToken();
 }catch(e){await releaseNickname();await releaseAccountDeviceSession();currentRoom=null;console.error("Error al ingresar al chat:",e);showError("No se pudo ingresar: "+(e.message||String(e)));btn.disabled=false;}
 }
 function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");$("mentionPicker").classList.remove("open");}

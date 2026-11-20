@@ -351,6 +351,12 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 .age-gate-terms{display:flex;align-items:flex-start;gap:9px;text-align:left!important;margin:18px 0 4px!important;color:#d6e4f5!important;font-size:13px!important;line-height:1.5}
 .age-gate-terms input{flex:0 0 19px;width:19px;height:19px;margin:1px 0 0;accent-color:#168bea}
 .age-gate-terms a{color:#79c8ff}
+
+.admin-report-item{padding:12px;margin:9px 0;border:1px solid #3b506d;border-radius:11px;background:#111e33;overflow-wrap:anywhere}
+.admin-report-item>strong{display:block;color:#e6f2ff;margin-bottom:5px}
+.admin-report-item p{white-space:pre-wrap;overflow-wrap:anywhere}
+.admin-report-evidence{margin:9px 0;padding:10px;border-left:3px solid #e4ad54;background:#0b1528;border-radius:8px}
+.admin-report-evidence p{margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -614,6 +620,13 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
     <div class="admin-card">
       <h4>Acciones sobre usuarios</h4><p class="muted">Seleccioná primero un usuario en la sección Usuarios.</p>
       <div class="row"><button class="secondary" onclick="moderateUser('kick')">🚪 Expulsar</button><button class="danger" onclick="moderateUser('ban')">🚫 Banear 5 minutos</button></div>
+    </div>
+    <div class="admin-card" data-owner-only>
+      <h4>🚩 Denuncias de usuarios y mensajes</h4>
+      <p class="muted">Revisá los reportes recibidos, el contenido denunciado y las medidas tomadas.</p>
+      <button class="secondary" onclick="loadUserReports()">↻ Actualizar denuncias</button>
+      <p id="adminReportsStatus" class="admin-feedback" aria-live="polite"></p>
+      <div id="adminUserReportsList" class="admin-list"><p class="muted">Presioná actualizar para consultar las denuncias.</p></div>
     </div>
     <div class="admin-card" data-owner-only>
       <h4>🚫 Usuarios baneados</h4><p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
@@ -1784,6 +1797,7 @@ function openAdmin(){
     renderRoomDelete();
     renderRoomVipSelect();
     loadBannedUsers();
+    loadUserReports();
     loadBots();
     loadAdminManagement();
   }
@@ -1883,6 +1897,79 @@ await callAdminApi("moderate_user",{target_sender_id:target,room_id_input:curren
 $("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos en esta sala.":"Usuario expulsado de esta sala.";
 if(action==="ban")await loadBannedUsers();
 }catch(error){$("adminStatus").textContent="Error: "+error.message;}
+}
+async function loadUserReports(){
+if(!isAdmin||adminRole!=="owner")return;
+const list=$("adminUserReportsList"),status=$("adminReportsStatus");
+if(!list||!status)return;
+list.innerHTML='<p class="muted">Cargando denuncias...</p>';
+status.textContent="";
+try{
+ const reports=await callAdminApi("list_user_reports");
+ list.innerHTML="";
+ if(!Array.isArray(reports)||!reports.length){
+  list.innerHTML='<p class="muted">No hay denuncias pendientes ni anteriores.</p>';
+  status.textContent="Consulta completada.";
+  return;
+ }
+ reports.forEach(report=>{
+  const card=document.createElement("article");
+  card.className="admin-report-item";
+  const heading=document.createElement("strong");
+  heading.textContent="#"+report.id+" · "+(report.target_nickname||"Usuario denunciado")+" · "+String(report.category||"otro").replace(/_/g," ");
+  const meta=document.createElement("p");
+  meta.className="muted";
+  const created=report.created_at?new Date(report.created_at).toLocaleString("es-AR"):"Fecha no disponible";
+  meta.textContent=(report.reporter_nickname||"Usuario")+" denunció a "+(report.target_nickname||"Usuario")+" · "+created+" · Estado: "+(report.status||"pending");
+  const detail=document.createElement("p");
+  detail.textContent="Detalle del reporte: "+(report.details||"Sin detalle adicional.");
+  card.append(heading,meta,detail);
+  if(report.target_message_id||report.target_private_message_id||report.message_snapshot){
+   const evidence=document.createElement("div");
+   evidence.className="admin-report-evidence";
+   const evidenceTitle=document.createElement("strong");
+   evidenceTitle.textContent=report.target_private_message_id?"Mensaje privado denunciado":"Mensaje público denunciado";
+   const evidenceText=document.createElement("p");
+   evidenceText.textContent=report.message_snapshot||"No hay copia textual disponible.";
+   const evidenceId=document.createElement("small");
+   evidenceId.className="muted";
+   evidenceId.textContent=report.target_private_message_id?"ID de mensaje privado: "+report.target_private_message_id:"ID de mensaje público: "+(report.target_message_id||"No disponible");
+   evidence.append(evidenceTitle,evidenceText,evidenceId);
+   card.appendChild(evidence);
+  }
+  if(report.status==="pending"){
+   const actions=document.createElement("div");
+   actions.className="row";
+   [["reviewed","Marcar revisada"],["dismissed","Descartar"],["action_taken","Acción tomada"]].forEach(([value,label])=>{
+    const button=document.createElement("button");
+    button.type="button";
+    button.className=value==="action_taken"?"danger":"secondary";
+    button.textContent=label;
+    button.onclick=()=>reviewUserReport(report.id,value);
+    actions.appendChild(button);
+   });
+   card.appendChild(actions);
+  }
+  list.appendChild(card);
+ });
+ status.textContent=reports.length+" denuncia(s) cargada(s).";
+}catch(error){
+ list.textContent="No se pudieron cargar las denuncias: "+(error.message||String(error));
+ status.textContent="Error al consultar los reportes.";
+}
+}
+async function reviewUserReport(reportId,reportStatus){
+if(!isAdmin||adminRole!=="owner")return;
+if(!confirm("¿Confirmás actualizar el estado de esta denuncia?"))return;
+const status=$("adminReportsStatus");
+status.textContent="Guardando revisión...";
+try{
+ await callAdminApi("review_user_report",{report_id:reportId,report_status:reportStatus});
+ status.textContent="Estado de la denuncia actualizado.";
+ await loadUserReports();
+}catch(error){
+ status.textContent="No se pudo actualizar la denuncia: "+(error.message||String(error));
+}
 }
 async function loadBannedUsers(){
 if(!isAdmin||adminRole!=="owner")return;const list=$("bannedUsersList");list.innerHTML='<p class="muted">Cargando baneos...</p>';

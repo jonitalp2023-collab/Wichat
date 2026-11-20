@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - 'app/src/main/assets/**'
+      - 'releases/**'
       - '.github/workflows/pages.yml'
 
 permissions:
@@ -33,10 +34,15 @@ jobs:
       - name: Preparar GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Preparar archivos y versión OTA
+      - name: Preparar archivos y versiones OTA
         run: |
-          mkdir -p site
+          mkdir -p site/releases
           cp -R app/src/main/assets/. site/
+          # Conservar las versiones anteriores para que las instalaciones
+          # que ya guardaron una versión remota no terminen en un 404.
+          if [ -d releases ]; then
+            cp -R releases/. site/releases/
+          fi
           VERSION=$(python3 -c 'import json; print(json.load(open("app/src/main/assets/version.json"))["version"])')
           mkdir -p "site/releases/$VERSION"
           cp -R app/src/main/assets/. "site/releases/$VERSION/"
@@ -46,8 +52,6 @@ jobs:
         with:
           path: site
 
-      # GitHub puede tardar unos segundos en hacer visible el artefacto
-      # en la API que consulta deploy-pages.
       - name: Esperar a que GitHub registre el artefacto
         run: sleep 15
 

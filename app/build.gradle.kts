@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services")
 }
 
 val releaseStoreFile = System.getenv("ANDROID_KEYSTORE_FILE")
@@ -61,5 +62,7 @@ android {
 }
 
 dependencies {
+    implementation(platform("com.google.firebase:firebase-bom:35.2.0"))
+    implementation("com.google.firebase:firebase-messaging")
     implementation("androidx.webkit:webkit:1.15.0")
 }

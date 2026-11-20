@@ -83,6 +83,22 @@ class MainActivity : Activity() {
         WebView.setWebContentsDebuggingEnabled(false)
 
         web.webViewClient = object : WebViewClient() {
+            override fun onReceivedHttpError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                errorResponse: android.webkit.WebResourceResponse?
+            ) {
+                super.onReceivedHttpError(view, request, errorResponse)
+                val uri = request?.url ?: return
+                val statusCode = errorResponse?.statusCode ?: return
+                if (request.isForMainFrame && statusCode == 404 && isRemoteReleaseUrl(uri)) {
+                    // La versión remota ya no existe: volver al contenido incluido en el APK.
+                    getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE).edit()
+                        .remove(UPDATE_VERSION_KEY).apply()
+                    view?.post { view.loadUrl(CHAT_URL) }
+                }
+            }
+
             override fun shouldInterceptRequest(
                 view: WebView?,
                 request: WebResourceRequest?
@@ -154,6 +170,12 @@ class MainActivity : Activity() {
         } else {
             web.loadUrl(REMOTE_BASE_URL + installedWebVersion + "/index.html")
         }
+    }
+
+    private fun isRemoteReleaseUrl(uri: Uri): Boolean {
+        return uri.scheme.equals("https", ignoreCase = true) &&
+            uri.host.equals(CHAT_HOST, ignoreCase = true) &&
+            uri.path.orEmpty().startsWith("/Wichat/releases/")
     }
 
     private fun createNotificationChannel() {

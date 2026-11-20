@@ -1340,7 +1340,6 @@ async function deleteMyAccount(){
  if(phrase!=="ELIMINAR"){alert("Para confirmar, escribí exactamente ELIMINAR.");return;}
  if(!confirm("¿Estás seguro? Se eliminarán definitivamente tu cuenta y los datos asociados. Esta acción no se puede deshacer."))return;
  const btn=$("deleteAccountConfirmBtn");
- const userId=senderId;
  btn.disabled=true;btn.textContent="Eliminando cuenta...";
  try{
   const {data,error}=await db.functions.invoke("delete-account",{body:{confirmation:"ELIMINAR"}});
@@ -1351,7 +1350,7 @@ async function deleteMyAccount(){
   }
   if(!data?.success)throw new Error(data?.message||"No se pudo completar la eliminación.");
   try{await db.auth.signOut({scope:"local"});}catch(signOutError){console.warn("La cuenta ya fue eliminada; no se pudo limpiar la sesión local:",signOutError);}
-  try{localStorage.removeItem(BLOCKED_USERS_KEY_PREFIX+userId);}catch(_){}
+  try{localStorage.clear();sessionStorage.clear();}catch(_){}
   alert("Tu cuenta de ChatArgentina fue eliminada correctamente.");
   window.location.reload();
  }catch(error){

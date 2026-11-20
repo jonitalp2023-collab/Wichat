@@ -34,9 +34,6 @@ button:disabled{opacity:.5}
 #login .guest-entry .login-main-button{margin-top:2px}
 #login .login-choice{width:100%;min-height:66px;margin:9px 0;display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:13px 17px;border:1px solid #36577f;border-radius:14px;background:#1c3150;color:white;text-align:left;font-size:15px;transition:.2s}
 #login .login-choice:active{transform:scale(.98);background:#24558a}
-#login .google-choice{background:#fff;color:#263238;border-color:#d9e0e7}
-#login .google-choice small{color:#65717d}
-#login .google-choice .choice-icon{font-family:Arial,sans-serif;font-weight:900;color:#4285f4}
 #login .choice-icon{font-size:27px;width:35px;text-align:center;flex:0 0 35px}
 #login .login-choice small{display:block;color:#a9bfdc;font-size:12px;font-weight:normal;margin-top:4px}
 #login .login-form{text-align:left;margin-top:15px}
@@ -474,14 +471,6 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
 </div>
 
-<div id="googleForm" class="login-form hidden">
-<h2>🌐 Ingresar con Google</h2>
-<p class="muted">Elegí el Nick que vas a usar en Wichat. Tu cuenta de Google quedará vinculada a tu perfil.</p>
-<label for="googleNickname">Tu Nick en el chat</label><input id="googleNickname" maxlength="25" placeholder="Elegí tu Nick" autocomplete="nickname">
-<label class="muted" for="googleInitialRoom">Elegí una sala</label><select id="googleInitialRoom"><option value="">Cargando salas...</option></select>
-<button id="googleEnterBtn" class="login-main-button" onclick="enterGoogleChat()">ENTRAR AL CHAT</button>
-<button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
-</div>
 <p id="error"></p>
 <p class="login-footer">CHAT ARGENTINA · Solo mayores de 18 años 🇦🇷</p>
 <p class="login-footer"><a href="privacy-policy.html">Privacidad</a> · <a href="terms.html">Términos</a> · <a href="child-safety-standards.html">Seguridad infantil</a> · <a href="delete-account.html">Eliminar cuenta</a><br><a href="mailto:jonitalp2023@gmail.com">jonitalp2023@gmail.com</a></p>
@@ -750,125 +739,16 @@ authMode=mode;
 $("loginChoices").classList.toggle("hidden",mode!=="home");
 $("registerForm").classList.toggle("hidden",mode!=="register");
 $("emailLoginForm").classList.toggle("hidden",mode!=="login");
-$("googleForm").classList.toggle("hidden",mode!=="google");
 showError("");
 }
 
 
-function isGoogleUser(user){
-  return Boolean(user && !user.is_anonymous &&
-    (user.app_metadata?.provider==="google" ||
-     (Array.isArray(user.identities)&&user.identities.some(identity=>identity.provider==="google"))));
-}
-async function populateGoogleRoomOptions(){
-  const select=$("googleInitialRoom");
-  if(!select)return;
-  const previous=select.value;
-  select.innerHTML="";
-  rooms.forEach(room=>{
-    const option=document.createElement("option");
-    option.value=room.id;
-    option.textContent=room.name+(room.is_vip?" 🔒":"");
-    select.appendChild(option);
-  });
-  if(rooms.some(room=>String(room.id)===String(previous)))select.value=previous;
-  else if(rooms.length)select.value=String(rooms.find(room=>String(room.name).trim().toLowerCase()==="general")?.id||rooms[0].id);
-}
-async function showGoogleSetup(user){
-  authMode="google";
-  $("loginChoices").classList.add("hidden");
-  $("registerForm").classList.add("hidden");
-  $("emailLoginForm").classList.add("hidden");
-  $("googleForm").classList.remove("hidden");
-  const metadata=user?.user_metadata||{};
-  let suggested=String(metadata.full_name||metadata.name||metadata.given_name||"").trim().replace(/\s+/g," ").slice(0,25);
-  try{
-    const {data,error}=await db.from("chat_profiles").select("nickname").eq("user_id",user.id).maybeSingle();
-    if(error)console.warn("No se pudo recuperar el Nick de Google:",error.message);
-    if(data?.nickname)suggested=data.nickname;
-  }catch(error){console.warn("No se pudo recuperar el Nick:",error);}
-  $("googleNickname").value=suggested;
-  await populateGoogleRoomOptions();
-  showError("");
-}
-async function signInWithGoogle(){
-if(!requireAdultAccess())return;
-
-  const button=document.querySelector("#loginChoices .google-choice");
-  showError("");
-  if(button)button.disabled=true;
-  try{
-    const {data:{session},error:sessionError}=await db.auth.getSession();
-    if(sessionError)throw sessionError;
-    if(session&&!isGoogleUser(session.user)){
-      const {error}=await db.auth.signOut();
-      if(error)throw error;
-    }
-    const isAndroidApp=window.location.hostname==="appassets.androidplatform.net";
-    const redirectTo=isAndroidApp
-      ?"com.wichat.app://auth/callback"
-      :"https://jonitalp2023-collab.github.io/Wichat/";
-    const {error}=await db.auth.signInWithOAuth({
-      provider:"google",
-      options:{redirectTo,queryParams:{prompt:"select_account"}}
-    });
-    if(error)throw error;
-  }catch(error){
-    showError("No se pudo iniciar con Google: "+(error.message||String(error)));
-    if(button)button.disabled=false;
-  }
-}
-async function enterGoogleChat(){
-if(!requireAdultAccess())return;
-
-  const name=$("googleNickname").value.trim();
-  if(!name){showError("Elegí un Nick para ingresar.");return;}
-  if(name.toUpperCase()==="UNIX"){showError("El Nick UNIX está reservado para el administrador.");return;}
-  try{
-    const {data:{session},error:sessionError}=await db.auth.getSession();
-    if(sessionError)throw sessionError;
-    if(!session?.user?.id||!isGoogleUser(session.user))throw new Error("La sesión de Google venció. Volvé a ingresar.");
-    const {data:existing,error}=await db.from("chat_profiles").select("user_id").ilike("nickname",name).eq("is_registered",true).neq("user_id",session.user.id).limit(1);
-    if(error)throw error;
-    if(existing?.length)throw new Error("Ese Nick ya pertenece a otra cuenta registrada. Elegí otro.");
-  }catch(error){showError(error.message||String(error));return;}
-  $("nickname").value=name;
-  $("initialRoom").value=$("googleInitialRoom").value;
-  authMode="google";
-  await enterChat();
-}
-async function handleGoogleAuthCallback(callbackUrl){
-if(!hasAdultAccess()){try{sessionStorage.setItem("chatargentina_pending_oauth_callback",String(callbackUrl));}catch(_){}return;}
-
-  try{
-    const parsed=new URL(callbackUrl);
-    const code=parsed.searchParams.get("code");
-    if(!code)throw new Error("Google no devolvió el código de acceso.");
-    const {data,error}=await db.auth.exchangeCodeForSession(code);
-    if(error)throw error;
-    if(!data?.user||!isGoogleUser(data.user))throw new Error("No se pudo validar la cuenta de Google.");
-    await showGoogleSetup(data.user);
-  }catch(error){
-    console.error("Error al completar el acceso con Google:",error);
-    showError("No se pudo completar el ingreso con Google: "+(error.message||String(error)));
-    showLoginMode("home");
-  }
-}
-async function restoreGoogleLogin(){
-if(!hasAdultAccess())return;
-
-  try{
-    const {data:{session},error}=await db.auth.getSession();
-    if(error)throw error;
-    if(session&&isGoogleUser(session.user))await showGoogleSetup(session.user);
-  }catch(error){console.warn("No se pudo restaurar la sesión de Google:",error);}
-}
 
 async function ensureAuthUser(){
 let {data:{session},error}=await db.auth.getSession();
 if(error)throw error;
 if(authMode==="guest"&&session&&!session.user.is_anonymous){const {error:signOutError}=await db.auth.signOut();if(signOutError)throw signOutError;session=null;}
-if((authMode==="account"||authMode==="google")&&(!session||session.user.is_anonymous))throw new Error("No hay una sesión de cuenta activa. Iniciá sesión nuevamente.");
+if((authMode==="account")&&(!session||session.user.is_anonymous))throw new Error("No hay una sesión de cuenta activa. Iniciá sesión nuevamente.");
 if(!session){if(authMode!=="guest")throw new Error("No hay una sesión activa. Iniciá sesión nuevamente.");const result=await db.auth.signInAnonymously();if(result.error)throw result.error;session=result.data.session;}
 if(!session?.user?.id)throw new Error("No se pudo identificar al usuario.");
 return session.user.id;
@@ -1147,12 +1027,12 @@ async function enterChat(){
 if(!requireAdultAccess())return;
 
 if(authMode==="home")authMode="guest";
-showError("");const name=$("nickname").value.trim(),btn=$(authMode==="google"?"googleEnterBtn":"enterBtn");
+showError("");const name=$("nickname").value.trim(),btn=$("enterBtn");
 if(!name){showError("Escribí tu Nick.");return;}
 nickname=name;isAdmin=false;adminPin="";adminRole="";adminUsers.clear();btn.disabled=true;
 try{
 senderId=await ensureAuthUser();
-isRegisteredAccount=authMode==="account"||authMode==="google";
+isRegisteredAccount=authMode==="account";
 await loadBlockedUsersFromServer();
 await claimAccountDeviceSession();
 if(name.trim().toUpperCase()==="UNIX"){
@@ -2239,16 +2119,13 @@ async function submitAgeGate(){
     return;
   }
   document.getElementById("ageGate").classList.add("hidden");
-  let pending="";
-  try{pending=sessionStorage.getItem("chatargentina_pending_oauth_callback")||"";sessionStorage.removeItem("chatargentina_pending_oauth_callback");}catch(_){}
-  if(pending)await handleGoogleAuthCallback(pending);
-  else await restoreGoogleLogin();
+
 }
 initAgeDateSelectors();
 if(!hasAdultAccess()||!hasTermsAcceptance())showAgeGate();
 
 /* INICIO */
-(async()=>{try{await fetchRooms();await restoreGoogleLogin();}catch(e){$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';showError(e.message);}})();
+(async()=>{try{await fetchRooms();}catch(e){$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';showError(e.message);}})();
 
 /* CONTROL DEL VIEWPORT Y TECLADO: iOS Safari + Chrome + Android */
 (function(){

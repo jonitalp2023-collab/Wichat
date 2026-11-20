@@ -46,6 +46,11 @@ jobs:
         with:
           path: site
 
+      # GitHub puede tardar unos segundos en hacer visible el artefacto
+      # en la API que consulta deploy-pages.
+      - name: Esperar a que GitHub registre el artefacto
+        run: sleep 15
+
       - name: Publicar CHAT ARGENTINA
         id: deployment
         uses: actions/deploy-pages@v4

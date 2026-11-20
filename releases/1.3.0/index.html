@@ -1,0 +1,2139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>CHAT ARGENTINA</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+body{background:#111;color:white;font-family:Arial,sans-serif}
+header{display:none!important}
+.container{max-width:700px;margin:auto;padding:15px}
+.panel{background:#141e35;padding:18px;border-radius:15px;margin-top:18px}
+input,select{width:100%;padding:14px;border:1px solid #344361;border-radius:10px;background:#0c1427;color:white;font-size:16px;margin:8px 0}
+button{border:0;padding:12px 16px;border-radius:10px;background:#168bea;color:white;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5}
+.row{display:flex;gap:8px;align-items:center}
+.row input{flex:1;min-width:0}
+.status{color:#70dca1;font-size:13px}
+.muted{color:#9baac5;font-size:13px}
+#error{color:#ff7777}
+.danger{background:#bd394d}
+.secondary{background:#344361}
+.admin-box{border:1px solid #d99b35}
+.hidden{display:none!important}
+.brand-logo{display:block;width:115px;height:100px;object-fit:contain;margin:0 auto 12px;filter:drop-shadow(0 5px 12px #168bea55)}
+#login{width:100%;max-width:440px;margin:20px auto;padding:27px 22px;text-align:center;background:linear-gradient(155deg,#192b49,#101a30);border:1px solid #29476c;border-radius:24px;box-shadow:0 18px 55px #0009}
+#login h1{font-size:27px;margin:5px 0;letter-spacing:1px}
+#login .login-subtitle{color:#a9bad4;font-size:14px;margin:8px 0 23px;line-height:1.5}
+#login .guest-entry{margin:13px 0 20px;text-align:left}
+#login .guest-entry label{display:block;color:#b9cce5;font-size:13px;margin:0 0 6px 2px}
+#login .guest-entry input{width:100%;height:49px;margin:0 0 9px;padding:13px;background:#0b1528;border:1px solid #385477;border-radius:11px;color:white;font-size:16px}
+#login .guest-entry .login-main-button{margin-top:2px}
+#login .login-choice{width:100%;min-height:66px;margin:9px 0;display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:13px 17px;border:1px solid #36577f;border-radius:14px;background:#1c3150;color:white;text-align:left;font-size:15px;transition:.2s}
+#login .login-choice:active{transform:scale(.98);background:#24558a}
+#login .google-choice{background:#fff;color:#263238;border-color:#d9e0e7}
+#login .google-choice small{color:#65717d}
+#login .google-choice .choice-icon{font-family:Arial,sans-serif;font-weight:900;color:#4285f4}
+#login .choice-icon{font-size:27px;width:35px;text-align:center;flex:0 0 35px}
+#login .login-choice small{display:block;color:#a9bfdc;font-size:12px;font-weight:normal;margin-top:4px}
+#login .login-form{text-align:left;margin-top:15px}
+#login .login-form h2{text-align:center;font-size:21px;margin:12px 0 18px;color:#70bdff}
+#login .login-form label{display:block;color:#b9cce5;font-size:13px;margin-top:12px}
+#login .login-form input{width:100%;height:49px;margin:6px 0;padding:13px;background:#0b1528;border:1px solid #385477;border-radius:11px;color:white}
+#login .login-main-button{width:100%;min-height:49px;margin-top:17px;background:linear-gradient(110deg,#0879d0,#16a9ef);border-radius:12px;font-size:15px}
+#login .login-back{width:100%;margin-top:10px;background:#344361}
+#login .login-footer{color:#7189a8;font-size:11px;margin-top:23px;line-height:1.8}#login .login-footer a{color:#79c8ff;text-decoration:underline;margin:0 3px}
+#login #error{display:block;margin-top:13px;line-height:1.5;overflow-wrap:anywhere}
+#login .hidden{display:none!important}
+#login input,#login select{text-align:left}
+@media(max-width:480px){#login{margin:20px auto;padding:24px 19px}}
+body.chat-active{overflow:hidden}
+body.chat-active .container{position:fixed;inset:0;max-width:850px;width:100%;height:var(--app-height,100dvh);padding:0;margin:auto}
+#chat{display:none;height:100dvh;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+#chat>.panel{height:100%;margin:0;padding:0;border-radius:0;background:#222;display:flex;flex-direction:column;min-height:0}
+body.chat-active #chat{display:block;position:fixed;top:0;left:0;right:0;width:100%;height:var(--app-height,100dvh);padding:0;overflow:hidden;z-index:10}
+body.chat-active #chat>.panel{position:absolute;inset:0;height:100%;min-height:0;overflow:hidden;padding-top:calc(92px + env(safe-area-inset-top));padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+body.chat-active #roomPills{position:fixed;top:env(safe-area-inset-top);left:0;right:0;z-index:1000;height:62px;min-height:62px;padding:12px 8px;background:#111;overflow-x:auto;overflow-y:hidden;flex:0 0 62px;overscroll-behavior-x:contain}
+#roomTopic{display:none;align-items:center;gap:7px;min-height:30px;padding:5px 12px;background:#202b3d;border-bottom:1px solid #35435a;color:#c8d9ef;font-size:12px;line-height:1.35}
+#roomTopic .topic-label{color:#8ecbff;font-weight:bold;white-space:nowrap}
+#roomTopic .topic-text{overflow-wrap:anywhere;color:#e5edf8}
+#roomTopic.empty .topic-text{color:#91a0b7;font-style:italic}
+body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-top));left:0;right:0;z-index:999}
+@media(min-width:701px){body.chat-active #roomTopic{max-width:850px;left:50%;right:auto;width:100%;transform:translateX(-50%)}}
+@media(min-width:701px){body.chat-active #roomPills{max-width:850px;left:50%;right:auto;width:100%;transform:translateX(-50%)}}
+.room-pills{display:flex;align-items:center;gap:7px;padding:12px 8px;background:#111;overflow-x:auto;flex:0 0 auto;scrollbar-width:none}
+.room-pills::-webkit-scrollbar{display:none}
+.room-pill{flex:0 0 auto;border-radius:25px;padding:10px 17px;background:#292929;color:white;font-weight:bold;font-size:14px;white-space:nowrap}
+.room-pill.active{background:#08a9ed;color:white}
+.private-tab{display:flex;align-items:center;gap:9px;flex:0 0 auto;background:#292929;border:1px solid #383838;color:#b5c8e4;padding:10px 12px;border-radius:25px;max-width:190px;white-space:nowrap;font-weight:bold;font-size:14px}
+.private-tab.active{background:#07549a;border-color:#55b8ff;color:white}
+.private-tab-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.private-tab-close{background:#344361;padding:3px 7px;border-radius:6px;color:white}
+.private-unread{background:#ed334f;color:white;font-size:11px;font-weight:bold;min-width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:2px 5px}
+#chatView,#usersView,#roomsView,#privateView{flex:1;min-height:0;display:flex;flex-direction:column}
+#chatView.hidden,#usersView.hidden,#roomsView.hidden,#privateView.hidden{display:none!important}
+.chat-welcome{display:none}
+#messages,#privateMessages{flex:1;min-height:0;overflow-y:auto;background:#222;border:0;border-radius:0;padding:10px 11px;margin:0 0 5px;overscroll-behavior:contain}
+.message{display:flex;align-items:baseline;gap:8px;background:transparent;padding:0;margin-bottom:13px;border-radius:0;overflow-wrap:anywhere}
+.private-message{display:block;background:transparent;padding:5px 0;margin-bottom:9px;overflow-wrap:anywhere}
+.private-message.mine{background:transparent}
+.nickname{font-weight:bold;white-space:nowrap;font-size:14px}
+.admin-at{color:#38a5ff;font-weight:900;margin-right:3px}.admin-unix{color:#38a5ff!important}
+.registered-check{display:inline-flex;align-items:center;justify-content:center;color:#35d879;font-weight:900;margin-right:5px;font-size:15px;line-height:1;text-shadow:0 0 6px rgba(53,216,121,.35)}
+.admin-role-badge{display:inline-flex;align-items:center;justify-content:center;margin-right:5px;font-size:13px;line-height:1;color:#f4c45e;vertical-align:1px}
+.msgtext{color:#f4f4f4;white-space:pre-wrap;min-width:0;overflow-wrap:anywhere;font-size:14px;line-height:1.35}
+.composer{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;background:#222}
+.composer input{margin:0;min-width:0;flex:1;padding:15px 17px;background:#303030;border:0;border-radius:30px;color:white;font-size:16px}
+.send-button{width:53px;height:53px;min-width:53px;border-radius:50%;background:#08a9ed;font-size:25px;padding:0}
+.mention-wrap{position:relative;flex:0 0 auto}.mention-toggle{width:43px;height:43px;min-width:43px;border-radius:50%;background:#263f5e;border:1px solid #398bd0;color:#7fcaff;font-size:20px;font-weight:900;padding:0}.mention-picker{display:none;position:absolute;bottom:55px;right:0;width:min(310px,calc(100vw - 32px));max-height:310px;overflow:hidden;background:#101d33;border:1px solid #278bd2;border-radius:13px;padding:10px;z-index:800;box-shadow:0 8px 24px #000b}.mention-picker.open{display:block}.mention-picker-title{font-size:13px;color:#9fcfff;font-weight:700;padding:3px 5px 9px}.mention-search{display:block;width:100%;height:43px;margin:0 0 8px;padding:11px 14px;background:#303030;border:1px solid #46536a;border-radius:22px;color:#fff;font-size:15px;outline:none}.mention-search::placeholder{color:#aab3c2}.mention-search:focus{border-color:#398bd0}.mention-results{max-height:220px;overflow-y:auto;overscroll-behavior:contain}.mention-user{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:#192c49;border:1px solid #304966;padding:10px;margin:4px 0;border-radius:9px;color:#fff}.mention-user:active{background:#07549a}.mention-empty{font-size:13px;color:#9baac5;padding:9px 5px}
+.emoji-wrap{position:relative;flex:0 0 auto}
+.emoji-toggle{font-size:22px;padding:8px;background:transparent}
+.emoji-picker{display:none;position:absolute;bottom:54px;left:0;width:min(340px,calc(100vw - 30px));max-height:270px;overflow-y:auto;background:#101d33;border:1px solid #278bd2;border-radius:13px;padding:9px;z-index:700;box-shadow:0 8px 24px #000b}
+.emoji-picker.open{display:block}
+.emoji-cats{display:flex;gap:5px;overflow-x:auto;margin-bottom:8px}
+.emoji-cats button{padding:7px 9px;background:#203b5d;font-size:18px}
+.emoji-cats button.active{background:#0878c9}
+.emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.emoji-grid button{background:#192c49;padding:8px 2px;font-size:23px}
+#usersView,#roomsView{padding:15px;background:#222}
+.user-search{width:100%;box-sizing:border-box;margin:0 0 12px;padding:12px 14px;background:#303030;color:#fff;border:1px solid #484848;border-radius:10px;font:inherit;outline:none}
+.user-search:focus{border-color:#168bea;box-shadow:0 0 0 2px #168bea33}
+.user-search::placeholder{color:#a5a5a5}
+#usersView h3,#roomsView h3{margin:8px 0 12px;color:#55b8ff}
+.user-item{display:flex;align-items:center;gap:9px;padding:13px;margin-bottom:8px;background:#292929;border:1px solid #383838;border-radius:10px;cursor:pointer}
+.user-item:hover{background:#363636}
+.online-dot{width:9px;height:9px;background:#39d98a;border-radius:50%;flex:0 0 9px}
+.user-name{font-weight:bold;color:white;overflow-wrap:anywhere}
+.user-count{font-size:12px;color:#9baac5;margin-bottom:10px}
+.room-tab{width:100%;text-align:left;margin:5px 0;background:#292929;border:1px solid #383838}
+.room-tab.active{background:#07549a;border-color:#168bea}
+#bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:2000;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;background:#17191e;border-top:1px solid #292d35;padding:8px 10px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -5px 18px #0004}
+body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:none!important;transition:none!important;z-index:2000}
+.nav-btn{position:relative;min-width:0;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:transparent;color:#aab3c2;border-radius:14px;padding:6px 2px;font-size:11px;font-weight:600;letter-spacing:.1px;transition:background .18s ease,color .18s ease,transform .18s ease}
+.nav-btn .nav-icon{width:25px;height:25px;display:flex;align-items:center;justify-content:center;line-height:1}
+.nav-btn .nav-icon svg{width:23px;height:23px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nav-btn.active{background:#075985;color:#fff}
+.nav-btn:active{transform:scale(.96)}
+.nav-btn.exit{color:#aab3c2}
+#adminOpenBtn{color:#facc15}
+#adminOpenBtn.active{background:#51400c;color:#facc15}
+#adminOpenBtn:active{background:#51400c}
+
+#moderationModal{display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:20px}
+#moderationModal.show{display:flex}
+.moderation-card{width:100%;max-width:400px;padding:25px;background:#141e35;border:1px solid #278bd2;border-radius:16px;text-align:center;box-shadow:0 10px 35px #000b}
+.moderation-card h2{color:#55b8ff;margin-top:0}
+.moderation-card p{color:#d5e3f5;line-height:1.5}
+.moderation-card button{width:100%;margin-top:12px}
+#userMenuModal{display:none;position:fixed;inset:0;z-index:25000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:20px}
+#userMenuModal.show{display:flex}
+.user-menu-card{width:100%;max-width:350px;background:#141e35;border:1px solid #278bd2;border-radius:16px;padding:20px;box-shadow:0 10px 35px #000b}
+.user-menu-card h3{color:#55b8ff;margin:0 0 15px;text-align:center;overflow-wrap:anywhere}
+.user-menu-card button{width:100%;margin-top:10px}
+.user-menu-card .private-action{background:#168bea}
+.user-menu-card .kick-action{background:#344361}
+.user-menu-card .ban-action{background:#bd394d}
+#blockedUsersModal{display:none;position:fixed;inset:0;z-index:27000;background:rgba(0,0,0,.82);align-items:center;justify-content:center;padding:18px}
+#blockedUsersModal.show{display:flex}
+.blocked-users-card{width:100%;max-width:390px;max-height:82vh;overflow:auto;background:#141e35;border:1px solid #278bd2;border-radius:16px;padding:20px}
+.blocked-user-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #344361}
+.blocked-user-row strong{overflow-wrap:anywhere}
+.blocked-user-row button{flex:0 0 auto;background:#344361}
+#profileModal{display:none;position:fixed;inset:0;z-index:26000;background:radial-gradient(ellipse at 50% 8%,rgba(22,116,190,.24),transparent 52%),rgba(2,7,18,.91);align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(7px)}
+#profileModal.show{display:flex}
+.profile-card{position:relative;width:100%;max-width:410px;max-height:90vh;overflow-y:auto;background:linear-gradient(160deg,#172944 0%,#101b30 48%,#0b1426 100%);border:1px solid rgba(76,174,255,.48);border-radius:25px;padding:24px 21px 20px;box-shadow:0 22px 65px #000d,inset 0 1px 0 rgba(255,255,255,.06)}
+.profile-card:before{content:"";display:block;width:54px;height:4px;border-radius:9px;background:linear-gradient(90deg,#168bea,#6bd5ff);margin:0 auto 19px}
+.profile-card h3{color:#eaf6ff;text-align:center;font-size:21px;letter-spacing:.2px;margin:0 0 18px;overflow-wrap:anywhere}
+.profile-hero{text-align:center;padding:4px 12px 18px;margin-bottom:16px;border-bottom:1px solid rgba(112,174,225,.16)}
+.profile-photo{display:block;width:126px;height:126px;object-fit:cover;border-radius:50%;border:4px solid #43baff;padding:3px;margin:0 auto 13px;background:linear-gradient(135deg,#1d8fe5,#142a49);box-shadow:0 0 0 6px rgba(42,151,231,.12),0 10px 28px #0007}
+.profile-nick-label{display:none!important}
+.profile-hero .profile-value{display:inline-block;min-height:0;margin:0;padding:0;border:0;background:transparent;color:#f4faff;font-size:21px;font-weight:700;text-align:center;line-height:1.35}
+.profile-hero .profile-value:before{content:"+";display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;margin-right:7px;border-radius:50%;background:#168bea;color:white;font-size:14px;vertical-align:2px}
+.profile-section{margin:13px 0 0}
+.profile-section label{display:block;color:#72c9ff;font-size:11px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;margin:0 0 7px 2px}
+.profile-card label{display:block;color:#a9bfdc;font-size:13px;margin:12px 0 5px}
+.profile-card input[type=text],.profile-card textarea{width:100%;padding:12px;border:1px solid #344d70;border-radius:12px;background:#0a1426;color:white;font:16px Arial;margin:0;box-sizing:border-box}
+.profile-card textarea{min-height:100px;resize:vertical}
+.profile-value{background:rgba(5,14,29,.62);border:1px solid rgba(92,146,196,.2);border-radius:13px;padding:13px 14px;margin-top:0;white-space:pre-wrap;overflow-wrap:anywhere;color:#f4f7fc;min-height:43px;line-height:1.5}
+.profile-section.bio .profile-value{min-height:76px}
+.profile-privacy{display:flex!important;align-items:center;gap:10px;margin:14px 0!important;color:#d5e3f5!important;font-size:14px!important;letter-spacing:0!important;text-transform:none!important}
+.profile-privacy input{width:20px;height:20px;accent-color:#168bea}
+.profile-photo-editor{display:flex;align-items:center;gap:14px;margin:10px 0 16px;padding:12px;background:#0a1426;border:1px solid #263e5e;border-radius:14px}
+.profile-photo-editor .profile-photo{width:86px;height:86px;flex:0 0 86px;margin:0}
+.profile-photo-editor input{max-width:100%;font-size:12px}
+.profile-card button{width:100%;margin-top:10px;border-radius:12px}
+#profileSaveBtn{background:linear-gradient(100deg,#087bd5,#20a9ed);font-weight:700;box-shadow:0 7px 18px rgba(0,128,220,.22)}
+.profile-card>button.secondary{background:#243752;color:#c8d8ea;border:1px solid #385372}
+
+/* PANEL ADMIN: ventana fija con desplazamiento vertical propio */
+#adminPanel{
+  position:fixed!important;
+  z-index:5000;
+  top:8px!important;
+  bottom:8px!important;
+  left:8px!important;
+  right:8px!important;
+  width:auto!important;
+  max-width:680px;
+  height:auto!important;
+  max-height:none!important;
+  min-height:0!important;
+  margin:0 auto!important;
+  padding:16px;
+  background:#141e35;
+  border:1px solid #d99b35;
+  border-radius:15px;
+  display:block;
+  overflow-y:scroll!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain;
+  touch-action:pan-y;
+  scrollbar-width:thin;
+  scrollbar-color:#52749d #141e35;
+  box-sizing:border-box;
+}
+#adminPanel.hidden{display:none!important}
+#adminPanel .row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#adminPanel .row input{flex:1 1 180px;min-width:0}
+#adminPanel .row button{flex:1 1 auto;min-height:44px}
+#adminPanel input,#adminPanel select,#adminPanel textarea{
+  width:100%;
+  min-height:45px;
+  font-size:16px;
+  margin:8px 0;
+}
+#adminPanel textarea{min-height:120px;resize:vertical;line-height:1.45}
+#adminPanel button{min-height:44px;white-space:normal;overflow-wrap:anywhere}
+#adminPanel h3{color:#ffd34d;font-size:18px}
+#adminPanel h4{color:#8ecbff;font-size:15px;margin-top:22px;margin-bottom:7px}
+#adminPanel .muted{line-height:1.5}
+#adminPanel .bot-card,#adminPanel .banned-card{width:100%;overflow-wrap:anywhere}
+#adminPanel .bot-card .bot-actions{display:flex;flex-wrap:wrap;gap:8px}
+#adminPanel .bot-card .bot-actions button{flex:1 1 120px;min-height:45px}
+#adminPanel::-webkit-scrollbar{width:7px}
+#adminPanel::-webkit-scrollbar-thumb{background:#52749d;border-radius:10px}
+@media(max-width:420px){
+  #adminPanel{left:5px!important;right:5px!important;padding:13px}
+  #adminPanel .row{flex-wrap:wrap}
+  #adminPanel .row button{flex:1 1 100%}
+  #adminPanel .bot-card .bot-actions button{flex:1 1 100%}
+}
+@media(min-width:701px){body.chat-active .container{max-width:850px;margin:auto}}
+body.chat-active #chatView,body.chat-active #privateView{display:flex;flex-direction:column;flex:1 1 0;min-height:0;overflow:hidden}
+body.chat-active #messages,body.chat-active #privateMessages{flex:1 1 0;min-height:0;overflow-y:auto}
+body.chat-active .composer{display:flex;position:relative;flex:0 0 auto;width:100%;min-height:70px;background:#222;z-index:100;padding:9px 14px}
+body.chat-active .composer input{display:block;min-width:0;flex:1 1 auto}
+body.chat-active .send-button{display:flex;align-items:center;justify-content:center;flex:0 0 53px}
+
+/* REDISEÑO ADMINISTRACIÓN · AZUL OSCURO Y DORADO */
+#adminPanel{
+  background:linear-gradient(160deg,#111d33 0%,#0b1426 100%)!important;
+  border:1px solid rgba(224,174,76,.65)!important;
+  border-radius:22px!important;
+  padding:0 16px 18px!important;
+  box-shadow:0 24px 70px #000c,0 0 35px #d99b351c;
+  color:#f4f7fc;
+}
+#adminPanel .admin-topbar{position:sticky;top:-1px;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 -16px;padding:13px 16px;background:rgba(12,22,40,.96);backdrop-filter:blur(14px);border-bottom:1px solid #d99b3538;border-radius:21px 21px 0 0}
+#adminPanel .admin-brand{display:flex;align-items:center;gap:10px;min-width:0}
+#adminPanel .admin-brand-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(145deg,#263f61,#14243d);border:1px solid #d99b3566;font-size:23px}
+#adminPanel .admin-brand h3{margin:0;color:#f3c66d;font-size:15px;letter-spacing:.7px}
+#adminPanel .admin-brand p{margin:4px 0 0;color:#91a5c1;font-size:11px}
+#adminPanel .admin-brand p span{color:#6ee0a5;margin-left:5px;font-weight:bold}
+#adminPanel .admin-close{width:40px;min-width:40px;height:40px;min-height:40px;padding:0;border:1px solid #455773;background:#1b2b44;color:#dce7f5;border-radius:12px;font-size:17px}
+#adminPanel .admin-welcome{display:flex;align-items:center;justify-content:space-between;padding:20px 3px 16px}
+#adminPanel .admin-welcome h2{font-size:23px;margin:5px 0;color:#fff}
+#adminPanel .admin-welcome p{font-size:13px;color:#9eafc8;margin:0}
+#adminPanel .admin-eyebrow{font-size:10px;font-weight:800;letter-spacing:1.5px;color:#e5b65d}
+#adminPanel .admin-crown{font-size:32px;filter:drop-shadow(0 3px 10px #d99b3577)}
+#adminPanel .admin-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:0 0 17px}
+#adminPanel .admin-stat{min-width:0;padding:12px 10px;background:linear-gradient(145deg,#1b2e49,#142239);border:1px solid #354b69;border-radius:15px;display:flex;flex-direction:column;gap:5px}
+#adminPanel .admin-stat>span{font-size:19px}
+#adminPanel .admin-stat small{font-size:9px;letter-spacing:.6px;color:#a5b5cc;font-weight:bold}
+#adminPanel .admin-stat strong{font-size:23px;color:#f4c96f;font-variant-numeric:tabular-nums}
+#adminPanel .admin-tabs{position:sticky;top:67px;z-index:4;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:10px 0 13px;background:linear-gradient(#0e1a2d 82%,transparent);margin-bottom:5px}
+#adminPanel .admin-tab{display:flex;align-items:center;justify-content:center;gap:6px;min-height:43px;padding:8px 5px;border:1px solid #354a66;border-radius:12px;background:#172740;color:#b8c8dd;font-size:12px}
+#adminPanel .admin-tab span{font-size:15px}
+#adminPanel .admin-tab.active{background:linear-gradient(120deg,#174d78,#176aa0);border-color:#e0b45f;color:#fff;box-shadow:0 4px 14px #0878c933}
+#adminPanel .admin-section{display:none;animation:adminFadeIn .18s ease}
+#adminPanel .admin-section.active{display:block}
+@keyframes adminFadeIn{from{opacity:.55;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+#adminPanel .admin-section-heading{display:flex;align-items:center;justify-content:space-between;margin:12px 2px 14px}
+#adminPanel .admin-section-heading h3{font-size:21px;margin:4px 0;color:#f3f6fc}
+#adminPanel .admin-heading-icon{width:43px;height:43px;display:grid;place-items:center;border-radius:14px;background:#1b304c;border:1px solid #d99b354a;font-size:21px}
+#adminPanel .admin-card{padding:15px;margin:0 0 12px;background:linear-gradient(145deg,#192b45,#132239);border:1px solid #344b69;border-radius:16px;box-shadow:0 8px 22px #0002}
+#adminPanel .admin-card-danger{border-color:#8b4850}
+#adminPanel .admin-card h4{margin:0 0 7px;color:#f1c66f;font-size:15px}
+#adminPanel .admin-card p{margin:5px 0 10px}
+#adminPanel .admin-card input,#adminPanel .admin-card select,#adminPanel .admin-card textarea{background:#0b172a;border:1px solid #3a5272;border-radius:11px;color:#f5f7fb}
+#adminPanel .admin-card button{border-radius:11px}
+#adminPanel .admin-card .row{gap:8px}
+#adminPanel .admin-card .row button{flex:1 1 120px}
+#adminPanel .admin-feedback{min-height:20px;color:#83dfae;font-size:13px;overflow-wrap:anywhere}
+#adminPanel .admin-list{margin-top:12px}
+#adminPanel .admin-setting-row{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #35465d;color:#aebed2;font-size:13px}
+#adminPanel .admin-setting-row:last-child{border-bottom:0}
+#adminPanel .admin-setting-row strong{color:#f0c66f;text-align:right}
+#adminPanel .admin-setting-row .admin-online{color:#72dfa4}
+#adminPanel .admin-footer{display:flex;justify-content:space-between;gap:8px;padding:17px 3px 3px;margin-top:12px;border-top:1px solid #34445b;color:#d9b66d;font-size:11px;font-weight:bold;letter-spacing:.5px}
+#adminPanel .admin-footer span{color:#7186a4;font-weight:normal;letter-spacing:0}
+#adminPanel .bot-card,#adminPanel .banned-card{padding:13px;margin:9px 0;background:#101d31;border:1px solid #354b68;border-radius:13px}
+#adminPanel .bot-card textarea{min-height:100px}
+#adminPanel .bot-card .bot-actions{gap:7px}
+#adminPanel .bot-active{color:#70dfa0}
+#adminPanel .bot-inactive{color:#e3a0a0}
+#adminPanel .banned-name{color:#f0c66f}
+#adminPanel .banned-details{color:#a7b7cd;font-size:12px;overflow-wrap:anywhere}
+#adminPanel .unban-button{background:#315b80}
+@media(max-width:390px){
+ #adminPanel{padding-left:11px!important;padding-right:11px!important}
+ #adminPanel .admin-topbar{margin-left:-11px;margin-right:-11px;padding-left:12px;padding-right:12px}
+ #adminPanel .admin-tabs{gap:5px}
+ #adminPanel .admin-tab{font-size:11px;gap:3px}
+ #adminPanel .admin-stat{padding:10px 7px}
+ #adminPanel .admin-stat small{font-size:8px}
+ #adminPanel .admin-welcome h2{font-size:20px}
+}
+
+#notificationModal{display:none;position:fixed;inset:0;z-index:30000;background:#000b;align-items:flex-end;justify-content:center;padding:12px}
+#notificationModal.show{display:flex}
+.notification-card{width:100%;max-width:520px;max-height:min(75vh,650px);overflow:hidden;background:#121f35;border:1px solid #287bb5;border-radius:20px;box-shadow:0 15px 50px #000c;display:flex;flex-direction:column}
+.notification-head{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid #30445e;color:#8fd0ff;font-weight:bold}
+.notification-head button{padding:7px 11px;background:#344361}
+#notificationList{overflow-y:auto;padding:10px}
+.notification-item{display:flex;gap:10px;align-items:flex-start;width:100%;margin:5px 0;padding:13px;background:#1b2d47;border:1px solid #304966;border-radius:12px;color:#fff;text-align:left}
+.notification-item small{display:block;color:#9fb2cc;margin-top:4px;font-weight:normal}
+.notification-empty{padding:25px 12px;text-align:center;color:#9baac5}
+#notificationBadge{position:absolute;top:2px;right:calc(50% - 21px);min-width:18px;height:18px;padding:0 4px;border-radius:20px;background:#ed334f;color:#fff;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;border:2px solid #17191e}
+#notificationBadge.hidden{display:none!important}
+
+/* AJUSTE SAFARI iOS / VIEWPORT VISUAL */
+@supports (-webkit-touch-callout: none){
+  html,body{height:100%;min-height:100%;}
+  body.chat-active #chat{
+    top:var(--visual-top,0px);
+    height:var(--app-height,100dvh);
+  }
+  body.chat-active #roomPills{
+    top:calc(var(--visual-top,0px) + env(safe-area-inset-top));
+  }
+  body.chat-active #roomTopic{
+    top:calc(var(--visual-top,0px) + 62px + env(safe-area-inset-top));
+  }
+  body.chat-active #bottomNav{
+    top:calc(var(--visual-top,0px) + var(--app-height,100dvh) - 76px - env(safe-area-inset-bottom));
+    bottom:auto;
+  }
+  #messageInput,#privateInput{font-size:16px!important;}
+}
+
+/* Pantalla neutral de edad para acceso exclusivo de adultos */
+#ageGate{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(7,12,22,.98);overflow:auto}
+#ageGate.hidden{display:none!important}
+.age-gate-card{width:100%;max-width:430px;padding:28px 23px;border:1px solid #36577f;border-radius:22px;background:linear-gradient(155deg,#192b49,#101a30);box-shadow:0 18px 55px #0009;text-align:center}
+.age-gate-card h1{font-size:24px;margin:0 0 12px;color:#fff}
+.age-gate-card p{color:#b9cce5;font-size:14px;line-height:1.55}
+.age-gate-card label{display:block;text-align:left;color:#d6e4f5;font-size:13px;margin:20px 0 6px}
+.age-gate-card input{width:100%;height:52px;padding:12px;border:1px solid #456487;border-radius:11px;background:#0b1528;color:#fff;font-size:17px}
+.age-gate-card button{width:100%;min-height:49px;margin-top:16px;background:linear-gradient(110deg,#0879d0,#16a9ef);border-radius:12px;font-size:15px}
+#ageGateError{min-height:22px;color:#ff9292;font-size:13px;margin-top:10px}
+</style>
+</head>
+<body>
+<div id="ageGate" role="dialog" aria-modal="true" aria-labelledby="ageGateTitle">
+  <section class="age-gate-card">
+    <h1 id="ageGateTitle">CHAT ARGENTINA 🇦🇷</h1>
+    <p>Antes de continuar, ingresá tu fecha de nacimiento.</p>
+    <label>Fecha de nacimiento</label>
+    <div class="row" style="gap:7px;align-items:center">
+      <select id="ageGateDay" aria-label="Día de nacimiento" style="flex:1;min-width:0"><option value="">Día</option></select>
+      <select id="ageGateMonth" aria-label="Mes de nacimiento" style="flex:1.5;min-width:0"><option value="">Mes</option></select>
+      <select id="ageGateYear" aria-label="Año de nacimiento" style="flex:1.2;min-width:0"><option value="">Año</option></select>
+    </div>
+    <button id="ageGateContinue" type="button" onclick="submitAgeGate()">Continuar</button>
+    <div id="ageGateError" role="status" aria-live="polite"></div>
+    <p class="muted">La fecha ingresada se utiliza para calcular la edad y no se guarda.</p>
+    <p class="muted"><a href="privacy-policy.html">Política de privacidad</a> · <a href="terms.html">Términos y condiciones</a></p><p class="muted"><a href="child-safety-standards.html">Seguridad infantil</a> · <a href="delete-account.html">Eliminar cuenta</a></p><p class="muted">Contacto: <a href="mailto:jonitalp2023@gmail.com">jonitalp2023@gmail.com</a></p>
+  </section>
+</div>
+<div id="notificationModal" onclick="if(event.target===this)closeNotifications()"><section class="notification-card"><div class="notification-head"><span>🔔 Notificaciones</span><button onclick="closeNotifications()">Cerrar</button></div><div id="notificationList"></div></section></div>
+<div id="userMenuModal" onclick="if(event.target===this)closeUserMenu()">
+<div class="user-menu-card">
+<h3 id="userMenuTitle">Usuario</h3>
+<button class="private-action" onclick="userMenuPrivate()">💬 Enviar mensaje privado</button>
+<button id="viewProfileBtn" class="secondary hidden" onclick="userMenuViewProfile()">👤 Ver perfil</button>
+<button class="secondary" onclick="userMenuReport()">🚩 Reportar usuario</button>
+<button id="blockUserBtn" class="danger" onclick="userMenuBlock()">⛔ Bloquear usuario</button>
+<div id="adminUserActions" class="hidden">
+<button class="kick-action" onclick="userMenuModerate('kick')">🚪 Echar usuario</button>
+<button class="ban-action" onclick="userMenuModerate('ban')">🚫 Banear usuario por 5 minutos</button>
+</div>
+<button class="secondary" onclick="closeUserMenu()">Cerrar</button>
+</div></div>
+<div id="blockedUsersModal" onclick="if(event.target===this)closeBlockedUsers()">
+  <section class="blocked-users-card">
+    <h3>Usuarios bloqueados</h3>
+    <div id="blockedUsersList"></div>
+    <button class="secondary" style="width:100%;margin-top:14px" onclick="closeBlockedUsers()">Cerrar</button>
+  </section>
+</div>
+<div id="profileModal" onclick="if(event.target===this)closeProfileModal()">
+<div class="profile-card">
+<h3 id="profileTitle">Perfil</h3>
+<div id="profileDisplay">
+<div class="profile-hero"><img id="profilePhotoDisplay" class="profile-photo hidden" alt="Foto de perfil">
+<div class="profile-nick-label">Nick</div><div id="profileNickValue" class="profile-value"></div></div>
+<div class="profile-section"><label>Estado</label><div id="profileStatusValue" class="profile-value"></div></div>
+<div class="profile-section bio"><label>Sobre mí</label><div id="profileBioValue" class="profile-value"></div></div>
+</div>
+<div id="profileEditor" class="hidden"><div class="profile-photo-editor"><img id="profilePhotoPreview" class="profile-photo hidden" alt="Vista previa de la foto"><div><label for="profilePhotoInput">Foto de perfil</label><input id="profilePhotoInput" type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadProfilePhoto(this)"><small class="muted">JPG, PNG o WebP · máximo 3 MB</small></div></div>
+<label for="profileStatusInput">Estado</label><input id="profileStatusInput" type="text" maxlength="80" placeholder="¿Qué estás haciendo?">
+<label for="profileBioInput">Sobre mí</label><textarea id="profileBioInput" maxlength="300" placeholder="Contá algo sobre vos..."></textarea>
+<label class="profile-privacy"><input id="profileVisibleInput" type="checkbox"> Mi perfil es visible para otros usuarios registrados</label>
+<p id="profilePrivacyHint" class="muted">Si desactivás esta opción, solamente vos podrás ver tu perfil.</p>
+<button id="profileSaveBtn" onclick="saveMyProfile()">💾 Guardar perfil</button>
+<div class="profile-section" style="margin-top:22px;padding-top:16px;border-top:1px solid #4b3440">
+  <button type="button" class="danger" style="width:100%" onclick="beginAccountDeletion()">Eliminar mi cuenta</button>
+  <div id="deleteAccountConfirm" class="hidden" style="margin-top:12px;padding:13px;border:1px solid #bd394d;border-radius:12px;background:#251720">
+    <strong style="color:#ff9aaa">Esta acción es permanente</strong>
+    <p class="muted">Se eliminarán tu cuenta, perfil, fotos, mensajes y datos asociados. Escribí ELIMINAR para confirmar.</p>
+    <input id="deleteAccountPhrase" type="text" maxlength="8" autocomplete="off" placeholder="Escribí ELIMINAR">
+    <button id="deleteAccountConfirmBtn" type="button" class="danger" style="width:100%" onclick="deleteMyAccount()">Confirmar eliminación definitiva</button>
+    <button type="button" class="secondary" style="width:100%" onclick="cancelAccountDeletion()">Cancelar</button>
+  </div>
+</div>
+</div>
+<button class="secondary" onclick="closeProfileModal()">Cerrar</button>
+</div></div>
+<div id="moderationModal" role="alertdialog" aria-modal="true">
+<div class="moderation-card">
+<h2 id="moderationTitle">Aviso de moderación</h2><p id="moderationMessage"></p>
+<button onclick="closeModerationModal()">ENTENDIDO</button>
+</div></div>
+<div class="container">
+<section id="login" class="panel">
+<img class="brand-logo" src="https://raw.githubusercontent.com/jonitalp2023-collab/Wichat/main/app/src/main/res/drawable/ic_launcher_logo.png" alt="CHAT ARGENTINA">
+<h1>CHAT ARGENTINA 🇦🇷</h1>
+<p class="login-subtitle">Conectate, conocé gente y disfrutá de conversar.</p>
+<div id="loginChoices">
+<div id="guestForm" class="guest-entry">
+<label for="nickname">Tu Nick para entrar</label>
+<input id="nickname" maxlength="25" placeholder="Escribí tu Nick" autocomplete="nickname">
+<div id="adminPinWrap" class="hidden"><label for="adminPin">PIN de administrador UNIX</label><input id="adminPin" type="password" placeholder="PIN de administrador UNIX"><p class="muted">El Nick UNIX está reservado para el administrador.</p></div>
+<select id="initialRoom" class="hidden"><option value="">Cargando salas...</option></select>
+<button id="enterBtn" class="login-main-button" onclick="enterChat()">ENTRAR AL CHAT</button>
+</div>
+<button class="login-choice" onclick="showLoginMode('register')"><span class="choice-icon">👤</span><span><strong>CREAR CUENTA</strong><small>Registrate gratis en CHAT ARGENTINA</small></span></button>
+<button class="login-choice" onclick="showLoginMode('login')"><span class="choice-icon">🔐</span><span><strong>INICIAR SESIÓN</strong><small>Ya tengo una cuenta</small></span></button>
+<button class="login-choice google-choice" onclick="signInWithGoogle()"><span class="choice-icon">G</span><span><strong>CONTINUAR CON GOOGLE</strong><small>Ingresá con tu cuenta de Google</small></span></button>
+</div>
+<div id="registerForm" class="login-form hidden">
+<h2>✨ Crear mi cuenta</h2>
+<label for="registerNickname">Tu Nick</label><input id="registerNickname" maxlength="25" placeholder="Elegí tu nombre" autocomplete="nickname">
+<label for="registerPassword">Contraseña</label><input id="registerPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+<label for="registerPasswordConfirm">Repetir contraseña</label><input id="registerPasswordConfirm" type="password" placeholder="Repetí tu contraseña" autocomplete="new-password">
+<button id="registerBtn" class="login-main-button" onclick="registerAccount()">CREAR CUENTA</button>
+<button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
+</div>
+<div id="emailLoginForm" class="login-form hidden">
+<h2>🔐 Bienvenido nuevamente</h2>
+<label for="accountNickname">Tu Nick</label><input id="accountNickname" maxlength="25" placeholder="Tu nombre en el chat" autocomplete="username">
+<label for="loginPassword">Contraseña</label><input id="loginPassword" type="password" placeholder="Tu contraseña" autocomplete="current-password">
+<button id="accountLoginBtn" class="login-main-button" onclick="loginAccount()">INGRESAR</button>
+<button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
+</div>
+
+<div id="googleForm" class="login-form hidden">
+<h2>🌐 Ingresar con Google</h2>
+<p class="muted">Elegí el Nick que vas a usar en Wichat. Tu cuenta de Google quedará vinculada a tu perfil.</p>
+<label for="googleNickname">Tu Nick en el chat</label><input id="googleNickname" maxlength="25" placeholder="Elegí tu Nick" autocomplete="nickname">
+<label class="muted" for="googleInitialRoom">Elegí una sala</label><select id="googleInitialRoom"><option value="">Cargando salas...</option></select>
+<button id="googleEnterBtn" class="login-main-button" onclick="enterGoogleChat()">ENTRAR AL CHAT</button>
+<button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
+</div>
+<p id="error"></p>
+<p class="login-footer">CHAT ARGENTINA · Solo mayores de 18 años 🇦🇷</p>
+<p class="login-footer"><a href="privacy-policy.html">Privacidad</a> · <a href="terms.html">Términos</a> · <a href="child-safety-standards.html">Seguridad infantil</a> · <a href="delete-account.html">Eliminar cuenta</a><br><a href="mailto:jonitalp2023@gmail.com">jonitalp2023@gmail.com</a></p>
+</section>
+<section id="chat"><div class="panel">
+<div id="roomPills" class="room-pills"></div>
+<div id="roomTopic" class="empty"><span class="topic-label">📌 Tópico</span><span id="roomTopicText" class="topic-text">Sin tópico</span></div>
+<div id="chatView">
+<div class="chat-welcome"><strong>Conversación general</strong><span id="status">Conectando...</span></div>
+<div id="messages"></div>
+<div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
+<input id="messageInput" maxlength="1000" placeholder="Escribí aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
+<div class="mention-wrap"><button id="mentionToggle" class="mention-toggle" type="button" aria-label="Mencionar usuario" title="Mencionar usuario" onclick="toggleMentionPicker()">#</button><div id="mentionPicker" class="mention-picker"></div></div><button id="sendBtn" class="send-button" onpointerdown="event.preventDefault()" onclick="sendMessage()">➤</button></div></div>
+<div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><button class="secondary" style="margin:0 0 10px" onclick="openBlockedUsers()">⛔ Usuarios bloqueados</button><div id="usersCountText" class="user-count">0 usuarios conectados</div><input id="userSearchInput" class="user-search" type="search" placeholder="🔎 Buscar usuario..." oninput="renderUsers()" autocomplete="off"><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
+<div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
+<div id="privateView" class="hidden"><div id="privateMessages"></div>
+<div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
+<input id="privateInput" maxlength="1000" placeholder="Escribí un mensaje privado..." onkeydown="if(event.key==='Enter')sendPrivateMessage()">
+<button id="privateSendBtn" class="send-button" onpointerdown="event.preventDefault()" onclick="sendPrivateMessage()">➤</button></div></div>
+</div>
+<nav id="bottomNav" aria-label="Navegación principal">
+<button id="navRooms" class="nav-btn active" onclick="showMainTab('rooms')" aria-label="Salas"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5"/><rect x="3" y="12" width="18" height="8" rx="1.5"/><path d="M7 6.5h.01M7 16h.01"/></svg></span><span>Salas</span></button>
+<button id="navUsers" class="nav-btn" onclick="showMainTab('users')" aria-label="Usuarios"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Usuarios</span></button>
+<button id="navChat" class="nav-btn" onclick="showMainTab('chat')" aria-label="Chat"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></span><span>Chat</span></button>
+<button id="navProfile" class="nav-btn hidden" onclick="openMyProfile()" aria-label="Mi perfil"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span>Perfil</span></button><button id="adminOpenBtn" class="nav-btn hidden" onclick="openAdmin()" aria-label="Administración"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 3z"/><path d="M8 20h8"/></svg></span><span>ADMIN</span></button>
+<button id="navNotifications" class="nav-btn" onclick="openNotifications()" aria-label="Notificaciones"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></span><span>Avisos</span><span id="notificationBadge" class="hidden">0</span></button>
+<button id="navExit" class="nav-btn exit" onclick="exitChat()" aria-label="Salir"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></span><span>Salir</span></button>
+<a id="navLegal" class="nav-btn" href="legal.html" aria-label="Información legal"><span class="nav-icon" aria-hidden="true">ℹ️</span><span>Legal</span></a>
+</nav>
+<div id="adminPanel" class="panel admin-box hidden">
+  <div class="admin-topbar">
+    <div class="admin-brand">
+      <div class="admin-brand-icon">🇦🇷</div>
+      <div><h3>CHAT ARGENTINA</h3><p>Centro de administración <span>● EN LÍNEA</span></p></div>
+    </div>
+    <button class="admin-close" onclick="closeAdmin()" aria-label="Cerrar administración">✕</button>
+  </div>
+
+  <div class="admin-welcome">
+    <div><span class="admin-eyebrow">PANEL DE CONTROL</span><h2>¡Hola, UNIX! 👋</h2><p>Administrá tu comunidad desde un solo lugar.</p></div>
+    <div class="admin-crown">⭐</div>
+  </div>
+
+  <div class="admin-stats">
+    <div class="admin-stat"><span>💬</span><small>SALAS</small><strong id="adminStatRooms">0</strong></div>
+    <div class="admin-stat"><span>👥</span><small>EN ESTA SALA</small><strong id="adminStatUsers">0</strong></div>
+    <div class="admin-stat"><span>🤖</span><small>BOTS</small><strong id="adminStatBots">—</strong></div>
+  </div>
+
+  <nav class="admin-tabs" aria-label="Secciones de administración">
+    <button class="admin-tab active" data-owner-only data-admin-section="rooms" onclick="adminShowSection('rooms')"><span>💬</span>Salas</button>
+    <button class="admin-tab" data-admin-section="users" onclick="adminShowSection('users')"><span>👥</span>Usuarios</button>
+    <button class="admin-tab" data-owner-only data-admin-section="admins" onclick="adminShowSection('admins')"><span>🛡️</span>Administradores</button>
+    <button class="admin-tab" data-owner-only data-admin-section="bots" onclick="adminShowSection('bots')"><span>🤖</span>Bots</button>
+    <button class="admin-tab" data-admin-section="moderation" onclick="adminShowSection('moderation')"><span>🛡️</span>Moderación</button>
+    <button class="admin-tab" data-owner-only data-admin-section="stats" onclick="adminShowSection('stats')"><span>📊</span>Estadísticas</button>
+    <button class="admin-tab" data-owner-only data-admin-section="settings" onclick="adminShowSection('settings')"><span>⚙️</span>Configuración</button>
+  </nav>
+
+  <section class="admin-section active" id="adminSectionRooms" data-owner-only>
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">COMUNIDAD</span><h3>Gestión de salas</h3></div><span class="admin-heading-icon">💬</span></div>
+    <div class="admin-card">
+      <h4>📌 Tópico de la sala actual</h4><p class="muted">Definí el tema que verán los participantes de esta sala.</p>
+      <input id="roomTopicInput" maxlength="180" placeholder="Escribí el tópico de esta sala">
+      <div class="row"><button onclick="saveRoomTopic()">Guardar tópico</button><button class="secondary" onclick="deleteRoomTopic()">Borrar</button></div>
+      <p id="topicAdminStatus" class="muted"></p>
+    </div>
+    <div class="admin-card">
+      <h4>➕ Crear una sala</h4><p class="muted">Agregá un nuevo espacio de conversación.</p>
+      <div class="row"><input id="newRoomName" maxlength="30" placeholder="Nombre de la sala"><button onclick="createRoom()">Crear sala</button></div>
+      <label class="admin-setting-row" style="justify-content:flex-start;gap:10px"><input id="newRoomVip" type="checkbox" style="width:18px;height:18px"> 🔒 Crear como sala VIP (solo miembros)</label>
+    </div>
+    <div class="admin-card">
+      <h4>🔐 Configurar salas VIP</h4><p class="muted">Elegí una sala para convertirla en VIP o volverla pública.</p>
+      <select id="roomVipSelect"><option value="">Elegí una sala</option></select>
+      <div class="row"><button onclick="setSelectedRoomVip(true)">🔒 Hacer VIP</button><button class="secondary" onclick="setSelectedRoomVip(false)">Hacer pública</button></div>
+      <p id="roomVipStatus" class="muted"></p>
+    </div>
+    <div class="admin-card">
+      <h4>⭐ Membresías VIP</h4><p class="muted">Ingresá el Nick exacto de una cuenta registrada para otorgarle o quitarle la membresía VIP.</p>
+      <input id="vipMemberNickname" maxlength="24" placeholder="Nick del usuario registrado">
+      <div class="row"><button onclick="setVipMember(true)">➕ Dar membresía</button><button class="secondary" onclick="setVipMember(false)">Quitar membresía</button></div>
+      <p id="vipMemberStatus" class="muted"></p>
+    </div>
+    <div class="admin-card admin-card-danger">
+      <h4>🗑️ Eliminar una sala</h4><p class="muted">Esta acción elimina la sala seleccionada. Confirmá antes de continuar.</p>
+      <select id="roomToDelete"><option value="">Elegí una sala</option></select>
+      <button class="danger" onclick="deleteRoom()">Eliminar sala</button>
+    </div>
+    <p id="adminStatus" class="admin-feedback" aria-live="polite"></p>
+  </section>
+
+  <section class="admin-section" id="adminSectionUsers">
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">PARTICIPACIÓN</span><h3>Usuarios conectados</h3></div><span class="admin-heading-icon">👥</span></div>
+    <div class="admin-card">
+      <h4>👤 Seleccionar usuario</h4><p class="muted">Elegí un participante conectado en la sala actual.</p>
+      <select id="userToModerate"><option value="">Usuarios de esta sala</option></select>
+      <p class="muted">Para expulsar o aplicar un baneo, ingresá a la sección Moderación.</p>
+    </div>
+  </section>
+
+  <section class="admin-section" id="adminSectionAdmins" data-owner-only>
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">PERMISOS</span><h3>Administradores de WiChat</h3></div><span class="admin-heading-icon">🛡️</span></div>
+    <div class="admin-card">
+      <h4>👑 Administrador principal</h4>
+      <p class="muted">UNIX conserva el control total. Solo el propietario puede nombrar o quitar administradores.</p>
+      <div id="adminOwnersList" class="admin-list"><p class="muted">UNIX · Propietario</p></div>
+    </div>
+    <div class="admin-card">
+      <h4>➕ Asignar permisos</h4>
+      <p class="muted">Buscá una cuenta registrada y activá o quitá sus permisos de administrador.</p>
+      <input id="adminManagementSearch" type="search" placeholder="🔎 Buscar usuario registrado..." oninput="renderAdminManagement()" autocomplete="off">
+      <div id="adminManagementList" class="admin-list"><p class="muted">Cargando usuarios...</p></div>
+      <p id="adminManagementStatus" class="muted" aria-live="polite"></p>
+    </div>
+    <div class="admin-card">
+      <h4>🛡️ Administradores activos</h4>
+      <div id="activeAdminsList" class="admin-list"><p class="muted">Cargando administradores...</p></div>
+    </div>
+  </section>
+
+  <section class="admin-section" id="adminSectionBots" data-owner-only>
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">INTELIGENCIA ARTIFICIAL</span><h3>Administración de bots</h3></div><span class="admin-heading-icon">🤖</span></div>
+    <div class="admin-card">
+      <p class="muted">Los bots activos participan automáticamente en las conversaciones. Máximo 5 bots activos.</p>
+      <input id="botName" maxlength="25" placeholder="Nombre del nuevo bot">
+      <textarea id="botInstructions" maxlength="4000" rows="5" placeholder="Personalidad e instrucciones del bot"></textarea>
+      <div class="row"><button onclick="saveBot()">➕ Crear bot</button><button class="secondary" onclick="loadBots()">↻ Actualizar</button></div>
+      <p id="botAdminStatus" class="muted"></p>
+      <div id="botsList" class="admin-list"><p class="muted">Presioná actualizar para ver los bots.</p></div>
+    </div>
+  </section>
+
+  <section class="admin-section" id="adminSectionModeration">
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">SEGURIDAD</span><h3>Herramientas de moderación</h3></div><span class="admin-heading-icon">🛡️</span></div>
+    <div class="admin-card">
+      <h4>Acciones sobre usuarios</h4><p class="muted">Seleccioná primero un usuario en la sección Usuarios.</p>
+      <div class="row"><button class="secondary" onclick="moderateUser('kick')">🚪 Expulsar</button><button class="danger" onclick="moderateUser('ban')">🚫 Banear 5 minutos</button></div>
+    </div>
+    <div class="admin-card" data-owner-only>
+      <h4>🚫 Usuarios baneados</h4><p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
+      <button class="secondary" onclick="loadBannedUsers()">↻ Actualizar lista</button>
+      <div id="bannedUsersList" class="admin-list"><p class="muted">Presioná actualizar para ver los baneados.</p></div>
+    </div>
+    <p id="adminModerationStatus" class="admin-feedback" aria-live="polite"></p>
+  </section>
+
+  <section class="admin-section" id="adminSectionStats" data-owner-only>
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">RESUMEN</span><h3>Estadísticas</h3></div><span class="admin-heading-icon">📊</span></div>
+    <div class="admin-stats admin-stats-large">
+      <div class="admin-stat"><span>💬</span><small>SALAS CREADAS</small><strong id="adminStatRoomsDetail">0</strong></div>
+      <div class="admin-stat"><span>👥</span><small>USUARIOS EN SALA ACTUAL</small><strong id="adminStatUsersDetail">0</strong></div>
+      <div class="admin-stat"><span>🤖</span><small>BOTS CONFIGURADOS</small><strong id="adminStatBotsDetail">—</strong></div>
+    </div>
+    <p class="muted">Estos indicadores muestran los datos disponibles en la sesión actual. No representan estadísticas históricas.</p>
+  </section>
+
+  <section class="admin-section" id="adminSectionSettings" data-owner-only>
+    <div class="admin-section-heading"><div><span class="admin-eyebrow">PREFERENCIAS</span><h3>Configuración</h3></div><span class="admin-heading-icon">⚙️</span></div>
+    <div class="admin-card">
+      <h4>🔐 Acceso de administrador</h4><p class="muted">Las acciones administrativas están protegidas por tu sesión y el PIN de UNIX.</p>
+      <div class="admin-setting-row"><span>Estado del panel</span><strong class="admin-online">● Activo</strong></div>
+      <div class="admin-setting-row"><span>Proyecto</span><strong>CHAT ARGENTINA</strong></div>
+      <div class="admin-setting-row"><span>Estilo visual</span><strong>Azul oscuro + dorado</strong></div>
+    </div>
+    <div class="admin-card">
+      <h4>ℹ️ Información</h4><p class="muted">Los cambios de salas, usuarios y bots se guardan mediante los servicios administrativos existentes. Este rediseño no cambia tus datos ni permisos.</p>
+      <button class="secondary" onclick="closeAdmin()">Cerrar panel</button>
+    </div>
+  </section>
+
+  <div class="admin-footer">CHAT ARGENTINA 🇦🇷 <span>Panel de administración</span></div>
+</div></section></div>
+
+<script>
+const SUPABASE_URL="https://pqnnzkqxkndzelsbtxvv.supabase.co";
+const SUPABASE_KEY="sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{flowType:"pkce"}});
+const $=id=>document.getElementById(id);
+let nickname="",senderId="",currentRoom=null,rooms=[];
+
+// Registra el token FCM mediante la función segura del servidor.
+// El servidor valida la sesión y mantiene una sola asociación por dispositivo.
+window.onNativeFcmToken=async function(token){
+  if(!token)return;
+  try{
+    const {data,error}=await db.functions.invoke("send-chat-push",{
+      body:{action:"register",fcm_token:token}
+    });
+    if(error)throw error;
+    if(data?.success!==true)throw new Error(data?.error||"El servidor no confirmó el registro.");
+    console.log("Dispositivo registrado para recibir notificaciones.");
+  }catch(error){
+    console.warn("No se pudo registrar el dispositivo para notificaciones:",error?.message||error);
+  }
+};
+let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;let accountSessionHeartbeatTimer=null,accountSessionLeaseActive=false,accountDeviceId=null;
+let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
+let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
+let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",adminRole="",selectedMenuUser=null;
+const BLOCKED_USERS_KEY_PREFIX="chatargentina_blocked_users_";
+function getBlockedUsers(){
+  try{
+    const value=JSON.parse(localStorage.getItem(BLOCKED_USERS_KEY_PREFIX+String(senderId||"guest"))||"[]");
+    return Array.isArray(value)?value.filter(item=>item&&item.id).map(item=>({id:String(item.id),nick:String(item.nick||"Usuario")})):[];
+  }catch(_){return [];}
+}
+function isUserBlocked(id){return getBlockedUsers().some(item=>item.id===String(id));}
+function saveBlockedUsers(users){localStorage.setItem(BLOCKED_USERS_KEY_PREFIX+String(senderId||"guest"),JSON.stringify(users));}
+function renderBlockedUsers(){
+  const list=$("blockedUsersList");if(!list)return;list.innerHTML="";
+  const users=getBlockedUsers();
+  if(!users.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="No bloqueaste a nadie.";list.appendChild(empty);return;}
+  users.forEach(user=>{
+    const row=document.createElement("div");row.className="blocked-user-row";
+    const name=document.createElement("strong");name.textContent=user.nick;
+    const button=document.createElement("button");button.textContent="Desbloquear";button.onclick=()=>unblockUser(user.id);
+    row.append(name,button);list.appendChild(row);
+  });
+}
+function openBlockedUsers(){renderBlockedUsers();$("blockedUsersModal").classList.add("show");}
+function closeBlockedUsers(){$("blockedUsersModal").classList.remove("show");}
+async function loadBlockedUsersFromServer(){
+  if(!senderId)return;
+  const {data,error}=await db.from("chat_user_blocks").select("blocked_id").eq("blocker_id",senderId);
+  if(error){console.warn("No se pudo sincronizar la lista de bloqueos:",error.message);return;}
+  const previous=new Map(getBlockedUsers().map(user=>[user.id,user.nick]));
+  const next=(data||[]).map(row=>({
+    id:String(row.blocked_id),
+    nick:previous.get(String(row.blocked_id))||roomUsers.get(String(row.blocked_id))?.nick||"Usuario"
+  }));
+  saveBlockedUsers(next);renderUsers();renderMentionUsers();
+}
+async function unblockUser(id){
+  const {error}=await db.from("chat_user_blocks").delete().eq("blocker_id",senderId).eq("blocked_id",String(id));
+  if(error){alert("No se pudo desbloquear al usuario: "+error.message);return;}
+  saveBlockedUsers(getBlockedUsers().filter(user=>user.id!==String(id)));
+  renderBlockedUsers();renderUsers();renderMentionUsers();
+}
+const adminUsers=new Set();
+let adminManagementUsers=[];
+let mentionNotifications=[];
+function notificationStorageKey(){return "wichat-mentions-"+String(senderId||"");}
+function loadMentionNotifications(){try{mentionNotifications=JSON.parse(localStorage.getItem(notificationStorageKey())||"[]");if(!Array.isArray(mentionNotifications))mentionNotifications=[];}catch(_){mentionNotifications=[];}}
+function saveMentionNotifications(){try{localStorage.setItem(notificationStorageKey(),JSON.stringify(mentionNotifications.slice(-100)));}catch(_){}}
+function notificationCount(){return mentionNotifications.length+privateUnread.size;}
+function updateNotificationBadge(){const badge=$("notificationBadge");if(!badge)return;const count=notificationCount();badge.textContent=count>99?"99+":String(count);badge.classList.toggle("hidden",count===0);}
+function addMentionNotification(m){const body=String(m?.message||m?.content||"").toLowerCase();if(!body||String(m.sender_id)===String(senderId)||isUserBlocked(m.sender_id)||!nickname||!body.includes("#"+nickname.toLowerCase()))return;const key=String(m.id||"");if(mentionNotifications.some(n=>n.id===key))return;const room=rooms.find(r=>String(r.id)===String(m.room_id));mentionNotifications.push({id:key,room_id:m.room_id,room_name:room?.name||"Sala",nick:m.nickname||"Usuario",message:String(m.message||m.content||"").slice(0,180),created_at:m.created_at||new Date().toISOString()});saveMentionNotifications();updateNotificationBadge();}
+function openNotifications(){renderNotifications();$("notificationModal").classList.add("show");}
+function closeNotifications(){$("notificationModal").classList.remove("show");}
+function renderNotifications(){const list=$("notificationList");if(!list)return;list.innerHTML="";let count=0;mentionNotifications.slice().reverse().forEach(n=>{count++;const b=document.createElement("button");b.className="notification-item";const icon=document.createElement("span");icon.textContent="💬";const content=document.createElement("span");const strong=document.createElement("strong");strong.textContent=n.nick+" te mencionó en #"+n.room_name;const small=document.createElement("small");small.textContent=n.message;content.append(strong,small);b.append(icon,content);b.onclick=async()=>{mentionNotifications=mentionNotifications.filter(x=>x.id!==n.id);saveMentionNotifications();closeNotifications();await switchRoom(n.room_id);updateNotificationBadge();};list.appendChild(b);});privateUnread.forEach(id=>{count++;const user=privateChats.find(u=>String(u.id)===String(id));const b=document.createElement("button");b.className="notification-item";const icon=document.createElement("span");icon.textContent="✉️";const content=document.createElement("span");const strong=document.createElement("strong");strong.textContent="Mensaje privado sin leer";const small=document.createElement("small");small.textContent="De "+(user?.nick||"Usuario");content.append(strong,small);b.append(icon,content);b.onclick=()=>{closeNotifications();if(user)switchPrivateTab(user.id);};list.appendChild(b);});if(!count)list.innerHTML='<div class="notification-empty">No tenés notificaciones pendientes.</div>';updateNotificationBadge();}
+let authMode="home";
+let isRegisteredAccount=false;
+const registeredUsers=new Set();
+const checkedProfiles=new Set();
+
+function showLoginMode(mode){
+authMode=mode;
+$("loginChoices").classList.toggle("hidden",mode!=="home");
+$("registerForm").classList.toggle("hidden",mode!=="register");
+$("emailLoginForm").classList.toggle("hidden",mode!=="login");
+$("googleForm").classList.toggle("hidden",mode!=="google");
+showError("");
+}
+
+
+function isGoogleUser(user){
+  return Boolean(user && !user.is_anonymous &&
+    (user.app_metadata?.provider==="google" ||
+     (Array.isArray(user.identities)&&user.identities.some(identity=>identity.provider==="google"))));
+}
+async function populateGoogleRoomOptions(){
+  const select=$("googleInitialRoom");
+  if(!select)return;
+  const previous=select.value;
+  select.innerHTML="";
+  rooms.forEach(room=>{
+    const option=document.createElement("option");
+    option.value=room.id;
+    option.textContent=room.name+(room.is_vip?" 🔒":"");
+    select.appendChild(option);
+  });
+  if(rooms.some(room=>String(room.id)===String(previous)))select.value=previous;
+  else if(rooms.length)select.value=String(rooms.find(room=>String(room.name).trim().toLowerCase()==="general")?.id||rooms[0].id);
+}
+async function showGoogleSetup(user){
+  authMode="google";
+  $("loginChoices").classList.add("hidden");
+  $("registerForm").classList.add("hidden");
+  $("emailLoginForm").classList.add("hidden");
+  $("googleForm").classList.remove("hidden");
+  const metadata=user?.user_metadata||{};
+  let suggested=String(metadata.full_name||metadata.name||metadata.given_name||"").trim().replace(/\s+/g," ").slice(0,25);
+  try{
+    const {data,error}=await db.from("chat_profiles").select("nickname").eq("user_id",user.id).maybeSingle();
+    if(error)console.warn("No se pudo recuperar el Nick de Google:",error.message);
+    if(data?.nickname)suggested=data.nickname;
+  }catch(error){console.warn("No se pudo recuperar el Nick:",error);}
+  $("googleNickname").value=suggested;
+  await populateGoogleRoomOptions();
+  showError("");
+}
+async function signInWithGoogle(){
+if(!requireAdultAccess())return;
+
+  const button=document.querySelector("#loginChoices .google-choice");
+  showError("");
+  if(button)button.disabled=true;
+  try{
+    const {data:{session},error:sessionError}=await db.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(session&&!isGoogleUser(session.user)){
+      const {error}=await db.auth.signOut();
+      if(error)throw error;
+    }
+    const isAndroidApp=window.location.hostname==="appassets.androidplatform.net";
+    const redirectTo=isAndroidApp
+      ?"com.wichat.app://auth/callback"
+      :"https://jonitalp2023-collab.github.io/Wichat/";
+    const {error}=await db.auth.signInWithOAuth({
+      provider:"google",
+      options:{redirectTo,queryParams:{prompt:"select_account"}}
+    });
+    if(error)throw error;
+  }catch(error){
+    showError("No se pudo iniciar con Google: "+(error.message||String(error)));
+    if(button)button.disabled=false;
+  }
+}
+async function enterGoogleChat(){
+if(!requireAdultAccess())return;
+
+  const name=$("googleNickname").value.trim();
+  if(!name){showError("Elegí un Nick para ingresar.");return;}
+  if(name.toUpperCase()==="UNIX"){showError("El Nick UNIX está reservado para el administrador.");return;}
+  try{
+    const {data:{session},error:sessionError}=await db.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(!session?.user?.id||!isGoogleUser(session.user))throw new Error("La sesión de Google venció. Volvé a ingresar.");
+    const {data:existing,error}=await db.from("chat_profiles").select("user_id").ilike("nickname",name).eq("is_registered",true).neq("user_id",session.user.id).limit(1);
+    if(error)throw error;
+    if(existing?.length)throw new Error("Ese Nick ya pertenece a otra cuenta registrada. Elegí otro.");
+  }catch(error){showError(error.message||String(error));return;}
+  $("nickname").value=name;
+  $("initialRoom").value=$("googleInitialRoom").value;
+  authMode="google";
+  await enterChat();
+}
+async function handleGoogleAuthCallback(callbackUrl){
+if(!hasAdultAccess()){try{sessionStorage.setItem("chatargentina_pending_oauth_callback",String(callbackUrl));}catch(_){}return;}
+
+  try{
+    const parsed=new URL(callbackUrl);
+    const code=parsed.searchParams.get("code");
+    if(!code)throw new Error("Google no devolvió el código de acceso.");
+    const {data,error}=await db.auth.exchangeCodeForSession(code);
+    if(error)throw error;
+    if(!data?.user||!isGoogleUser(data.user))throw new Error("No se pudo validar la cuenta de Google.");
+    await showGoogleSetup(data.user);
+  }catch(error){
+    console.error("Error al completar el acceso con Google:",error);
+    showError("No se pudo completar el ingreso con Google: "+(error.message||String(error)));
+    showLoginMode("home");
+  }
+}
+async function restoreGoogleLogin(){
+if(!hasAdultAccess())return;
+
+  try{
+    const {data:{session},error}=await db.auth.getSession();
+    if(error)throw error;
+    if(session&&isGoogleUser(session.user))await showGoogleSetup(session.user);
+  }catch(error){console.warn("No se pudo restaurar la sesión de Google:",error);}
+}
+
+async function ensureAuthUser(){
+let {data:{session},error}=await db.auth.getSession();
+if(error)throw error;
+if(authMode==="guest"&&session&&!session.user.is_anonymous){const {error:signOutError}=await db.auth.signOut();if(signOutError)throw signOutError;session=null;}
+if((authMode==="account"||authMode==="google")&&(!session||session.user.is_anonymous))throw new Error("No hay una sesión de cuenta activa. Iniciá sesión nuevamente.");
+if(!session){if(authMode!=="guest")throw new Error("No hay una sesión activa. Iniciá sesión nuevamente.");const result=await db.auth.signInAnonymously();if(result.error)throw result.error;session=result.data.session;}
+if(!session?.user?.id)throw new Error("No se pudo identificar al usuario.");
+return session.user.id;
+}
+
+// Supabase Auth requiere un email internamente. Se genera uno ficticio y estable
+// a partir del Nick: el usuario nunca tiene que escribir ni recibir un correo.
+function nicknameAuthEmail(name){
+  const normalized=normalizeNickname(name).normalize("NFKC");
+  const bytes=new TextEncoder().encode(normalized);
+  const encoded=Array.from(bytes).map(b=>b.toString(16).padStart(2,"0")).join("");
+  return "nick-"+encoded+"@chatargentina.invalid";
+}
+
+async function registerAccount(){
+if(!requireAdultAccess())return;
+
+showError("");
+const name=$("registerNickname").value.trim(),password=$("registerPassword").value,confirmation=$("registerPasswordConfirm").value,btn=$("registerBtn");
+if(!name||!password||!confirmation){showError("Completá todos los campos.");return;}
+if(name.toUpperCase()==="UNIX"){showError("El Nick UNIX está reservado para el administrador.");return;}
+if(password.length<6){showError("La contraseña debe tener al menos 6 caracteres.");return;}
+if(password!==confirmation){showError("Las contraseñas no coinciden.");return;}
+btn.disabled=true;
+try{
+const internalEmail=nicknameAuthEmail(name);
+const {data:existing,error:profileError}=await db.from("chat_profiles").select("user_id").ilike("nickname",name).eq("is_registered",true).limit(1);
+if(profileError)throw profileError;
+if(existing&&existing.length)throw new Error("Ese Nick ya tiene una cuenta registrada.");
+const {data,error}=await db.auth.signUp({email:internalEmail,password});
+if(error)throw error;
+if(!data?.session)throw new Error("Supabase requiere confirmar el email. Desactivá Confirm email en Authentication > Sign In / Providers > Email.");
+$("nickname").value=name;authMode="account";await enterChat();
+}catch(e){showError("No se pudo crear la cuenta: "+(e.message||String(e)));}
+finally{btn.disabled=false;}
+}
+
+async function loginAccount(){
+if(!requireAdultAccess())return;
+
+showError("");
+const name=$("accountNickname").value.trim(),password=$("loginPassword").value,btn=$("accountLoginBtn");
+if(!name||!password){showError("Ingresá tu Nick y contraseña.");return;}
+if(name.toUpperCase()==="UNIX"){showError("El Nick UNIX está reservado para el administrador.");return;}
+btn.disabled=true;
+try{
+const internalEmail=nicknameAuthEmail(name);
+const {data,error}=await db.auth.signInWithPassword({email:internalEmail,password});
+if(error)throw error;
+if(!data?.session?.user?.id)throw new Error("No se pudo iniciar la sesión.");
+$("nickname").value=name;authMode="account";await enterChat();
+}catch(e){showError("No se pudo iniciar sesión: "+(e.message||String(e)));}
+finally{btn.disabled=false;}
+}
+
+/* TODAS LAS ACCIONES ADMINISTRATIVAS PASAN POR LA EDGE FUNCTION admin-api */
+async function callAdminApi(action,extra={}){
+if(!isAdmin)throw new Error("No tenés permisos de administrador.");
+if(adminRole==="owner"&&!adminPin)throw new Error("Ingresá el PIN del propietario.");
+const {data,error}=await db.functions.invoke("admin-api",{body:{action,pin_input:adminPin||"",...extra}});
+if(error){
+let message=error.message||"Error al comunicarse con Admin API.";
+try{if(error.context&&typeof error.context.json==="function"){const response=await error.context.json();if(response?.message)message=response.message;}}catch(_){}
+throw new Error(message);
+}
+if(!data||data.success!==true)throw new Error(data?.message||"La Admin API no respondió correctamente.");
+return data.data;
+}
+
+/* BLOQUEO DE UNA CUENTA POR DISPOSITIVO */
+function getAccountDeviceId(){
+if(accountDeviceId)return accountDeviceId;
+const key="chatargentina_device_id_v1";
+try{
+let id=localStorage.getItem(key);
+if(!id){
+id=(crypto&&crypto.randomUUID)?crypto.randomUUID():("dev-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2));
+localStorage.setItem(key,id);
+}
+accountDeviceId=id;
+return id;
+}catch(error){
+throw new Error("No se pudo identificar este dispositivo para proteger tu cuenta. Revisá el almacenamiento de la aplicación.");
+}
+}
+async function claimAccountDeviceSession(){
+if(!isRegisteredAccount)return true;
+const deviceId=getAccountDeviceId();
+const {data,error}=await db.rpc("wichat_claim_account_session",{p_device_id:deviceId});
+if(error)throw error;
+if(data!==true)throw new Error("Esta cuenta ya está abierta en otro dispositivo. Cerrá la sesión allí para poder ingresar acá.");
+accountSessionLeaseActive=true;
+if(accountSessionHeartbeatTimer)clearInterval(accountSessionHeartbeatTimer);
+accountSessionHeartbeatTimer=setInterval(async()=>{
+try{
+const {data:ok,error:refreshError}=await db.rpc("wichat_refresh_account_session",{p_device_id:deviceId});
+if(refreshError)throw refreshError;
+if(ok!==true)console.warn("No se pudo renovar la sesión exclusiva de esta cuenta.");
+}catch(error){console.error("Error renovando la sesión exclusiva:",error);}
+},45000);
+return true;
+}
+async function releaseAccountDeviceSession(){
+if(accountSessionHeartbeatTimer){clearInterval(accountSessionHeartbeatTimer);accountSessionHeartbeatTimer=null;}
+if(accountSessionLeaseActive){
+try{await db.rpc("wichat_release_account_session",{p_device_id:getAccountDeviceId()});}
+catch(error){console.warn("No se pudo liberar la sesión del dispositivo:",error);}
+}
+accountSessionLeaseActive=false;
+}
+
+// Android: no liberar la sesión exclusiva al pasar a segundo plano.
+// La actividad puede quedar suspendida por el sistema; las notificaciones push
+// se entregan mediante FCM y no dependen de mantener el WebView ejecutándose.
+let appSessionSuspended=false;
+window.chatAppOnBackground=async function(){
+if(!document.body.classList.contains("chat-active")||appSessionSuspended)return;
+appSessionSuspended=true;
+};
+window.chatAppOnForeground=async function(){
+if(!appSessionSuspended)return;
+appSessionSuspended=false;
+if(!document.body.classList.contains("chat-active")||!isRegisteredAccount)return;
+try{
+await claimAccountDeviceSession();
+}catch(error){
+console.warn("No se pudo recuperar la sesión exclusiva al volver:",error);
+alert("Tu cuenta se abrió en otro dispositivo mientras esta aplicación estaba cerrada. Ingresá nuevamente para continuar.");
+await exitChat();
+}
+};
+
+
+/* SISTEMA DE NICKS ÚNICOS EN LÍNEA */
+function normalizeNickname(name){return String(name||"").trim().toLowerCase();}
+async function claimNickname(name){
+const nicknameKey=normalizeNickname(name);
+if(!nicknameKey)return false;
+if(nicknameLeaseActive)await releaseNickname();
+const {data,error}=await db.rpc("wichat_acquire_nickname",{
+p_nickname:name,
+p_sender_id:senderId,
+p_admin_pin:adminPin||null
+});
+if(error)throw error;
+if(data!==true)return false;
+nicknameLeaseActive=true;
+if(nicknameHeartbeatTimer)clearInterval(nicknameHeartbeatTimer);
+nicknameHeartbeatTimer=setInterval(async()=>{
+try{
+const {data:renewed,error:renewError}=await db.rpc("wichat_refresh_nickname",{p_sender_id:senderId});
+if(renewError)throw renewError;
+if(renewed!==true)console.warn("No se pudo renovar la reserva del Nick.");
+}catch(error){console.error("Error renovando la reserva del Nick:",error);}
+},45000);
+return true;
+}
+async function releaseNickname(){
+if(nicknameHeartbeatTimer){clearInterval(nicknameHeartbeatTimer);nicknameHeartbeatTimer=null;}
+if(nicknameLeaseActive&&senderId){
+try{await db.rpc("wichat_release_nickname",{p_sender_id:senderId});}
+catch(error){console.warn("Error liberando la reserva del Nick:",error);}
+}
+nicknameLeaseActive=false;
+if(nicknameChannel){const channel=nicknameChannel;nicknameChannel=null;try{await db.removeChannel(channel);}catch(e){console.log("Error liberando Nick:",e);}}
+}
+function showError(s){$("error").textContent=s;}
+
+/* TÓPICOS POR SALA */
+async function loadRoomTopic(roomId){
+const bar=$("roomTopic");if(!bar)return;
+const {data,error}=await db.from("chat_room_topics").select("topic").eq("room_id",roomId).maybeSingle();
+if(error){console.error("Error cargando tópico:",error);$("roomTopicText").textContent="No se pudo cargar el tópico";bar.classList.add("empty");return;}
+if(String(currentRoom)!==String(roomId))return;
+currentRoomTopic=data?.topic||"";$("roomTopicText").textContent=currentRoomTopic||"Sin tópico";bar.classList.toggle("empty",!currentRoomTopic);
+if(isAdmin&&$("roomTopicInput"))$("roomTopicInput").value=currentRoomTopic;
+}
+async function saveRoomTopic(){
+if(!isAdmin||!currentRoom)return;
+const input=$("roomTopicInput"),status=$("topicAdminStatus"),topic=input.value.trim();
+const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:currentRoom,topic_input:topic||null});
+status.textContent=error?"Error: "+error.message:"Tópico guardado correctamente.";
+if(!error)await loadRoomTopic(currentRoom);
+}
+async function deleteRoomTopic(){
+if(!isAdmin||!currentRoom)return;
+const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:currentRoom,topic_input:null});
+$("topicAdminStatus").textContent=error?"Error: "+error.message:"Tópico borrado.";
+if(!error){$("roomTopicInput").value="";await loadRoomTopic(currentRoom);}
+}
+
+/* MODERACIÓN */
+function showModerationModal(action,roomName,blocked=false,reason=""){
+const title=$("moderationTitle"),message=$("moderationMessage"),button=$("moderationModal").querySelector("button");
+if(blocked){
+  const blockedRoom=rooms.find(r=>String(r.name)===String(roomName));
+  title.textContent=blockedRoom?.is_vip?"🔒 Sala exclusiva para miembros VIP":"⛔ Acceso restringido";
+  message.textContent=blockedRoom?.is_vip
+    ?"La sala "+roomName+" es exclusiva para miembros VIP. Para entrar necesitás tener una cuenta registrada y que el administrador te otorgue la membresía VIP."
+    :"No podés entrar a la sala "+roomName+". Tu expulsión o baneo sigue vigente. Podrás volver cuando termine el plazo.";
+}
+else if(action==="warning_1"){title.textContent="⚠️ Primera advertencia";message.textContent="El bot de CHAT ARGENTINA te avisa que está prohibido escribir insultos. Por favor, respetá a los demás usuarios. A la tercera infracción serás expulsado durante cinco minutos.";}
+else if(action==="warning_2"){title.textContent="🚨 Segunda advertencia";message.textContent="Esta es tu segunda advertencia por utilizar insultos. Si volvés a hacerlo, serás expulsado automáticamente durante cinco minutos.";}
+else if(action==="ban"){title.textContent="🚫 Fuiste baneado";message.textContent="UNIX te baneó de CHAT ARGENTINA en la sala "+roomName+" durante cinco minutos.";}
+else if(action==="kick"){title.textContent="🚪 Fuiste expulsado";message.textContent="UNIX te expulsó de la sala "+roomName+" durante cinco minutos.";}
+else{title.textContent="🚫 Acceso restringido";message.textContent="Tu acceso a la sala "+roomName+" fue restringido durante cinco minutos.";}
+if(reason){message.textContent+="\n\nMotivo indicado por el administrador: "+reason;}
+button.textContent=(action==="warning_1"||action==="warning_2")?"ENTENDIDO":"CERRAR";$("moderationModal").classList.add("show");
+}
+function closeModerationModal(){$("moderationModal").classList.remove("show");}
+function subscribeModerationEvents(){
+if(moderationChannel){db.removeChannel(moderationChannel);moderationChannel=null;}
+if(!senderId)return;
+moderationChannel=db.channel("wichat-moderation-"+senderId).on("postgres_changes",{event:"INSERT",schema:"public",table:"wichat_moderation_events",filter:"sender_id=eq."+senderId},async payload=>{
+const event=payload.new;if(!event||String(event.sender_id)!==String(senderId))return;if(String(event.room_id)!==String(currentRoom))return;
+const room=rooms.find(r=>String(r.id)===String(event.room_id)),roomName=room?.name||"esta sala",action=String(event.action||"");
+if(action==="warning_1"||action==="warning_2"){showModerationModal(action,roomName);return;}
+if(action==="ban"||action==="kick"){const reason=String(event.reason||"");await exitChat();showModerationModal(action,roomName,false,reason);}
+}).subscribe();
+}
+$("nickname").addEventListener("input",()=>{const admin=$("nickname").value.trim().toUpperCase()==="UNIX";$("adminPinWrap").classList.toggle("hidden",!admin);});
+
+async function fetchRooms(){
+const {data,error}=await db.from("rooms").select("id,name,is_vip");if(error)throw error;
+rooms=(data||[]).slice().sort((a,b)=>{
+const ag=String(a.name).trim().toLowerCase()==="general",bg=String(b.name).trim().toLowerCase()==="general";
+if(ag&&!bg)return -1;if(bg&&!ag)return 1;return String(a.name).localeCompare(String(b.name),"es");
+});
+const select=$("initialRoom"),previous=select.value;select.innerHTML="";
+rooms.forEach(r=>{const o=document.createElement("option");o.value=r.id;o.textContent=(r.is_vip?"🔒 ":"")+r.name+(r.is_vip?" · VIP":"");select.appendChild(o);});
+const general=rooms.find(r=>String(r.name).trim().toLowerCase()==="general");
+if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;else if(general)select.value=general.id;else if(rooms.length)select.value=rooms[0].id;
+if(isAdmin)renderRoomDelete();if(!rooms.length)throw new Error("No hay salas. Creá una desde Administración.");
+}
+async function saveChatProfile(){
+  if(!senderId)return;
+  const {error}=await db.from("chat_profiles").upsert({
+    user_id:senderId,
+    nickname:nickname,
+    is_registered:isRegisteredAccount,
+    updated_at:new Date().toISOString()
+  },{onConflict:"user_id"});
+  if(error)throw new Error("No se pudo guardar el perfil del chat: "+error.message);
+  checkedProfiles.add(String(senderId));
+  if(isRegisteredAccount)registeredUsers.add(String(senderId));
+  else registeredUsers.delete(String(senderId));
+}
+async function loadRegisteredProfiles(){
+  const {data,error}=await db.from("chat_profiles").select("user_id,is_registered").eq("is_registered",true);
+  if(error){console.warn("No se pudieron cargar los perfiles registrados:",error.message);return;}
+  (data||[]).forEach(p=>{if(p.user_id){registeredUsers.add(String(p.user_id));checkedProfiles.add(String(p.user_id));}});
+}
+function addRegisteredPlus(element){
+  if(!element||element.querySelector(".registered-check"))return;
+  const mark=document.createElement("span");mark.className="registered-check";mark.textContent="✓";mark.setAttribute("aria-label","Usuario registrado");mark.title="Usuario registrado";
+  element.insertBefore(mark,element.firstChild);
+}
+function addAdminBadge(element,isOwner=false){
+  if(!element||element.querySelector(".admin-role-badge"))return;
+  const badge=document.createElement("span");badge.className="admin-role-badge";
+  badge.textContent=isOwner?"♛":"🛡️";badge.title=isOwner?"Propietario de WiChat":"Administrador de WiChat";
+  badge.setAttribute("aria-label",badge.title);element.insertBefore(badge,element.firstChild);
+}
+async function ensureRegisteredStatus(userId,element){
+  const id=String(userId||"");if(!id)return false;
+  if(registeredUsers.has(id)){addRegisteredPlus(element);return true;}
+  if(checkedProfiles.has(id))return false;
+  checkedProfiles.add(id);
+  const {data,error}=await db.from("chat_profiles").select("is_registered").eq("user_id",id).maybeSingle();
+  if(error){checkedProfiles.delete(id);console.warn("No se pudo consultar el perfil:",error.message);return false;}
+  if(data&&data.is_registered===true){registeredUsers.add(id);addRegisteredPlus(element);return true;}
+  return false;
+}
+
+async function enterChat(){
+if(!requireAdultAccess())return;
+
+if(authMode==="home")authMode="guest";
+showError("");const name=$("nickname").value.trim(),btn=$(authMode==="google"?"googleEnterBtn":"enterBtn");
+if(!name){showError("Escribí tu Nick.");return;}
+nickname=name;isAdmin=false;adminPin="";adminRole="";adminUsers.clear();btn.disabled=true;
+try{
+senderId=await ensureAuthUser();
+isRegisteredAccount=authMode==="account"||authMode==="google";
+await loadBlockedUsersFromServer();
+await claimAccountDeviceSession();
+if(name.trim().toUpperCase()==="UNIX"){
+const pin=$("adminPin").value.trim();if(!pin)throw new Error("Ingresá el PIN de administrador UNIX.");
+const {data,error}=await db.rpc("verify_admin_pin",{pin_input:pin});
+console.log("Resultado de verificación UNIX:",data);console.log("Error de verificación UNIX:",error);
+if(error)throw new Error("Supabase no pudo verificar el PIN: "+error.message);
+const pinValido=data===true||data==="true";if(!pinValido)throw new Error("El servidor respondió que el PIN es incorrecto.");
+isAdmin=true;adminRole="owner";adminPin=pin;
+}else if(isRegisteredAccount){
+const {data:adminData,error:adminError}=await db.functions.invoke("admin-api",{body:{action:"check_admin_role"}});
+if(!adminError&&adminData?.success===true&&adminData?.data?.role==="admin"){
+isAdmin=true;adminRole="admin";
+}
+}
+await fetchRooms();currentRoom=$("initialRoom").value||rooms[0]?.id;if(!currentRoom)throw new Error("No hay salas disponibles.");
+const selectedRoom=rooms.find(r=>String(r.id)===String(currentRoom));
+const {data:allowed,error}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:currentRoom});
+if(error)throw error;
+if(!allowed){currentRoom=null;showModerationModal("blocked",selectedRoom?.name||"esta sala",true);btn.disabled=false;return;}
+const available=await claimNickname(nickname);if(!available){currentRoom=null;throw new Error("Este Nick ya está en uso. Elegí otro.");}
+await saveChatProfile();
+loadMentionNotifications();updateNotificationBadge();
+await loadRegisteredProfiles();
+$("navProfile").classList.toggle("hidden",!isRegisteredAccount);
+$("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
+$("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom);
+subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
+if(window.ChatArgentinaNative&&typeof window.ChatArgentinaNative.requestFcmToken==="function")window.ChatArgentinaNative.requestFcmToken();
+}catch(e){await releaseNickname();await releaseAccountDeviceSession();currentRoom=null;console.error("Error al ingresar al chat:",e);showError("No se pudo ingresar: "+(e.message||String(e)));btn.disabled=false;}
+}
+function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");$("mentionPicker").classList.remove("open");}
+
+function toggleMentionPicker(){
+ const picker=$("mentionPicker");const opening=!picker.classList.contains("open");closeEmojiPickers();
+ if(opening){renderMentionUsers();picker.classList.add("open");}
+}
+function renderMentionUsers(){
+ const picker=$("mentionPicker");if(!picker)return;
+ let search=picker.querySelector(".mention-search");
+ if(!search){
+  picker.innerHTML="";
+  const title=document.createElement("div");title.className="mention-picker-title";title.textContent="Elegí a quién mencionar";picker.appendChild(title);
+  search=document.createElement("input");search.type="search";search.className="mention-search";search.placeholder="Buscar usuario...";search.autocomplete="off";search.setAttribute("aria-label","Buscar usuario para mencionar");
+  const results=document.createElement("div");results.className="mention-results";results.id="mentionResults";
+  picker.append(search,results);
+  search.addEventListener("input",()=>renderMentionUserResults(search.value));
+ }
+ renderMentionUserResults(search.value);
+}
+function renderMentionUserResults(query=""){
+ const results=$("mentionResults");if(!results)return;results.innerHTML="";
+ const term=String(query||"").trim().replace(/^#/,"").toLocaleLowerCase("es");
+ const users=Array.from(roomUsers.values()).filter(user=>!isUserBlocked(user.id)&&String(user.nick||"").toLocaleLowerCase("es").includes(term)).sort((a,b)=>a.nick.localeCompare(b.nick,"es",{sensitivity:"base"}));
+ if(!users.length){const empty=document.createElement("div");empty.className="mention-empty";empty.textContent=term?"No se encontraron usuarios con ese Nick.":"No hay usuarios conectados en esta sala.";results.appendChild(empty);return;}
+ users.forEach(user=>{const option=document.createElement("button");option.type="button";option.className="mention-user";const dot=document.createElement("span");dot.className="online-dot";const nick=document.createElement("span");nick.textContent=user.nick;option.append(dot,nick);option.onclick=()=>insertMention(user.nick);results.appendChild(option);});
+}
+function insertMention(nick){
+ const input=$("messageInput"),token="#"+String(nick||"").replace(/^#/,"");
+ const start=Number.isInteger(input.selectionStart)?input.selectionStart:input.value.length;
+ const end=Number.isInteger(input.selectionEnd)?input.selectionEnd:start;
+ const before=input.value.slice(0,start),after=input.value.slice(end);
+ const needsSpace=before.length>0&&!/\s$/.test(before);
+ const insertion=(needsSpace?" ":"")+token+" ";
+ input.value=before+insertion+after;
+ const cursor=(before+insertion).length;input.focus();input.setSelectionRange(cursor,cursor);
+ $("mentionPicker").classList.remove("open");
+}
+
+/* NAVEGACIÓN */
+function showMainTab(which){$("navProfile").classList.remove("active");
+$("chatView").classList.toggle("hidden",which!=="chat");$("usersView").classList.toggle("hidden",which!=="users");$("roomsView").classList.toggle("hidden",which!=="rooms");$("privateView").classList.add("hidden");
+$("navUsers").classList.toggle("active",which==="users");$("navRooms").classList.toggle("active",which==="rooms");$("navChat").classList.toggle("active",which==="chat");
+$("roomTopic").style.display=(which==="chat"&&document.body.classList.contains("chat-active"))?"flex":"none";activePrivateUser=null;
+if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}closeEmojiPickers();
+}
+
+/* PESTAÑAS DE SALAS Y PRIVADOS */
+function renderTabs(){
+const list=$("roomTabs"),pills=$("roomPills");list.innerHTML="";pills.innerHTML="";
+rooms.forEach(r=>{
+const active=String(r.id)===String(currentRoom),baseRoomName="#"+String(r.name).replace(/^#/,""),roomName=(r.is_vip?"🔒 ":"")+baseRoomName;
+const pill=document.createElement("button");pill.className="room-pill"+(active?" active":"");pill.textContent=roomName;pill.onclick=()=>switchRoom(r.id);pills.appendChild(pill);
+const b=document.createElement("button");b.className="room-tab"+(active?" active":"");b.textContent=roomName;b.onclick=()=>switchRoom(r.id);list.appendChild(b);
+});
+renderPrivateTabs();
+}
+async function switchRoom(id){
+const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:id});
+if(accessError){$("status").textContent="Error de acceso: "+accessError.message;return;}
+if(!allowed){const room=rooms.find(r=>String(r.id)===String(id));if(room?.is_vip){showModerationModal("blocked",room.name,true);}else{$("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";}return;}
+if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
+if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null;}
+if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
+currentRoom=id;
+db.from("chat_push_room_subscriptions").upsert({user_id:senderId,room_id:id,updated_at:new Date().toISOString()},{onConflict:"user_id"}).then(({error})=>{if(error)console.warn("No se pudo actualizar la sala para notificaciones:",error.message);}).catch(error=>console.warn("No se pudo actualizar la sala para notificaciones:",error));
+showMainTab("chat");$("roomTopic").style.display="flex";$("roomTopicText").textContent="Cargando tópico...";$("roomTopic").classList.add("empty");await loadRoomTopic(id);
+topicChannel=db.channel("wichat-room-topic-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id)).subscribe();
+receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();renderUsers();renderMentionUsers();
+const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";
+messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new,true)).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
+presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
+presenceChannel.on("presence",{event:"sync"},updatePresenceList).on("presence",{event:"join"},updatePresenceList).on("presence",{event:"leave"},updatePresenceList).subscribe(async state=>{
+if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,is_registered:isRegisteredAccount,online_at:new Date().toISOString()});updatePresenceList();}
+});
+}
+function updatePresenceList(){
+if(!presenceChannel)return;const state=presenceChannel.presenceState(),next=new Map();
+adminUsers.clear();
+Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length){const p=entries[entries.length-1],id=p.sender_id||key,admin=p.is_admin===true;if(admin)adminUsers.add(String(id));next.set(id,{id,nick:p.nickname||"Usuario",admin,registered:p.is_registered===true||registeredUsers.has(String(id))});}});
+roomUsers=next;renderUsers();renderModerationUsers();renderMentionUsers();
+}
+
+/* MENÚ DE USUARIO */
+async function openUserMenu(user){
+if(!user||!user.id||String(user.id)===String(senderId))return;
+selectedMenuUser={id:user.id,nick:user.nick||"Usuario",registered:user.registered===true||registeredUsers.has(String(user.id))};
+$("userMenuTitle").textContent=selectedMenuUser.nick;
+$("viewProfileBtn").classList.add("hidden");
+$("blockUserBtn").textContent=isUserBlocked(selectedMenuUser.id)?"↩️ Desbloquear usuario":"⛔ Bloquear usuario";
+$("adminUserActions").classList.toggle("hidden",!isAdmin);
+$("userMenuModal").classList.add("show");
+if((isRegisteredAccount||isAdmin)&&selectedMenuUser.registered){
+  const targetId=String(selectedMenuUser.id);
+  let profileQuery=db.from("chat_profiles").select("user_id").eq("user_id",targetId).eq("is_registered",true);
+  if(!isAdmin)profileQuery=profileQuery.eq("is_visible",true);
+  const {data,error}=await profileQuery.maybeSingle();
+  if(!error&&data&&selectedMenuUser&&String(selectedMenuUser.id)===targetId)$("viewProfileBtn").classList.remove("hidden");
+}
+}
+function closeUserMenu(){$("userMenuModal").classList.remove("show");}
+async function userMenuReport(){
+  if(!selectedMenuUser||!senderId){alert("Iniciá sesión para reportar a un usuario.");return;}
+  const user={...selectedMenuUser};
+  const categoryInput=prompt("Motivo del reporte:\n1. Spam\n2. Insultos\n3. Acoso\n4. Contenido inapropiado\n5. Otro","3");
+  if(categoryInput===null)return;
+  const categories={"1":"spam","2":"insultos","3":"acoso","4":"contenido_inapropiado","5":"otro"};
+  const category=categories[String(categoryInput).trim()];
+  if(!category){alert("Elegí un número del 1 al 5.");return;}
+  const details=prompt("Contanos brevemente qué ocurrió (entre 5 y 500 caracteres):","");
+  if(details===null)return;
+  if(details.trim().length<5||details.trim().length>500){alert("El detalle debe tener entre 5 y 500 caracteres.");return;}
+  if(!confirm("¿Enviar el reporte sobre "+user.nick+"?"))return;
+  try{
+    const roomId=Number(currentRoom);
+    const {error}=await db.from("chat_user_reports").insert({
+      reporter_id:senderId,
+      target_user_id:String(user.id),
+      room_id:Number.isSafeInteger(roomId)&&roomId>0?roomId:null,
+      category,
+      details:details.trim()
+    });
+    if(error)throw error;
+    closeUserMenu();alert("Reporte enviado. Gracias por ayudar a cuidar la comunidad.");
+  }catch(error){alert("No se pudo enviar el reporte: "+(error.message||String(error)));}
+}
+async function userMenuBlock(){
+  if(!selectedMenuUser||!senderId)return;
+  const user={...selectedMenuUser};
+  const current=getBlockedUsers();
+  if(current.some(item=>item.id===String(user.id))){
+    await unblockUser(user.id);$("blockUserBtn").textContent="⛔ Bloquear usuario";return;
+  }
+  if(!confirm("Bloquear a "+user.nick+"? No podrán enviarse mensajes privados entre ustedes y sus mensajes dejarán de mostrarse en tu chat."))return;
+  const {error}=await db.from("chat_user_blocks").insert({blocker_id:senderId,blocked_id:String(user.id)});
+  if(error){alert("No se pudo bloquear al usuario: "+error.message);return;}
+  current.push({id:String(user.id),nick:user.nick});
+  saveBlockedUsers(current);
+  closeUserMenu();
+  const privateTab=privateChats.find(item=>String(item.id)===String(user.id));
+  if(privateTab)closePrivateTab(user.id);
+  document.querySelectorAll("[data-sender-id]").forEach(node=>{
+    if(node.dataset.senderId===String(user.id))node.remove();
+  });
+  renderUsers();renderMentionUsers();
+}
+async function userMenuViewProfile(){
+ if(!selectedMenuUser||(!isRegisteredAccount&&!isAdmin))return;
+ const target={...selectedMenuUser};closeUserMenu();
+ let profileQuery=db.from("chat_profiles").select("nickname,status,bio,avatar_url").eq("user_id",String(target.id)).eq("is_registered",true);
+ if(!isAdmin)profileQuery=profileQuery.eq("is_visible",true);
+ const {data,error}=await profileQuery.maybeSingle();
+ if(error||!data){alert("Este perfil es privado o no está disponible.");return;}
+ await showProfileDetails(data,false);
+}
+async function resolveProfilePhoto(path){
+ if(!path)return "";
+ const {data,error}=await db.storage.from("chat-profile-photos").createSignedUrl(path,3600);
+ if(error){console.warn("No se pudo mostrar la foto de perfil:",error.message);return "";}
+ return data?.signedUrl||"";
+}
+async function showProfileDetails(profile,editable){
+ $("profileTitle").textContent=editable?"Mi perfil":"Perfil de "+(profile.nickname||"usuario");
+ $("profileNickValue").textContent=profile.nickname||"";
+ $("profileStatusValue").textContent=profile.status||"Sin estado";
+ $("profileBioValue").textContent=profile.bio||"Este usuario todavía no escribió una descripción.";
+ const photo=await resolveProfilePhoto(profile.avatar_url);
+ ["profilePhotoDisplay","profilePhotoPreview"].forEach(id=>{const img=$(id);if(img){img.src=photo;img.classList.toggle("hidden",!photo);}});
+ $("profileDisplay").classList.remove("hidden");$("profileEditor").classList.toggle("hidden",!editable);$("profileModal").classList.add("show");
+}
+async function openMyProfile(){
+ if(!isRegisteredAccount||!senderId)return;
+ const {data,error}=await db.from("chat_profiles").select("nickname,status,bio,is_visible,avatar_url").eq("user_id",senderId).maybeSingle();
+ if(error){alert("No se pudo cargar tu perfil: "+error.message);return;}
+ const profile=data||{nickname,status:"",bio:"",is_visible:true,avatar_url:""};
+ await showProfileDetails(profile,true);
+ $("profileStatusInput").value=profile.status||"";$("profileBioInput").value=profile.bio||"";$("profileVisibleInput").checked=profile.is_visible!==false;$("profilePhotoInput").value="";$("navProfile").classList.add("active");
+}
+async function uploadProfilePhoto(input){
+ if(!isRegisteredAccount||!senderId)return;
+ const file=input.files&&input.files[0];if(!file)return;
+ if(!["image/jpeg","image/png","image/webp"].includes(file.type)){alert("Elegí una imagen JPG, PNG o WebP.");input.value="";return;}
+ if(file.size>3*1024*1024){alert("La foto no puede superar los 3 MB.");input.value="";return;}
+ const ext=file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg",path=senderId+"/avatar."+ext;
+ const {error:uploadError}=await db.storage.from("chat-profile-photos").upload(path,file,{upsert:true,contentType:file.type,cacheControl:"3600"});
+ if(uploadError){alert("No se pudo cargar la foto: "+uploadError.message);return;}
+ const {error:profileError}=await db.from("chat_profiles").upsert({user_id:senderId,nickname,is_registered:true,avatar_url:path,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+ if(profileError){alert("La foto se subió, pero no se pudo guardar en el perfil: "+profileError.message);return;}
+ const url=await resolveProfilePhoto(path);["profilePhotoDisplay","profilePhotoPreview"].forEach(id=>{const img=$(id);img.src=url;img.classList.toggle("hidden",!url);});alert("¡Foto de perfil actualizada!");
+}
+function closeProfileModal(){$("profileModal").classList.remove("show");$("navProfile").classList.remove("active");}
+function beginAccountDeletion(){
+ if(!isRegisteredAccount||!senderId){alert("Esta opción está disponible para cuentas registradas.");return;}
+ $("deleteAccountConfirm").classList.remove("hidden");
+ $("deleteAccountPhrase").value="";
+ $("deleteAccountPhrase").focus();
+}
+function cancelAccountDeletion(){
+ $("deleteAccountConfirm").classList.add("hidden");
+ $("deleteAccountPhrase").value="";
+}
+async function deleteMyAccount(){
+ if(!isRegisteredAccount||!senderId)return;
+ const phrase=$("deleteAccountPhrase").value.trim();
+ if(phrase!=="ELIMINAR"){alert("Para confirmar, escribí exactamente ELIMINAR.");return;}
+ if(!confirm("¿Estás seguro? Se eliminarán definitivamente tu cuenta y los datos asociados. Esta acción no se puede deshacer."))return;
+ const btn=$("deleteAccountConfirmBtn");
+ btn.disabled=true;btn.textContent="Eliminando cuenta...";
+ try{
+  const {data,error}=await db.functions.invoke("delete-account",{body:{confirmation:"ELIMINAR"}});
+  if(error){
+   let message=error.message||"No se pudo contactar el servicio de eliminación.";
+   try{if(error.context&&typeof error.context.json==="function"){const response=await error.context.json();if(response?.message)message=response.message;}}catch(_){}
+   throw new Error(message);
+  }
+  if(!data?.success)throw new Error(data?.message||"No se pudo completar la eliminación.");
+  try{await db.auth.signOut({scope:"local"});}catch(signOutError){console.warn("La cuenta ya fue eliminada; no se pudo limpiar la sesión local:",signOutError);}
+  try{localStorage.clear();sessionStorage.clear();}catch(_){}
+  alert("Tu cuenta de ChatArgentina fue eliminada correctamente.");
+  window.location.reload();
+ }catch(error){
+  alert(error.message||"No se pudo eliminar la cuenta. Podés volver a intentarlo o escribir a jonitalp2023@gmail.com.");
+  btn.disabled=false;btn.textContent="Confirmar eliminación definitiva";
+ }
+}
+async function saveMyProfile(){
+ if(!isRegisteredAccount||!senderId)return;
+ const btn=$("profileSaveBtn");btn.disabled=true;
+ try{
+ const profile={user_id:senderId,nickname:nickname,is_registered:true,is_visible:$("profileVisibleInput").checked,status:$("profileStatusInput").value.trim(),bio:$("profileBioInput").value.trim(),updated_at:new Date().toISOString()};
+ const {error}=await db.from("chat_profiles").upsert(profile,{onConflict:"user_id"});if(error)throw error;
+ $("profileStatusValue").textContent=profile.status||"Sin estado";$("profileBioValue").textContent=profile.bio||"Este usuario todavía no escribió una descripción.";alert("Tu perfil se guardó correctamente.");closeProfileModal();
+ }catch(error){alert("No se pudo guardar tu perfil: "+(error.message||String(error)));}
+ finally{btn.disabled=false;}
+}
+async function userMenuPrivate(){if(!selectedMenuUser)return;const user={...selectedMenuUser};closeUserMenu();await openPrivateChat(user);}
+async function userMenuModerate(action){
+if(!isAdmin||!selectedMenuUser)return;
+const user={...selectedMenuUser};
+const actionText=action==="ban"?"banear por cinco minutos a ":"expulsar de la sala a ";
+const reasonInput=prompt("Escribí el motivo que verá "+user.nick+" al recibir la expulsión o el baneo (máximo 500 caracteres):","Incumplimiento de las normas de convivencia");
+if(reasonInput===null)return;
+const reason=reasonInput.trim();
+if(!reason){alert("Tenés que escribir el motivo.");return;}
+if(reason.length>500){alert("El motivo no puede superar los 500 caracteres.");return;}
+if(!confirm("¿Querés "+actionText+user.nick+"?\nMotivo: "+reason))return;
+closeUserMenu();
+try{
+await callAdminApi("moderate_user",{target_sender_id:user.id,room_id_input:currentRoom,action_name:action,reason_input:reason});
+$("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos.":"Usuario expulsado de la sala.";
+if(action==="ban")await loadBannedUsers();
+}catch(error){alert("No se pudo moderar al usuario: "+error.message);}
+}
+function renderUsers(){
+const list=$("usersList");if(!list)return;
+const query=($("userSearchInput")?.value||"").trim().toLocaleLowerCase();
+const users=Array.from(roomUsers.values()).filter(user=>!isUserBlocked(user.id)).sort((a,b)=>{
+const aUnix=String(a.nick||"").toUpperCase()==="UNIX",bUnix=String(b.nick||"").toUpperCase()==="UNIX";
+if(aUnix!==bUnix)return aUnix?-1:1;
+return String(a.nick||"").localeCompare(String(b.nick||""),"es",{sensitivity:"base",numeric:true});
+});
+$("usersCountText").textContent=users.length+" "+(users.length===1?"usuario conectado":"usuarios conectados");
+const filtered=users.filter(u=>String(u.nick||"").toLocaleLowerCase().includes(query));
+list.innerHTML="";
+if(!users.length){list.innerHTML='<p class="muted">Todavía no hay usuarios conectados.</p>';return;}
+if(!filtered.length){list.innerHTML='<p class="muted">No se encontraron usuarios con ese Nick.</p>';return;}
+filtered.forEach(u=>{
+const item=document.createElement("div");item.className="user-item";const dot=document.createElement("span");dot.className="online-dot";
+const name=document.createElement("span");name.className="user-name";
+if(u.registered||registeredUsers.has(String(u.id)))addRegisteredPlus(name);
+if(u.admin||adminUsers.has(String(u.id)))addAdminBadge(name,String(u.nick||"").toUpperCase()==="UNIX");
+if(String(u.nick||"").toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";name.appendChild(at);name.classList.add("admin-unix");}
+name.appendChild(document.createTextNode(u.nick));item.append(dot,name);
+if(String(u.id)!==String(senderId)){item.onclick=()=>openUserMenu(u);}else{item.title="Vos";}list.appendChild(item);
+});
+}
+function renderModerationUsers(){
+const s=$("userToModerate"),old=s.value;s.innerHTML='<option value="">Elegí un usuario conectado</option>';
+roomUsers.forEach(u=>{if(u.id===senderId)return;const o=document.createElement("option");o.value=u.id;o.textContent=u.nick;s.appendChild(o);});
+if(Array.from(s.options).some(o=>o.value===old))s.value=old;
+}
+
+/* MENSAJES PÚBLICOS */
+function addMessage(m,notifyMention=false){
+if(!m)return;
+if(m.sender_id&&isUserBlocked(m.sender_id)){receivedIds.add(m.id);return;}
+if(receivedIds.has(m.id))return;receivedIds.add(m.id);if(notifyMention)addMentionNotification(m);
+const div=document.createElement("div");div.className="message";div.dataset.senderId=String(m.sender_id||"");const n=document.createElement("strong");n.className="nickname";const nick=m.nickname||"Usuario";let hash=0;
+for(let i=0;i<nick.length;i++)hash=nick.charCodeAt(i)+((hash<<5)-hash);
+const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];n.style.color=colors[Math.abs(hash)%colors.length];
+if(m.sender_id&&registeredUsers.has(String(m.sender_id)))addRegisteredPlus(n);
+if(m.sender_id&&adminUsers.has(String(m.sender_id)))addAdminBadge(n,nick.toUpperCase()==="UNIX");
+if(nick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";n.appendChild(at);n.classList.add("admin-unix");}
+n.appendChild(document.createTextNode(nick));
+if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
+if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,n);
+const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";div.append(n,t);$("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
+}
+async function loadRoomMessages(roomId){
+const cutoff=new Date(Date.now()-12*60*60*1000).toISOString();let from=0;const pageSize=500;
+while(true){
+const {data,error}=await db.from("messages").select("*").eq("room_id",roomId).gte("created_at",cutoff).order("created_at",{ascending:true}).range(from,from+pageSize-1);
+if(error){console.error("Error cargando historial:",error);$("status").textContent="Error cargando mensajes: "+error.message;return;}
+if(String(currentRoom)!==String(roomId))return;(data||[]).forEach(addMessage);if(!data||data.length<pageSize)break;from+=pageSize;
+}
+}
+
+/* ENVÍO DE MENSAJES + CONEXIÓN CON LOS BOTS */
+async function sendMessage(){
+  const input=$("messageInput");
+  const btn=$("sendBtn");
+  const value=input.value.trim();
+  if(!value||!nickname||!currentRoom||btn.disabled)return;
+
+  btn.disabled=true;
+  const roomId=String(currentRoom).trim();
+  const senderNickname=String(nickname).trim();
+  const roomIdPattern=/^(?:[1-9][0-9]*|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+
+  try{
+    if(!roomIdPattern.test(roomId))throw new Error("El ID de la sala no es válido: "+roomId);
+    const {data:authData,error:authError}=await db.auth.getSession();
+    if(authError)throw authError;
+    const session=authData?.session;
+    if(!session?.user?.id)throw new Error("No hay una sesión activa. Salí y volvé a ingresar al chat.");
+    if(String(session.user.id)!==String(senderId))throw new Error("La sesión cambió. Salí y volvé a ingresar al chat.");
+
+    const {data:savedMessage,error:insertError}=await db.from("messages").insert({
+      nickname:senderNickname,message:value,room_id:roomId,sender_id:senderId
+    }).select("id").single();
+    if(insertError)throw insertError;
+    if(savedMessage?.id){
+      db.functions.invoke("send-chat-push",{body:{kind:"room",message_id:savedMessage.id}}).then(({data,error})=>{
+        if(error)console.warn("No se pudo enviar la notificación de sala:",error);
+        else if(data?.success!==true)console.warn("Notificación de sala no enviada:",data);
+      }).catch(error=>console.warn("No se pudo enviar la notificación de sala:",error));
+    }
+
+    // Liberar el compositor apenas la base confirma el mensaje.
+    // La respuesta de los bots se procesa aparte y no bloquea el siguiente envío.
+    if(input.value.trim()===value)input.value="";
+    btn.disabled=false;
+
+    if(senderNickname.toLowerCase()==="mili")return;
+    const requestBody={
+      message:value,nickname:senderNickname,room_id:roomId,sender_id:senderId,
+      request_id:crypto.randomUUID()
+    };
+    db.functions.invoke("Chat-Bot",{body:requestBody}).then(({data,error})=>{
+      if(error)console.warn("El mensaje se publicó, pero Chat-Bot no respondió:",error);
+      else if(!data||data.success!==true)console.warn("Chat-Bot respondió sin completar:",data);
+      else if(Array.isArray(data.errors)&&data.errors.length)console.warn("Errores de bots:",data.errors);
+    }).catch(error=>console.warn("No se pudo activar Chat-Bot:",error));
+  }catch(error){
+    console.error("ERROR EN SENDMESSAGE:",error);
+    alert("No se pudo enviar el mensaje:\n\n"+(error.message||String(error)));
+  }finally{
+    btn.disabled=false;
+    // No volver a enfocar: evita que Android oculte y abra el teclado en cada envío.
+  }
+}
+
+/* EMOJIS */
+const emojiGroups={
+"😊":["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😍","🥰","😘","😗","😚","😋","😜","🤪","😎","😭","😢","😡","😱","🥺","🤔","😴","🤗","🤩","😏","😬","🤯"],
+"❤️":["❤️","🧡","💛","💚","💙","💜","🖤","🤍","💔","💕","💞","💖","💘","💝","💗","💓","💟","❣️","♥️"],
+"👍":["👍","👎","👏","🙌","🤝","🙏","💪","👌","✌️","🤞","👋","🤟","🤘","🫶","☝️","👊","✋"],
+"⚽":["⚽","🏀","🏈","⚾","🎾","🏐","🏉","🥊","🏆","🥇","🥈","🚴","🏎️","🏁"],
+"🍕":["🍕","🍔","🍟","🌭","🍿","🍩","🍪","🎂","🍰","🍎","🍓","🍉","🍌","🍇","☕","🧉","🍻"],
+"🎉":["🎉","🎊","🎈","🎁","🎂","🥳","🎆","🎇","✨","🔥","💯","⭐","🌟","💥","🎵","🎶"]
+};
+let emojiTarget="messageInput";
+function toggleEmoji(target){emojiTarget=target;const picker=$(target==="privateInput"?"emojiPickerPrivate":"emojiPickerPublic");const wasOpen=picker.classList.contains("open");closeEmojiPickers();if(!wasOpen)renderEmojiPicker(picker);}
+function renderEmojiPicker(picker){
+picker.innerHTML="";const cats=document.createElement("div");cats.className="emoji-cats";const grid=document.createElement("div");grid.className="emoji-grid";
+function draw(cat){grid.innerHTML="";emojiGroups[cat].forEach(emoji=>{const b=document.createElement("button");b.type="button";b.textContent=emoji;b.onclick=()=>insertEmoji(emoji);grid.appendChild(b);});}
+Object.keys(emojiGroups).forEach((cat,index)=>{const b=document.createElement("button");b.type="button";b.textContent=cat;if(index===0)b.classList.add("active");b.onclick=()=>{cats.querySelectorAll("button").forEach(x=>x.classList.remove("active"));b.classList.add("active");draw(cat);};cats.appendChild(b);});
+picker.append(cats,grid);draw(Object.keys(emojiGroups)[0]);picker.classList.add("open");
+}
+function insertEmoji(emoji){
+const input=$(emojiTarget);if(!input)return;const start=input.selectionStart??input.value.length,end=input.selectionEnd??input.value.length;
+input.value=input.value.slice(0,start)+emoji+input.value.slice(end);input.focus();const pos=start+emoji.length;input.setSelectionRange(pos,pos);
+}
+
+/* NOTIFICACIONES PRIVADAS */
+function subscribePrivateNotifications(){
+if(privateNoticeChannel){db.removeChannel(privateNoticeChannel);privateNoticeChannel=null;}if(!senderId)return;
+privateNoticeChannel=db.channel("wichat-private-notifications-"+senderId).on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages",filter:"recipient_id=eq."+senderId},async payload=>{
+const m=payload.new;if(!m||String(m.recipient_id)!==String(senderId))return;if(String(m.sender_id)===String(senderId)||isUserBlocked(m.sender_id))return;
+let user=privateChats.find(u=>String(u.id)===String(m.sender_id));
+if(!user){user={id:m.sender_id,nick:m.sender_nickname||"Usuario"};privateChats.push(user);}else if(m.sender_nickname){user.nick=m.sender_nickname;}
+const isActive=activePrivateUser&&String(activePrivateUser.id)===String(m.sender_id);
+if(!isActive){
+  privateUnread.add(String(m.sender_id));
+  renderPrivateTabs();updateNotificationBadge();
+}else{
+  addPrivateMessage(m);
+}
+}).subscribe();
+}
+
+/* PESTAÑAS PRIVADAS */
+function renderPrivateTabs(){
+const container=$("roomPills");if(!container)return;container.querySelectorAll(".private-tab").forEach(tab=>tab.remove());
+privateChats.forEach(user=>{
+const tab=document.createElement("button");tab.className="private-tab"+(activePrivateUser&&String(activePrivateUser.id)===String(user.id)?" active":"");
+const name=document.createElement("span");name.className="private-tab-name";name.textContent="💬 "+user.nick;tab.appendChild(name);
+if(privateUnread.has(String(user.id))){const unread=document.createElement("span");unread.className="private-unread";unread.textContent="1";tab.appendChild(unread);}
+const close=document.createElement("span");close.className="private-tab-close";close.textContent="×";close.onclick=e=>{e.stopPropagation();closePrivateTab(user.id);};tab.appendChild(close);
+tab.onclick=()=>switchPrivateTab(user.id);container.appendChild(tab);
+});
+}
+async function openPrivateChat(user){
+if(!user||String(user.id)===String(senderId))return;let existing=privateChats.find(u=>String(u.id)===String(user.id));if(!existing)privateChats.push({id:user.id,nick:user.nick});await switchPrivateTab(user.id);
+}
+async function switchPrivateTab(userId){
+const user=privateChats.find(u=>String(u.id)===String(userId));if(!user)return;activePrivateUser=user;privateUnread.delete(String(userId));renderPrivateTabs();updateNotificationBadge();privateReceivedIds.clear();
+$("chatView").classList.add("hidden");$("usersView").classList.add("hidden");$("roomsView").classList.add("hidden");$("privateView").classList.remove("hidden");$("roomTopic").style.display="none";
+$("navUsers").classList.remove("active");$("navRooms").classList.remove("active");$("navChat").classList.remove("active");
+$("privateMessages").innerHTML='<p class="muted">Cargando conversación...</p>';
+if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
+await loadPrivateMessages();if(!activePrivateUser||String(activePrivateUser.id)!==String(userId))return;
+privateChannel=db.channel("wichat-private-"+senderId+"-"+userId).on("postgres_changes",{event:"INSERT",schema:"public",table:"private_messages"},payload=>{
+const m=payload.new;if(!m)return;
+if((String(m.sender_id)===String(senderId)&&String(m.recipient_id)===String(userId))||(String(m.sender_id)===String(userId)&&String(m.recipient_id)===String(senderId)))addPrivateMessage(m);
+}).subscribe();
+}
+function closePrivateTab(userId){
+const index=privateChats.findIndex(u=>String(u.id)===String(userId));if(index===-1)return;
+const wasActive=activePrivateUser&&String(activePrivateUser.id)===String(userId);privateChats.splice(index,1);privateUnread.delete(String(userId));
+if(wasActive){
+if(privateChannel){db.removeChannel(privateChannel);privateChannel=null;}activePrivateUser=null;privateReceivedIds.clear();$("privateMessages").innerHTML="";
+if(privateChats.length){const next=privateChats[Math.max(0,index-1)]||privateChats[0];switchPrivateTab(next.id);}else{backToUsers();}
+}
+renderPrivateTabs();
+}
+async function loadPrivateMessages(){
+if(!activePrivateUser)return;const other=activePrivateUser.id;
+const filter="and(sender_id.eq."+senderId+",recipient_id.eq."+other+"),and(sender_id.eq."+other+",recipient_id.eq."+senderId+")";
+const {data,error}=await db.from("private_messages").select("*").or(filter).order("created_at",{ascending:true});
+if(error){$("privateMessages").textContent="No se pudo cargar la conversación: "+error.message;return;}
+$("privateMessages").innerHTML="";privateReceivedIds.clear();(data||[]).forEach(addPrivateMessage);
+if(!(data||[]).length)$("privateMessages").innerHTML='<p class="muted">Todavía no hay mensajes. ¡Saludá!</p>';
+}
+function addPrivateMessage(m){
+if(!m)return;
+if(m.sender_id&&String(m.sender_id)!==String(senderId)&&isUserBlocked(m.sender_id)){privateReceivedIds.add(m.id);return;}
+if(privateReceivedIds.has(m.id))return;privateReceivedIds.add(m.id);const box=$("privateMessages"),empty=box.querySelector(".muted");if(empty)box.innerHTML="";
+const div=document.createElement("div");div.dataset.senderId=String(m.sender_id||"");div.dataset.messageId=String(m.id);div.className="private-message"+(String(m.sender_id)===String(senderId)?" mine":"");
+const who=document.createElement("strong");who.className="nickname";
+const privateNick=String(m.sender_id)===String(senderId)?nickname:(m.sender_nickname||"Usuario");let hash=0;
+for(let i=0;i<privateNick.length;i++)hash=privateNick.charCodeAt(i)+((hash<<5)-hash);
+const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];who.style.color=colors[Math.abs(hash)%colors.length];
+if(m.sender_id&&registeredUsers.has(String(m.sender_id)))addRegisteredPlus(who);
+if(m.sender_id&&adminUsers.has(String(m.sender_id)))addAdminBadge(who,privateNick.toUpperCase()==="UNIX");
+if(privateNick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";who.appendChild(at);who.classList.add("admin-unix");}
+who.appendChild(document.createTextNode(privateNick+": "));
+if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);box.appendChild(div);box.scrollTop=box.scrollHeight;
+}
+async function sendPrivateMessage(){
+if(!activePrivateUser)return;
+const input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();
+if(!value||btn.disabled)return;
+const recipientId=activePrivateUser.id;
+if(isUserBlocked(recipientId)){alert("Desbloqueá a este usuario para enviarle mensajes.");return;}
+const pendingId="pending-"+crypto.randomUUID();
+btn.disabled=true;
+input.value="";
+addPrivateMessage({id:pendingId,sender_id:senderId,sender_nickname:nickname,content:value});
+try{
+  const {data,error}=await db.from("private_messages")
+    .insert({sender_id:senderId,recipient_id:recipientId,sender_nickname:nickname,content:value})
+    .select().single();
+  if(error)throw error;
+  db.functions.invoke("send-chat-push",{body:{kind:"private",message_id:data.id}}).then(({data:pushData,error:pushError})=>{
+    if(pushError)console.warn("No se pudo enviar la notificación privada:",pushError);
+    else if(pushData?.success!==true)console.warn("Notificación privada no enviada:",pushData);
+  }).catch(pushError=>console.warn("No se pudo enviar la notificación privada:",pushError));
+  const pending=document.querySelector('[data-message-id="'+pendingId+'"]');
+  if(pending)pending.remove();
+  privateReceivedIds.delete(pendingId);
+  addPrivateMessage(data);
+}catch(e){
+  const pending=document.querySelector('[data-message-id="'+pendingId+'"]');
+  if(pending)pending.remove();
+  privateReceivedIds.delete(pendingId);
+  if(!input.value)input.value=value;
+  alert("No se pudo enviar el mensaje privado: "+e.message);
+}finally{
+  btn.disabled=false;
+  // Mantener el foco existente sin forzar una reapertura del teclado.
+}
+}
+async function backToUsers(){
+if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}activePrivateUser=null;privateReceivedIds.clear();
+$("privateView").classList.add("hidden");$("usersView").classList.remove("hidden");$("roomsView").classList.add("hidden");$("chatView").classList.add("hidden");$("roomTopic").style.display="none";
+$("navUsers").classList.add("active");$("navRooms").classList.remove("active");$("navChat").classList.remove("active");$("privateInput").value="";closeEmojiPickers();renderPrivateTabs();
+}
+
+/* ACTUALIZAR SALAS */
+function subscribeRooms(){
+if(roomChannel)db.removeChannel(roomChannel);
+roomChannel=db.channel("wichat-rooms").on("postgres_changes",{event:"*",schema:"public",table:"rooms"},async()=>{
+const previous=currentRoom;await fetchRooms();
+if(!rooms.some(r=>String(r.id)===String(previous)))currentRoom=rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||rooms[0]?.id||null;
+renderTabs();if(currentRoom)await switchRoom(currentRoom);
+}).subscribe();
+}
+
+/* NAVEGACIÓN DEL PANEL ADMINISTRATIVO */
+function adminShowSection(section){
+  const allowed=adminRole==="owner"
+    ?["rooms","users","admins","bots","moderation","stats","settings"]
+    :["users","moderation"];
+  if(!allowed.includes(section))return;
+  document.querySelectorAll("#adminPanel .admin-tab").forEach(button=>{
+    button.classList.toggle("active",button.dataset.adminSection===section);
+  });
+  document.querySelectorAll("#adminPanel .admin-section").forEach(panel=>{
+    panel.classList.toggle("active",panel.id==="adminSection"+section.charAt(0).toUpperCase()+section.slice(1));
+  });
+  const panel=$("adminPanel");
+  if(panel)panel.scrollTop=0;
+}
+function updateAdminStats(){
+  const roomCount=rooms.length;
+  const userCount=roomUsers.size;
+  const values={
+    adminStatRooms:roomCount,adminStatUsers:userCount,
+    adminStatRoomsDetail:roomCount,adminStatUsersDetail:userCount
+  };
+  Object.entries(values).forEach(([id,value])=>{const el=$(id);if(el)el.textContent=String(value);});
+}
+
+/* ADMINISTRACIÓN */
+function openAdmin(){
+  if(!isAdmin){
+    alert("No tenés permisos de administrador.");
+    return;
+  }
+  const panel=$("adminPanel");
+  panel.classList.remove("hidden");
+  panel.scrollTop=0;
+  document.querySelectorAll("#adminPanel [data-owner-only]").forEach(el=>{
+    el.classList.toggle("hidden",adminRole!=="owner");
+  });
+  adminShowSection(adminRole==="owner"?"rooms":"users");
+  updateAdminStats();
+  renderModerationUsers();
+  if(adminRole==="owner"){
+    if(currentRoom)loadRoomTopic(currentRoom);
+    renderRoomDelete();
+    renderRoomVipSelect();
+    loadBannedUsers();
+    loadBots();
+    loadAdminManagement();
+  }
+}
+function closeAdmin(){$("adminPanel").classList.add("hidden");}
+async function createRoom(){
+if(!isAdmin)return;const name=$("newRoomName").value.trim();
+if(!name){$("adminStatus").textContent="Escribí el nombre de la sala.";return;}
+try{
+const created=await callAdminApi("create_room",{room_name:name});
+if($("newRoomVip")?.checked){
+  const newRoomId=created?.id;
+  if(!newRoomId)throw new Error("La sala se creó, pero no se pudo identificar para marcarla como VIP.");
+  await callAdminApi("set_room_vip",{room_id_input:newRoomId,vip_enabled:true});
+}
+$("adminStatus").textContent=$("newRoomVip")?.checked?"Sala VIP creada correctamente.":"Sala creada correctamente.";
+$("newRoomName").value="";if($("newRoomVip"))$("newRoomVip").checked=false;
+await fetchRooms();renderTabs();renderRoomDelete();renderRoomVipSelect();
+}catch(error){$("adminStatus").textContent="Error al crear sala: "+error.message;}
+}
+function renderRoomDelete(){
+const select=$("roomToDelete");if(!select)return;const previous=select.value;
+select.innerHTML='<option value="">Elegí una sala</option>';
+rooms.forEach(r=>{const option=document.createElement("option");option.value=r.id;option.textContent=(r.is_vip?"🔒 ":"")+r.name;select.appendChild(option);});
+if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
+}
+function renderRoomVipSelect(){
+const select=$("roomVipSelect");if(!select)return;const previous=select.value;
+select.innerHTML='<option value="">Elegí una sala</option>';
+rooms.forEach(r=>{const option=document.createElement("option");option.value=r.id;option.textContent=(r.is_vip?"🔒 VIP · ":"🌐 Pública · ")+r.name;select.appendChild(option);});
+if(rooms.some(r=>String(r.id)===String(previous)))select.value=previous;
+}
+async function setSelectedRoomVip(enabled){
+if(!isAdmin)return;
+const id=String($("roomVipSelect")?.value||"");
+const status=$("roomVipStatus");
+if(!id){status.textContent="Elegí una sala.";return;}
+try{
+ await callAdminApi("set_room_vip",{room_id_input:id,vip_enabled:enabled});
+ await fetchRooms();renderTabs();renderRoomDelete();renderRoomVipSelect();
+ status.textContent=enabled?"La sala ahora es VIP.":"La sala ahora es pública.";
+}catch(error){status.textContent="No se pudo actualizar la sala: "+error.message;}
+}
+async function setVipMember(enabled){
+if(!isAdmin)return;
+const nicknameInput=$("vipMemberNickname"),status=$("vipMemberStatus"),target=nicknameInput.value.trim();
+if(!target){status.textContent="Ingresá el Nick del usuario registrado.";return;}
+try{
+ await callAdminApi("set_vip_member",{nickname_input:target,vip_enabled:enabled});
+ status.textContent=enabled?"Membresía VIP otorgada a "+target+".":"Membresía VIP quitada a "+target+".";
+}catch(error){status.textContent="No se pudo actualizar la membresía: "+error.message;}
+}
+async function deleteRoom(){
+if(!isAdmin)return;
+const select=$("roomToDelete"),id=String(select.value||"").trim();
+const status=$("adminStatus");
+if(!id){status.textContent="Elegí una sala.";return;}
+const room=rooms.find(r=>String(r.id)===id);
+if(!room){status.textContent="No se encontró la sala seleccionada. Actualizá la lista e intentá nuevamente.";await fetchRooms();renderRoomDelete();return;}
+if(!confirm('¿Seguro que querés eliminar la sala "'+room.name+'"?'))return;
+status.textContent="Eliminando sala...";
+try{
+  // Se envían ambos nombres de parámetro para compatibilidad con la versión
+  // desplegada de Admin API, conservando el ID original (numérico o UUID).
+  await callAdminApi("delete_room",{room_id_input:id,room_id:id});
+  await fetchRooms();
+  const wasCurrent=String(currentRoom)===id;
+  if(wasCurrent){
+    if(rooms.length){
+      currentRoom=rooms.find(r=>String(r.name).trim().toLowerCase()==="general")?.id||rooms[0].id;
+      await switchRoom(currentRoom);
+    }else{
+      currentRoom=null;
+      $("status").textContent="No quedan salas. Creá una nueva desde Administración.";
+      $("messages").innerHTML="";
+    }
+  }
+  renderTabs();
+  renderRoomDelete();
+  status.textContent="Sala eliminada correctamente.";
+}catch(error){
+  console.error("ERROR ELIMINANDO SALA:",error);
+  status.textContent="No se pudo eliminar la sala: "+(error.message||String(error))+". La operación debe estar habilitada en la función admin-api de Supabase.";
+}
+}
+async function moderateUser(action){
+if(!isAdmin)return;
+const target=$("userToModerate").value;
+if(!target){$("adminStatus").textContent="Elegí un usuario conectado.";return;}
+const reasonInput=prompt("Escribí el motivo que verá el usuario (máximo 500 caracteres):","Incumplimiento de las normas de convivencia");
+if(reasonInput===null)return;
+const reason=reasonInput.trim();
+if(!reason){$("adminStatus").textContent="Tenés que escribir el motivo.";return;}
+if(reason.length>500){$("adminStatus").textContent="El motivo no puede superar los 500 caracteres.";return;}
+try{
+await callAdminApi("moderate_user",{target_sender_id:target,room_id_input:currentRoom,action_name:action,reason_input:reason});
+$("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos en esta sala.":"Usuario expulsado de esta sala.";
+if(action==="ban")await loadBannedUsers();
+}catch(error){$("adminStatus").textContent="Error: "+error.message;}
+}
+async function loadBannedUsers(){
+if(!isAdmin||adminRole!=="owner")return;const list=$("bannedUsersList");list.innerHTML='<p class="muted">Cargando baneos...</p>';
+try{
+const data=await callAdminApi("list_bans");list.innerHTML="";
+if(!data||!data.length){list.innerHTML='<p class="muted">No hay usuarios baneados actualmente.</p>';return;}
+data.forEach(ban=>{
+const card=document.createElement("div");card.className="banned-card";
+const name=document.createElement("strong");name.className="banned-name";name.textContent="🚫 "+(ban.nickname||"Usuario");
+const details=document.createElement("p");details.className="banned-details";let roomText=ban.ban_type||"Baneo";
+if(ban.room_id){const room=rooms.find(r=>String(r.id)===String(ban.room_id));roomText+=": "+(room?.name||"Sala "+ban.room_id);}
+const expiration=ban.expires_at?new Date(ban.expires_at).toLocaleString("es-AR"):"Sin vencimiento";
+details.textContent=roomText+" | IP: "+(ban.client_ip||"No disponible")+" | Vence: "+expiration;
+const button=document.createElement("button");button.className="unban-button";button.textContent="DESBANEAR";
+if(!ban.sender_id){button.disabled=true;button.textContent="No se puede identificar al usuario";}
+else{button.onclick=()=>unbanUser(ban.sender_id,ban.nickname);}
+card.append(name,details,button);list.appendChild(card);
+});
+}catch(error){list.textContent="Error al cargar baneos: "+error.message;}
+}
+async function unbanUser(target,nick){
+if(!isAdmin)return;if(!confirm("¿Querés desbanear a "+(nick||"este usuario")+"?"))return;
+try{
+const data=await callAdminApi("unban_user",{target_sender_id:target});
+$("adminStatus").textContent=data?.message||"Usuario desbloqueado correctamente.";await loadBannedUsers();
+}catch(error){$("adminStatus").textContent="Error al desbanear: "+error.message;}
+}
+
+
+/* GESTIÓN DE ADMINISTRADORES · SOLO PROPIETARIO */
+async function loadAdminManagement(){
+  if(!isAdmin||adminRole!=="owner")return;
+  const list=$("adminManagementList");
+  if(list)list.innerHTML='<p class="muted">Cargando cuentas registradas...</p>';
+  try{
+    const [users,admins]=await Promise.all([
+      callAdminApi("list_registered_users"),
+      callAdminApi("list_admins")
+    ]);
+    adminManagementUsers=Array.isArray(users)?users:[];
+    renderAdminManagement();
+    const active=(Array.isArray(admins)?admins:[]).filter(item=>item.active);
+    const box=$("activeAdminsList");
+    if(box){
+      box.innerHTML="";
+      const owner=document.createElement("div");owner.className="admin-setting-row";
+      const ownerName=document.createElement("strong");ownerName.textContent="♛ UNIX";
+      const ownerRole=document.createElement("span");ownerRole.textContent="Propietario principal";
+      owner.append(ownerName,ownerRole);box.appendChild(owner);
+      active.filter(item=>item.role!=="owner").forEach(item=>{
+        const row=document.createElement("div");row.className="admin-setting-row";
+        const name=document.createElement("strong");name.textContent="🛡️ "+item.nickname;
+        const role=document.createElement("span");role.textContent="Administrador";
+        row.append(name,role);box.appendChild(row);
+      });
+      if(!active.some(item=>item.role!=="owner")){const empty=document.createElement("p");empty.className="muted";empty.textContent="Todavía no agregaste otros administradores.";box.appendChild(empty);}
+    }
+  }catch(error){
+    if(list)list.textContent="No se pudieron cargar los usuarios: "+error.message;
+    const status=$("adminManagementStatus");if(status)status.textContent=error.message;
+  }
+}
+function renderAdminManagement(){
+  const list=$("adminManagementList");if(!list)return;
+  const term=String($("adminManagementSearch")?.value||"").trim().toLocaleLowerCase("es");
+  const users=adminManagementUsers.filter(user=>String(user.nickname||"").toLocaleLowerCase("es").includes(term));
+  list.innerHTML="";
+  if(!users.length){list.innerHTML='<p class="muted">No hay cuentas registradas que coincidan con la búsqueda.</p>';return;}
+  users.forEach(user=>{
+    const row=document.createElement("div");row.className="admin-setting-row";
+    const name=document.createElement("strong");name.textContent=(user.is_admin?"🛡️ ":"✓ ")+user.nickname;
+    const action=document.createElement("button");action.className=user.is_admin?"secondary":"";
+    action.textContent=user.is_admin?"Quitar admin":"Hacer administrador";
+    action.onclick=()=>setAdminRole(user.user_id,!user.is_admin,user.nickname);
+    row.append(name,action);list.appendChild(row);
+  });
+}
+async function setAdminRole(userId,enabled,nick){
+  if(!isAdmin||adminRole!=="owner")return;
+  const action=enabled?"dar permisos de administrador a ":"quitar los permisos de administrador a ";
+  if(!confirm("¿Querés "+action+(nick||"este usuario")+"?"))return;
+  const status=$("adminManagementStatus");status.textContent="Guardando cambios...";
+  try{
+    await callAdminApi("set_admin_role",{target_user_id:userId,enabled});
+    status.textContent=enabled?"Permisos de administrador otorgados a "+nick+".":"Permisos de administrador quitados a "+nick+".";
+    await loadAdminManagement();
+  }catch(error){status.textContent="No se pudo cambiar el permiso: "+error.message;}
+}
+
+/* ADMINISTRACIÓN DE BOTS */
+let editingBotId = null;
+async function loadBots(){
+  if(!isAdmin)return;
+  const list=$("botsList");
+  if(!list)return;
+  list.innerHTML='<p class="muted">Cargando bots...</p>';
+  try{
+    const bots=await callAdminApi("list_bots");
+    list.innerHTML="";
+    const botCount=(bots||[]).length;
+    ["adminStatBots","adminStatBotsDetail"].forEach(id=>{const el=$(id);if(el)el.textContent=String(botCount);});
+    if(!bots||!bots.length){
+      list.innerHTML='<p class="muted">No hay bots configurados.</p>';
+      return;
+    }
+    bots.forEach(bot=>{
+      const card=document.createElement("div");
+      card.className="bot-card";
+      const title=document.createElement("strong");
+      title.textContent="🤖 "+bot.name+" ";
+      const state=document.createElement("span");
+      state.className=bot.active?"bot-active":"bot-inactive";
+      state.textContent=bot.active?"● ACTIVO":"● INACTIVO";
+      const instructions=document.createElement("textarea");
+      instructions.value=bot.instructions||"";
+      instructions.maxLength=4000;
+      instructions.setAttribute("aria-label","Instrucciones de "+bot.name);
+      const nameInput=document.createElement("input");
+      nameInput.value=bot.name;
+      nameInput.maxLength=25;
+      nameInput.placeholder="Nombre del bot";
+      const actions=document.createElement("div");
+      actions.className="bot-actions";
+      const save=document.createElement("button");
+      save.textContent="Guardar cambios";
+      save.onclick=()=>updateBot(bot.id,nameInput.value,instructions.value,bot.active);
+      const toggle=document.createElement("button");
+      toggle.className="secondary";
+      toggle.textContent=bot.active?"Desactivar":"Activar";
+      toggle.onclick=()=>updateBot(bot.id,bot.name,bot.instructions,!bot.active);
+      const remove=document.createElement("button");
+      remove.className="danger";
+      remove.textContent="Eliminar";
+      remove.onclick=()=>deleteBot(bot.id,bot.name);
+      actions.append(save,toggle,remove);
+      card.append(title,state,nameInput,instructions,actions);
+      list.appendChild(card);
+    });
+  }catch(error){
+    list.textContent="Error al cargar los bots: "+error.message;
+  }
+}
+async function saveBot(){
+  if(!isAdmin)return;
+  const name=$("botName").value.trim();
+  const instructions=$("botInstructions").value.trim();
+  const status=$("botAdminStatus");
+  if(!name||!instructions){status.textContent="Completá el nombre y las instrucciones.";return;}
+  try{
+    await callAdminApi("create_bot",{bot_name:name,bot_instructions:instructions});
+    $("botName").value="";
+    $("botInstructions").value="";
+    status.textContent="Bot creado correctamente.";
+    await loadBots();
+  }catch(error){status.textContent="No se pudo crear el bot: "+error.message;}
+}
+async function updateBot(id,name,instructions,active){
+  if(!isAdmin)return;
+  try{
+    await callAdminApi("update_bot",{bot_id:id,bot_name:String(name||"").trim(),bot_instructions:String(instructions||"").trim(),bot_active:Boolean(active)});
+    $("botAdminStatus").textContent="Bot actualizado correctamente.";
+    await loadBots();
+  }catch(error){$("botAdminStatus").textContent="No se pudo actualizar: "+error.message;}
+}
+async function deleteBot(id,name){
+  if(!isAdmin)return;
+  if(!confirm('¿Seguro que querés eliminar el bot "'+name+'"?'))return;
+  try{
+    await callAdminApi("delete_bot",{bot_id:id});
+    $("botAdminStatus").textContent="Bot eliminado.";
+    await loadBots();
+  }catch(error){$("botAdminStatus").textContent="No se pudo eliminar: "+error.message;}
+}
+
+/* SALIR */
+async function exitChat(){
+closeUserMenu();closeProfileModal();selectedMenuUser=null;await releaseNickname();await releaseAccountDeviceSession();
+if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
+if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
+currentRoomTopic="";$("roomTopic").style.display="none";$("roomTopicText").textContent="Sin tópico";
+if(privateNoticeChannel){await db.removeChannel(privateNoticeChannel);privateNoticeChannel=null;}
+if(moderationChannel){await db.removeChannel(moderationChannel);moderationChannel=null;}
+if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
+if(presenceChannel){await presenceChannel.untrack();await db.removeChannel(presenceChannel);presenceChannel=null;}
+if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null;}
+closeNotifications();mentionNotifications=[];receivedIds.clear();privateReceivedIds.clear();roomUsers.clear();activePrivateUser=null;privateChats=[];privateUnread.clear();
+adminPin="";isAdmin=false;adminRole="";isRegisteredAccount=false;adminUsers.clear();$("navProfile").classList.add("hidden");registeredUsers.clear();checkedProfiles.clear();currentRoom=null;nickname="";senderId="";renderTabs();
+$("chat").style.display="none";$("login").style.display="block";document.body.classList.remove("chat-active");$("enterBtn").disabled=false;showLoginMode("home");
+$("messages").innerHTML="";$("privateMessages").innerHTML="";$("privateInput").value="";$("messageInput").value="";
+$("adminPanel").classList.add("hidden");$("adminOpenBtn").classList.add("hidden");$("adminPin").value="";$("adminPinWrap").classList.add("hidden");$("error").textContent="";
+$("bannedUsersList").innerHTML='<p class="muted">Presioná actualizar para ver los baneados.</p>';showMainTab("chat");renderUsers();
+}
+
+
+/* CONTROL DE EDAD: se conserva solo la confirmación de mayoría de edad, nunca la fecha de nacimiento. */
+const AGE_GATE_KEY="chatargentina_adult_access_v1";
+function hasAdultAccess(){
+  try{return localStorage.getItem(AGE_GATE_KEY)==="adult";}
+  catch(_){return false;}
+}
+function requireAdultAccess(){
+  if(hasAdultAccess())return true;
+  showAgeGate();
+  return false;
+}
+function showAgeGate(){
+  const gate=document.getElementById("ageGate");
+  if(gate)gate.classList.remove("hidden");
+}
+function calculateAge(birthDate,today=new Date()){
+  let age=today.getFullYear()-birthDate.getFullYear();
+  const beforeBirthday=today.getMonth()<birthDate.getMonth()||
+    (today.getMonth()===birthDate.getMonth()&&today.getDate()<birthDate.getDate());
+  if(beforeBirthday)age--;
+  return age;
+}
+function initAgeDateSelectors(){
+  const day=document.getElementById("ageGateDay");
+  const month=document.getElementById("ageGateMonth");
+  const year=document.getElementById("ageGateYear");
+  if(!day||!month||!year)return;
+  for(let d=1;d<=31;d++){const option=document.createElement("option");option.value=String(d);option.textContent=String(d);day.appendChild(option);}
+  ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].forEach((name,index)=>{const option=document.createElement("option");option.value=String(index);option.textContent=name;month.appendChild(option);});
+  const currentYear=new Date().getFullYear();
+  for(let y=currentYear;y>=1900;y--){const option=document.createElement("option");option.value=String(y);option.textContent=String(y);year.appendChild(option);}
+}
+async function submitAgeGate(){
+  const day=Number(document.getElementById("ageGateDay")?.value||0);
+  const monthValue=document.getElementById("ageGateMonth")?.value;
+  const year=Number(document.getElementById("ageGateYear")?.value||0);
+  const error=document.getElementById("ageGateError");
+  if(!day||monthValue===null||monthValue===""||!year){
+    error.textContent="Elegí el día, el mes y el año de nacimiento.";
+    return;
+  }
+  const birthDate=new Date(year,Number(monthValue),day,12,0,0);
+  const now=new Date();
+  if(birthDate.getFullYear()!==year||birthDate.getMonth()!==Number(monthValue)||birthDate.getDate()!==day||birthDate>now||year<1900){
+    error.textContent="Revisá la fecha ingresada.";
+    return;
+  }
+  if(calculateAge(birthDate,now)<18){
+    error.textContent="No podés ingresar a ChatArgentina. El servicio es exclusivo para mayores de 18 años.";
+    document.getElementById("ageGateDay").value="";
+    document.getElementById("ageGateMonth").value="";
+    document.getElementById("ageGateYear").value="";
+    return;
+  }
+  try{localStorage.setItem(AGE_GATE_KEY,"adult");}
+  catch(_){error.textContent="No se pudo guardar la confirmación en este dispositivo. Habilitá el almacenamiento para continuar.";return;}
+  document.getElementById("ageGate").classList.add("hidden");
+  let pending="";
+  try{pending=sessionStorage.getItem("chatargentina_pending_oauth_callback")||"";sessionStorage.removeItem("chatargentina_pending_oauth_callback");}catch(_){}
+  if(pending)await handleGoogleAuthCallback(pending);
+  else await restoreGoogleLogin();
+}
+initAgeDateSelectors();
+if(!hasAdultAccess())showAgeGate();
+
+/* INICIO */
+(async()=>{try{await fetchRooms();await restoreGoogleLogin();}catch(e){$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';showError(e.message);}})();
+
+/* CONTROL DEL VIEWPORT Y TECLADO: iOS Safari + Chrome + Android */
+(function(){
+const root=document.documentElement;
+const viewport=window.visualViewport;
+let frame=0;
+function updateScreen(){
+  cancelAnimationFrame(frame);
+  frame=requestAnimationFrame(function(){
+    if(!document.body.classList.contains("chat-active"))return;
+    if(viewport){
+      root.style.setProperty("--app-height",Math.max(1,Math.round(viewport.height))+"px");
+      root.style.setProperty("--visual-top",Math.max(0,Math.round(viewport.offsetTop))+"px");
+    }else{
+      root.style.setProperty("--app-height",window.innerHeight+"px");
+      root.style.setProperty("--visual-top","0px");
+    }
+  });
+}
+if(viewport){
+  viewport.addEventListener("resize",updateScreen,{passive:true});
+  viewport.addEventListener("scroll",updateScreen,{passive:true});
+}
+window.addEventListener("resize",updateScreen,{passive:true});
+window.addEventListener("orientationchange",function(){setTimeout(updateScreen,250);},{passive:true});
+document.addEventListener("focusin",function(event){
+  if(event.target.matches("#messageInput,#privateInput")){
+    updateScreen();
+    setTimeout(updateScreen,100);
+    setTimeout(updateScreen,300);
+  }
+});
+document.addEventListener("focusout",function(event){
+  if(event.target.matches("#messageInput,#privateInput"))setTimeout(updateScreen,250);
+});
+updateScreen();
+})();
+
+/* ACTUALIZACIONES WEB DE CHATARGENTINA */
+(function(){
+  function showWebUpdate(info){
+    if(document.getElementById("chatUpdateOverlay"))return;
+    const style=document.createElement("style");
+    style.textContent="#chatUpdateOverlay{position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:22px;font-family:Arial,sans-serif}#chatUpdateCard{width:100%;max-width:360px;background:linear-gradient(155deg,#192b49,#101a30);border:1px solid #398bd0;border-radius:20px;padding:24px 20px;color:#fff;text-align:center;box-shadow:0 16px 50px #000b}#chatUpdateCard h2{margin:0 0 10px;color:#75caff;font-size:21px}#chatUpdateCard p{color:#d5e3f5;font-size:14px;line-height:1.5;white-space:pre-wrap}#chatUpdateCard .update-version{color:#8ca9c9;font-size:12px}#chatUpdateCard button{width:100%;min-height:46px;margin-top:10px;border-radius:11px;font-size:15px}#chatUpdateLater{background:#344361;color:white}#chatUpdateNow{background:#168bea;color:white}#chatUpdateNow:disabled{opacity:.65}";
+    document.head.appendChild(style);
+    const overlay=document.createElement("div");overlay.id="chatUpdateOverlay";
+    const card=document.createElement("div");card.id="chatUpdateCard";
+    const title=document.createElement("h2");title.textContent="Hay una actualización nueva";
+    const message=document.createElement("p");message.textContent=info.notes||"Hay una nueva versión de ChatArgentina disponible.";
+    const version=document.createElement("div");version.className="update-version";version.textContent="Nueva versión: "+info.version;
+    const later=document.createElement("button");later.id="chatUpdateLater";later.textContent="Más tarde";later.onclick=()=>overlay.remove();
+    const update=document.createElement("button");update.id="chatUpdateNow";update.textContent="Actualizar";
+    update.onclick=()=>{update.disabled=true;update.textContent="Actualizando...";window.ChatArgentinaNative.applyWebUpdate(info.version);};
+    card.append(title,message,version,later,update);overlay.appendChild(card);document.body.appendChild(overlay);
+  }
+  function checkWebUpdate(){
+    try{
+      const bridge=window.ChatArgentinaNative;
+      if(!bridge||typeof bridge.getAvailableWebUpdate!=="function")return;
+      const info=JSON.parse(bridge.getAvailableWebUpdate());
+      if(info&&info.available&&info.version)showWebUpdate(info);
+    }catch(error){console.log("No se pudo consultar la actualización",error);}
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",checkWebUpdate,{once:true});
+  else setTimeout(checkWebUpdate,300);
+})();
+</script>
+</body>
+</html>

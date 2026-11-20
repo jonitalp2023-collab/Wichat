@@ -149,6 +149,17 @@ Deno.serve(async (req: Request) => {
     ];
     for (const [table, column] of cleanupTasks) await deleteBy(table, column);
 
+    // Revocar las sesiones de renovación solo después de limpiar los datos.
+    // Así, si la limpieza falla antes, la persona puede volver a autenticarse y reintentar.
+    const { error: revokeError } = await adminDb.auth.admin.signOut(token);
+    if (revokeError) {
+      console.error("No se pudieron revocar las sesiones:", revokeError.message);
+      return respond({
+        success: false,
+        message: "Los datos se limpiaron, pero no se pudieron cerrar todas las sesiones. Volvé a intentarlo para completar la eliminación.",
+      }, 503);
+    }
+
     const { error: deleteUserError } = await adminDb.auth.admin.deleteUser(userId);
     if (deleteUserError) {
       console.error("No se pudo eliminar la identidad de Auth:", deleteUserError.message);

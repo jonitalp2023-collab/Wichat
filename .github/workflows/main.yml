@@ -36,6 +36,19 @@ jobs:
       - name: Instalar plataforma y herramientas Android
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
+      - name: Validar JavaScript de ChatArgentina
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path("app/src/main/assets/index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script\\b(?![^>]*\\bsrc=)[^>]*>(.*?)</script>", html, flags=re.S | re.I)
+          if not scripts:
+              raise SystemExit("No se encontró JavaScript inline para validar")
+          Path("/tmp/chatargentina-inline.js").write_text("\\n".join(scripts), encoding="utf-8")
+          PY
+          node --check /tmp/chatargentina-inline.js
+
       - name: Configurar Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
         with:

@@ -157,11 +157,14 @@ Deno.serve(async (req: Request) => {
             (topic !== null && topic.length > 180)) {
           return respond({ success: false, message: "Datos del tópico no válidos." }, 400);
         }
-        ({ data: result, error } = await userDb.rpc("admin_set_room_topic", {
-          pin_input: pin,
-          room_id_input: roomId,
-          topic_input: topic,
-        }));
+        if (topic === null || topic === "") {
+          ({ data: result, error } = await adminDb.from("chat_room_topics")
+            .delete().eq("room_id", roomId));
+        } else {
+          ({ data: result, error } = await adminDb.from("chat_room_topics")
+            .upsert({ room_id: roomId, topic, updated_at: new Date().toISOString() }, { onConflict: "room_id" })
+            .select("room_id,topic").single());
+        }
         break;
       }
 
@@ -171,11 +174,11 @@ Deno.serve(async (req: Request) => {
         if (!Number.isSafeInteger(roomId) || roomId <= 0 || typeof enabled !== "boolean") {
           return respond({ success: false, message: "Datos de sala VIP no válidos." }, 400);
         }
-        ({ data: result, error } = await userDb.rpc("admin_set_room_vip", {
-          pin_input: pin,
-          room_id_input: roomId,
-          vip_enabled: enabled,
-        }));
+        ({ data: result, error } = await adminDb.from("rooms")
+          .update({ is_vip: enabled }).eq("id", roomId).select("id,is_vip").maybeSingle());
+        if (!error && !result) {
+          return respond({ success: false, message: "La sala no existe." }, 404);
+        }
         break;
       }
 
@@ -185,11 +188,20 @@ Deno.serve(async (req: Request) => {
         if (!nickname || nickname.length > 50 || typeof enabled !== "boolean") {
           return respond({ success: false, message: "Datos de membresía VIP no válidos." }, 400);
         }
-        ({ data: result, error } = await userDb.rpc("admin_set_vip_member", {
-          pin_input: pin,
-          nickname_input: nickname,
-          vip_enabled: enabled,
-        }));
+        const { data: matches, error: matchError } = await adminDb.from("chat_profiles")
+          .select("user_id,nickname").ilike("nickname", nickname).limit(2);
+        if (matchError) throw matchError;
+        if (!matches?.length) return respond({ success: false, message: "No se encontró ese usuario." }, 404);
+        if (matches.length > 1) return respond({ success: false, message: "Hay más de un usuario con ese Nick; no se modificó ninguna membresía." }, 409);
+        const targetUserId = matches[0].user_id;
+        if (enabled) {
+          ({ data: result, error } = await adminDb.from("chat_vip_members")
+            .upsert({ user_id: targetUserId, granted_by: "UNIX", note: "Membresía otorgada desde el panel" }, { onConflict: "user_id" })
+            .select("user_id").single());
+        } else {
+          ({ data: result, error } = await adminDb.from("chat_vip_members")
+            .delete().eq("user_id", targetUserId));
+        }
         break;
       }
 

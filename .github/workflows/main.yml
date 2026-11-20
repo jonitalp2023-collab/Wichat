@@ -45,7 +45,7 @@ jobs:
           scripts = re.findall(r"<script(?![^>]*src=)[^>]*>(.*?)</script>", html, flags=re.S | re.I)
           if not scripts:
               raise SystemExit("No se encontró JavaScript inline para validar")
-          Path("/tmp/chatargentina-inline.js").write_text("\n".join(scripts), encoding="utf-8")
+          Path("/tmp/chatargentina-inline.js").write_text("\\n".join(scripts), encoding="utf-8")
           PY
           node --check /tmp/chatargentina-inline.js
 
@@ -64,7 +64,7 @@ jobs:
         run: |
           if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "Firma no configurada en este evento; se compilarán APK debug y Lint."
+            echo "Firma no configurada; no se generará un APK de publicación."
             exit 0
           fi
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/chatargentina-release.jks"
@@ -80,9 +80,9 @@ jobs:
       - name: Compilar APK debug y ejecutar Lint
         run: gradle --no-daemon :app:assembleDebug :app:lintDebug --stacktrace
 
-      - name: Compilar AAB release firmado
+      - name: Compilar APK y AAB release firmados
         if: steps.signing.outputs.available == 'true'
-        run: gradle --no-daemon :app:bundleRelease --stacktrace
+        run: gradle --no-daemon :app:assembleRelease :app:bundleRelease --stacktrace
 
       - name: Guardar artefactos Android
         if: success()
@@ -92,4 +92,5 @@ jobs:
           if-no-files-found: warn
           path: |
             app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
             app/build/outputs/bundle/release/*.aab

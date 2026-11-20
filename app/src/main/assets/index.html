@@ -945,13 +945,13 @@ catch(error){console.warn("No se pudo liberar la sesión del dispositivo:",error
 accountSessionLeaseActive=false;
 }
 
-// Android: liberar la sesión exclusiva al enviar la aplicación a segundo plano.
-// Al volver, se vuelve a reclamar para mantener la protección entre dispositivos.
+// Android: no liberar la sesión exclusiva al pasar a segundo plano.
+// La actividad puede quedar suspendida por el sistema; las notificaciones push
+// se entregan mediante FCM y no dependen de mantener el WebView ejecutándose.
 let appSessionSuspended=false;
 window.chatAppOnBackground=async function(){
 if(!document.body.classList.contains("chat-active")||appSessionSuspended)return;
 appSessionSuspended=true;
-await releaseAccountDeviceSession();
 };
 window.chatAppOnForeground=async function(){
 if(!appSessionSuspended)return;

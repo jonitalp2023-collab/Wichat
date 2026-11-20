@@ -78,8 +78,10 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .chat-welcome{display:none}
 #messages,#privateMessages{flex:1;min-height:0;overflow-y:auto;background:#222;border:0;border-radius:0;padding:10px 11px;margin:0 0 5px;overscroll-behavior:contain}
 .message{display:flex;align-items:baseline;gap:8px;background:transparent;padding:0;margin-bottom:13px;border-radius:0;overflow-wrap:anywhere}
-.message-report-button{flex:0 0 auto;margin-left:auto;padding:3px 7px;border:1px solid #40516b;border-radius:8px;background:#26364e;color:#c9d8ec;font-size:12px;line-height:1.2}
-.private-message .message-report-button{float:right;margin:0 0 4px 8px}
+.message-actions-trigger{flex:0 0 auto;margin-left:auto;padding:2px 8px;border:1px solid #40516b;border-radius:8px;background:transparent;color:#aebed3;font-size:20px;line-height:1.1;min-width:32px;min-height:28px}
+.message-actions-menu{position:fixed;z-index:30000;min-width:190px;padding:6px;background:#14233a;border:1px solid #3b638b;border-radius:10px;box-shadow:0 8px 24px #000b}
+.message-actions-menu button{display:block;width:100%;padding:11px 12px;background:transparent;color:#f2f6fc;text-align:left;font-size:14px;font-weight:600;border-radius:7px}
+.message-actions-menu button:active{background:#25486c}
 .private-message{display:block;background:transparent;padding:5px 0;margin-bottom:9px;overflow-wrap:anywhere}
 .private-message.mine{background:transparent}
 .nickname{font-weight:bold;white-space:nowrap;font-size:14px}
@@ -1484,6 +1486,29 @@ roomUsers.forEach(u=>{if(u.id===senderId)return;const o=document.createElement("
 if(Array.from(s.options).some(o=>o.value===old))s.value=old;
 }
 
+/* MENÚ DISCRETO DE ACCIONES DEL MENSAJE */
+function openMessageActions(event,onReport){
+  event.stopPropagation();
+  document.querySelectorAll(".message-actions-menu").forEach(menu=>menu.remove());
+  const trigger=event.currentTarget;
+  const rect=trigger.getBoundingClientRect();
+  const menu=document.createElement("div");
+  menu.className="message-actions-menu";
+  const report=document.createElement("button");
+  report.type="button";
+  report.textContent="⚑  Denunciar mensaje";
+  report.onclick=actionEvent=>{actionEvent.stopPropagation();menu.remove();onReport();};
+  menu.appendChild(report);
+  document.body.appendChild(menu);
+  const menuRect=menu.getBoundingClientRect();
+  const top=rect.bottom+4+menuRect.height>window.innerHeight?Math.max(8,rect.top-menuRect.height-4):rect.bottom+4;
+  const left=Math.max(8,Math.min(window.innerWidth-menuRect.width-8,rect.right-menuRect.width));
+  menu.style.top=top+"px";
+  menu.style.left=left+"px";
+  const close=outsideEvent=>{if(!menu.contains(outsideEvent.target)&&outsideEvent.target!==trigger){menu.remove();document.removeEventListener("pointerdown",close,true);}};
+  setTimeout(()=>document.addEventListener("pointerdown",close,true),0);
+}
+
 /* MENSAJES PÚBLICOS */
 async function submitContentReport({targetUserId,messageId,privateMessageId,roomId,nick,content}){
   if(!senderId){alert("Iniciá sesión para denunciar contenido.");return;}
@@ -1536,7 +1561,7 @@ n.appendChild(document.createTextNode(nick));
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,n);
 const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";div.append(n,t);
-if(m.sender_id&&String(m.sender_id)!==String(senderId)&&m.id){const report=document.createElement("button");report.type="button";report.className="message-report-button";report.textContent="🚩";report.title="Denunciar mensaje";report.setAttribute("aria-label","Denunciar mensaje de "+nick);report.onclick=event=>{event.stopPropagation();reportPublicMessage(m);};div.appendChild(report);}
+if(m.sender_id&&String(m.sender_id)!==String(senderId)&&m.id){const actions=document.createElement("button");actions.type="button";actions.className="message-actions-trigger";actions.textContent="⋮";actions.title="Más opciones";actions.setAttribute("aria-label","Más opciones para el mensaje de "+nick);actions.onclick=event=>openMessageActions(event,()=>reportPublicMessage(m));div.appendChild(actions);}
 $("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
 }
 async function loadRoomMessages(roomId){
@@ -1699,7 +1724,7 @@ if(m.sender_id&&adminUsers.has(String(m.sender_id)))addAdminBadge(who,privateNic
 if(privateNick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";who.appendChild(at);who.classList.add("admin-unix");}
 who.appendChild(document.createTextNode(privateNick+": "));
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);
-if(m.sender_id&&String(m.sender_id)!==String(senderId)&&m.id&&!String(m.id).startsWith("pending-")){const report=document.createElement("button");report.type="button";report.className="message-report-button";report.textContent="🚩";report.title="Denunciar mensaje privado";report.setAttribute("aria-label","Denunciar mensaje privado de "+privateNick);report.onclick=event=>{event.stopPropagation();reportPrivateMessage(m);};div.appendChild(report);}
+if(m.sender_id&&String(m.sender_id)!==String(senderId)&&m.id&&!String(m.id).startsWith("pending-")){const actions=document.createElement("button");actions.type="button";actions.className="message-actions-trigger";actions.textContent="⋮";actions.title="Más opciones";actions.setAttribute("aria-label","Más opciones para el mensaje privado de "+privateNick);actions.onclick=event=>openMessageActions(event,()=>reportPrivateMessage(m));div.appendChild(actions);}
 box.appendChild(div);box.scrollTop=box.scrollHeight;
 }
 async function sendPrivateMessage(){

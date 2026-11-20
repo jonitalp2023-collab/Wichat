@@ -32,7 +32,7 @@ class MainActivity : Activity() {
         private const val FILE_CHOOSER_REQUEST_CODE = 4102
         private const val CHAT_HOST = "jonitalp2023-collab.github.io"
         private const val SUPABASE_HOST = "pqnnzkqxkndzelsbtxvv.supabase.co"
-        private const val CHAT_URL = "https://jonitalp2023-collab.github.io/Wichat/"
+        private const val CHAT_URL = "file:///android_asset/index.html"
         private const val AUTH_SCHEME = "com.wichat.app"
     }
 
@@ -48,7 +48,7 @@ class MainActivity : Activity() {
             domStorageEnabled = true
             cacheMode = WebSettings.LOAD_DEFAULT
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-            allowFileAccess = false
+            allowFileAccess = true
             allowContentAccess = false
             javaScriptCanOpenWindowsAutomatically = false
             setSupportMultipleWindows(false)
@@ -136,7 +136,11 @@ class MainActivity : Activity() {
         val scheme = uri.scheme?.lowercase()
         val host = uri.host?.lowercase()
 
-        // La única navegación que permanece dentro de la aplicación es la web oficial.
+        // Mantener la web local dentro del WebView conserva el origen y el almacenamiento
+        // usados por las versiones anteriores de la aplicación.
+        if (scheme == "file" && uri.path?.startsWith("/android_asset/") == true) return false
+
+        // La web oficial también puede abrirse dentro de la aplicación.
         if (scheme == "https" && host == CHAT_HOST) return false
 
         // Google OAuth debe abrirse en el navegador del sistema, no en un WebView embebido.

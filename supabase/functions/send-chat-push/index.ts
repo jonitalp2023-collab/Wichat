@@ -188,6 +188,17 @@ Deno.serve(async (req: Request) => {
     recipientIds = [...new Set(recipientIds)]
       .filter((id) => id && id !== senderId && !blockedRecipientIds.has(id))
       .slice(0, 500);
+
+    // Room subscriptions can become stale after a ban or VIP access change.
+    // Re-check current access before sending with the service role.
+    if (kind === "room" && recipientIds.length) {
+      const { data: eligibleRecipients, error: accessError } = await admin.rpc(
+        "filter_chat_push_recipients",
+        { recipient_ids_input: recipientIds, room_id_input: roomId },
+      );
+      if (accessError) throw accessError;
+      recipientIds = (eligibleRecipients || []).map((id: string) => String(id));
+    }
     if (!recipientIds.length) return json({ success: true, sent: 0, message: "No hay destinatarios registrados para esta notificación." });
 
     const { data: tokenRows, error: tokenError } = await admin

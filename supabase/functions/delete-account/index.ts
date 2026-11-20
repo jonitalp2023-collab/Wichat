@@ -52,15 +52,9 @@ Deno.serve(async (req: Request) => {
       return respond({ success: false, message: "La sesión venció. Iniciá sesión nuevamente." }, 401);
     }
     const userId = user.id;
-    // Revocar los tokens de renovación en todos los dispositivos antes de tocar los datos.
-    // Los access tokens JWT existentes siguen siendo válidos hasta su vencimiento, por lo que
-    // esta función puede completar la limpieza y eliminar la identidad en la misma solicitud.
-    const { error: revokeError } = await adminDb.auth.admin.signOut(token);
-    if (revokeError) {
-      console.error("No se pudieron revocar todas las sesiones:", revokeError.message);
-      return respond({ success: false, message: "No se pudieron cerrar todas las sesiones. No se modificaron los datos; volvé a intentarlo." }, 503);
-    }
-
+    // No cerrar ni revocar la sesión antes de completar la limpieza: si una operación
+    // falla, el usuario debe poder reintentar. deleteUser revoca las sesiones al final.
+    
     const deleteBy = async (table: string, column: string) => {
       const { error } = await adminDb.from(table).delete().eq(column, userId);
       if (error) throw new Error(`No se pudieron limpiar los datos de ${table}: ${error.message}`);
@@ -132,6 +126,8 @@ Deno.serve(async (req: Request) => {
 
     const cleanupTasks: Array<[string, string]> = [
       ["chat_profiles", "user_id"],
+      ["chat_push_tokens", "user_id"],
+      ["chat_push_room_subscriptions", "user_id"],
       ["chat_points_ledger", "user_id"],
       ["chat_vip_members", "user_id"],
       ["wichat_account_sessions", "user_id"],

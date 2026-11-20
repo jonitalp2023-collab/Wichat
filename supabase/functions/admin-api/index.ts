@@ -318,12 +318,23 @@ Deno.serve(async (req: Request) => {
       }
 
       case "list_user_reports": {
-        const { data: reports, error: reportsError } = await adminDb
-          .from("chat_user_reports")
-          .select("id,reporter_id,target_user_id,room_id,category,details,status,created_at,reviewed_at,target_message_id,target_private_message_id,message_snapshot")
-          .order("created_at", { ascending: false })
-          .limit(100);
-        if (reportsError) throw reportsError;
+        const reportFields = "id,reporter_id,target_user_id,room_id,category,details,status,created_at,reviewed_at,target_message_id,target_private_message_id,message_snapshot";
+        // Pending reports must not be hidden by a flood of newer, already reviewed reports.
+        const [pendingResult, historyResult] = await Promise.all([
+          adminDb.from("chat_user_reports")
+            .select(reportFields)
+            .eq("status", "pending")
+            .order("created_at", { ascending: false })
+            .limit(100),
+          adminDb.from("chat_user_reports")
+            .select(reportFields)
+            .neq("status", "pending")
+            .order("created_at", { ascending: false })
+            .limit(100),
+        ]);
+        if (pendingResult.error) throw pendingResult.error;
+        if (historyResult.error) throw historyResult.error;
+        const reports = [...(pendingResult.data || []), ...(historyResult.data || [])];
         const ids = [...new Set((reports || []).flatMap((r) => [r.reporter_id, r.target_user_id]).filter(Boolean))];
         let profiles: { user_id: string; nickname: string }[] = [];
         if (ids.length) {

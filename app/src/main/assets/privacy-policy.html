@@ -31,7 +31,7 @@ ul,ol{padding-left:24px}li{margin:7px 0}
 <li><strong>Seguridad y moderación:</strong> denuncias que enviás, usuario o mensaje denunciado, categoría, detalles, identificadores y, cuando denunciás un mensaje, una copia textual limitada del contenido denunciado (hasta 2.000 caracteres) para que pueda revisarse. También se pueden tratar bloqueos, sanciones, registros de actividad y datos necesarios para detectar spam, abuso o accesos no autorizados.</li>
 <li><strong>Dirección IP:</strong> la dirección IP de conexión puede registrarse asociada a tu cuenta para aplicar bloqueos, prevenir abusos y proteger las salas. Se utiliza con fines de seguridad y moderación, no para mostrar tu ubicación precisa a otros usuarios.</li>
 <li><strong>Identificador técnico del dispositivo:</strong> la aplicación genera un identificador local para administrar la sesión de la cuenta y evitar que una misma cuenta registrada mantenga sesiones simultáneas no permitidas. Ese identificador y los datos de vigencia de la sesión pueden procesarse en el servidor.</li>
-<li><strong>Notificaciones push:</strong> token de Firebase Cloud Messaging (FCM), identificador de cuenta, sala a la que estás suscripto y datos necesarios para generar y entregar avisos de nuevos mensajes. Android puede mostrar el título y el texto de la notificación cuando la aplicación está en segundo plano.</li>
+<li><strong>Notificaciones push:</strong> si aceptás el permiso de notificaciones en Android, se genera y utiliza un token de Firebase Cloud Messaging (FCM), asociado a tu cuenta, para enviarte avisos cuando la aplicación está en segundo plano. Los avisos pueden incluir el Nick de quien te escribió y una vista previa del mensaje; en los mensajes privados, esa vista previa puede contener parte del texto privado. Según la configuración de Android, el aviso puede aparecer también en la pantalla bloqueada. Podés desactivar las notificaciones desde los ajustes del dispositivo.</li>
 <li><strong>Información guardada en tu dispositivo:</strong> sesión de acceso, identificador técnico del dispositivo, usuarios bloqueados, preferencias, confirmación local de mayoría de edad y versión de los términos y normas aceptados. Estos datos permiten mantener tu sesión y tus elecciones entre aperturas.</li>
 <li><strong>Datos técnicos de conexión:</strong> información básica que los proveedores de infraestructura pueden generar al recibir solicitudes, como fecha y hora, dirección IP, registros de errores y datos de funcionamiento necesarios para prestar y proteger sus servicios.</li>
 </ul>
@@ -45,7 +45,7 @@ ul,ol{padding-left:24px}li{margin:7px 0}
 <li>Permitir que bloquees usuarios y que envíes denuncias de cuentas o mensajes.</li>
 <li>Revisar denuncias, conservar la evidencia necesaria para la moderación y aplicar medidas ante incumplimientos.</li>
 <li>Administrar sesiones por dispositivo, prevenir suplantaciones, spam, fraude y accesos no autorizados.</li>
-<li>Registrar tokens y suscripciones de notificaciones para avisarte de mensajes cuando la aplicación está en segundo plano.</li>
+<li>Registrar el token y las suscripciones de notificaciones, únicamente después de que aceptás el permiso en Android, para avisarte de mensajes cuando la aplicación está en segundo plano.</li>
 <li>Resolver problemas técnicos, mantener la disponibilidad del servicio y responder consultas o requerimientos legales.</li>
 </ul>
 
@@ -56,7 +56,7 @@ ul,ol{padding-left:24px}li{margin:7px 0}
 <h2>4. Proveedores y comunicación de información</h2>
 <ul>
 <li><strong>Supabase:</strong> presta servicios de autenticación, base de datos, almacenamiento de fotos de perfil y funciones seguras del servidor. La información de cuenta, perfil, mensajes, denuncias y seguridad necesaria para operar ChatArgentina se procesa mediante sus servicios.</li>
-<li><strong>Firebase Cloud Messaging (Google):</strong> permite entregar notificaciones push. Recibe el token técnico del dispositivo y los datos necesarios para dirigir y mostrar la notificación.</li>
+<li><strong>Firebase Cloud Messaging (Google):</strong> permite entregar notificaciones push. Recibe el token técnico del dispositivo y el contenido del aviso, que puede incluir el Nick del remitente y una vista previa del mensaje, incluso texto de mensajes privados, para dirigir y mostrar la notificación.</li>
 <li><strong>GitHub Pages:</strong> aloja la versión web pública, las páginas legales y los archivos web de actualización.</li>
 <li><strong>jsDelivr:</strong> distribuye la biblioteca de cliente utilizada para conectar la versión web con Supabase.</li>
 </ul>

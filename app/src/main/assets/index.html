@@ -397,6 +397,16 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <label class="profile-privacy"><input id="profileVisibleInput" type="checkbox"> Mi perfil es visible para otros usuarios registrados</label>
 <p id="profilePrivacyHint" class="muted">Si desactivás esta opción, solamente vos podrás ver tu perfil.</p>
 <button id="profileSaveBtn" onclick="saveMyProfile()">💾 Guardar perfil</button>
+<div class="profile-section" style="margin-top:22px;padding-top:16px;border-top:1px solid #4b3440">
+  <button type="button" class="danger" style="width:100%" onclick="beginAccountDeletion()">Eliminar mi cuenta</button>
+  <div id="deleteAccountConfirm" class="hidden" style="margin-top:12px;padding:13px;border:1px solid #bd394d;border-radius:12px;background:#251720">
+    <strong style="color:#ff9aaa">Esta acción es permanente</strong>
+    <p class="muted">Se eliminarán tu cuenta, perfil, fotos, mensajes y datos asociados. Escribí ELIMINAR para confirmar.</p>
+    <input id="deleteAccountPhrase" type="text" maxlength="8" autocomplete="off" placeholder="Escribí ELIMINAR">
+    <button id="deleteAccountConfirmBtn" type="button" class="danger" style="width:100%" onclick="deleteMyAccount()">Confirmar eliminación definitiva</button>
+    <button type="button" class="secondary" style="width:100%" onclick="cancelAccountDeletion()">Cancelar</button>
+  </div>
+</div>
 </div>
 <button class="secondary" onclick="closeProfileModal()">Cerrar</button>
 </div></div>
@@ -1314,6 +1324,41 @@ async function uploadProfilePhoto(input){
  const url=await resolveProfilePhoto(path);["profilePhotoDisplay","profilePhotoPreview"].forEach(id=>{const img=$(id);img.src=url;img.classList.toggle("hidden",!url);});alert("¡Foto de perfil actualizada!");
 }
 function closeProfileModal(){$("profileModal").classList.remove("show");$("navProfile").classList.remove("active");}
+function beginAccountDeletion(){
+ if(!isRegisteredAccount||!senderId){alert("Esta opción está disponible para cuentas registradas.");return;}
+ $("deleteAccountConfirm").classList.remove("hidden");
+ $("deleteAccountPhrase").value="";
+ $("deleteAccountPhrase").focus();
+}
+function cancelAccountDeletion(){
+ $("deleteAccountConfirm").classList.add("hidden");
+ $("deleteAccountPhrase").value="";
+}
+async function deleteMyAccount(){
+ if(!isRegisteredAccount||!senderId)return;
+ const phrase=$("deleteAccountPhrase").value.trim();
+ if(phrase!=="ELIMINAR"){alert("Para confirmar, escribí exactamente ELIMINAR.");return;}
+ if(!confirm("¿Estás seguro? Se eliminarán definitivamente tu cuenta y los datos asociados. Esta acción no se puede deshacer."))return;
+ const btn=$("deleteAccountConfirmBtn");
+ const userId=senderId;
+ btn.disabled=true;btn.textContent="Eliminando cuenta...";
+ try{
+  const {data,error}=await db.functions.invoke("delete-account",{body:{confirmation:"ELIMINAR"}});
+  if(error){
+   let message=error.message||"No se pudo contactar el servicio de eliminación.";
+   try{if(error.context&&typeof error.context.json==="function"){const response=await error.context.json();if(response?.message)message=response.message;}}catch(_){}
+   throw new Error(message);
+  }
+  if(!data?.success)throw new Error(data?.message||"No se pudo completar la eliminación.");
+  try{await db.auth.signOut({scope:"local"});}catch(signOutError){console.warn("La cuenta ya fue eliminada; no se pudo limpiar la sesión local:",signOutError);}
+  try{localStorage.removeItem(BLOCKED_USERS_KEY_PREFIX+userId);}catch(_){}
+  alert("Tu cuenta de ChatArgentina fue eliminada correctamente.");
+  window.location.reload();
+ }catch(error){
+  alert(error.message||"No se pudo eliminar la cuenta. Podés volver a intentarlo o escribir a jonitalp2023@gmail.com.");
+  btn.disabled=false;btn.textContent="Confirmar eliminación definitiva";
+ }
+}
 async function saveMyProfile(){
  if(!isRegisteredAccount||!senderId)return;
  const btn=$("profileSaveBtn");btn.disabled=true;

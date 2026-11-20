@@ -201,7 +201,7 @@ class MainActivity : Activity() {
                 val latest = manifest.optString("version", "")
                 val installed = getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE)
                     .getString(UPDATE_VERSION_KEY, "local") ?: "local"
-                if (!latest.matches(Regex("""\\d+\\.\\d+\\.\\d+""")) || latest == installed) {
+                if (!latest.matches(Regex("""\d+\.\d+\.\d+""")) || latest == installed) {
                     JSONObject().put("available", false).toString()
                 } else {
                     JSONObject().put("available", true)
@@ -216,7 +216,7 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun applyWebUpdate(version: String) {
-            if (!version.matches(Regex("""\\d+\\.\\d+\\.\\d+"""))) return
+            if (!version.matches(Regex("""\d+\.\d+\.\d+"""))) return
             getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE).edit()
                 .putString(UPDATE_VERSION_KEY, version).apply()
             runOnUiThread { recreate() }

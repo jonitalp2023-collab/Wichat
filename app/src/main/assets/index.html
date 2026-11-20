@@ -28,6 +28,10 @@ button:disabled{opacity:.5}
 #login{width:100%;max-width:440px;margin:20px auto;padding:27px 22px;text-align:center;background:linear-gradient(155deg,#192b49,#101a30);border:1px solid #29476c;border-radius:24px;box-shadow:0 18px 55px #0009}
 #login h1{font-size:27px;margin:5px 0;letter-spacing:1px}
 #login .login-subtitle{color:#a9bad4;font-size:14px;margin:8px 0 23px;line-height:1.5}
+#login .guest-entry{margin:13px 0 20px;text-align:left}
+#login .guest-entry label{display:block;color:#b9cce5;font-size:13px;margin:0 0 6px 2px}
+#login .guest-entry input{width:100%;height:49px;margin:0 0 9px;padding:13px;background:#0b1528;border:1px solid #385477;border-radius:11px;color:white;font-size:16px}
+#login .guest-entry .login-main-button{margin-top:2px}
 #login .login-choice{width:100%;min-height:66px;margin:9px 0;display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:13px 17px;border:1px solid #36577f;border-radius:14px;background:#1c3150;color:white;text-align:left;font-size:15px;transition:.2s}
 #login .login-choice:active{transform:scale(.98);background:#24558a}
 #login .google-choice{background:#fff;color:#263238;border-color:#d9e0e7}
@@ -421,10 +425,16 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <h1>CHAT ARGENTINA 🇦🇷</h1>
 <p class="login-subtitle">Conectate, conocé gente y disfrutá de conversar.</p>
 <div id="loginChoices">
-<button class="login-choice google-choice" onclick="signInWithGoogle()"><span class="choice-icon">G</span><span><strong>CONTINUAR CON GOOGLE</strong><small>Ingresá con tu cuenta de Google</small></span></button>
+<div id="guestForm" class="guest-entry">
+<label for="nickname">Tu Nick para entrar</label>
+<input id="nickname" maxlength="25" placeholder="Escribí tu Nick" autocomplete="nickname">
+<div id="adminPinWrap" class="hidden"><label for="adminPin">PIN de administrador UNIX</label><input id="adminPin" type="password" placeholder="PIN de administrador UNIX"><p class="muted">El Nick UNIX está reservado para el administrador.</p></div>
+<select id="initialRoom" class="hidden"><option value="">Cargando salas...</option></select>
+<button id="enterBtn" class="login-main-button" onclick="enterChat()">ENTRAR AL CHAT</button>
+</div>
 <button class="login-choice" onclick="showLoginMode('register')"><span class="choice-icon">👤</span><span><strong>CREAR CUENTA</strong><small>Registrate gratis en CHAT ARGENTINA</small></span></button>
 <button class="login-choice" onclick="showLoginMode('login')"><span class="choice-icon">🔐</span><span><strong>INICIAR SESIÓN</strong><small>Ya tengo una cuenta</small></span></button>
-<button class="login-choice" onclick="showLoginMode('guest')"><span class="choice-icon">💬</span><span><strong>ENTRAR COMO INVITADO</strong><small>Ingresá sin registrarte</small></span></button>
+<button class="login-choice google-choice" onclick="signInWithGoogle()"><span class="choice-icon">G</span><span><strong>CONTINUAR CON GOOGLE</strong><small>Ingresá con tu cuenta de Google</small></span></button>
 </div>
 <div id="registerForm" class="login-form hidden">
 <h2>✨ Crear mi cuenta</h2>
@@ -441,14 +451,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <button id="accountLoginBtn" class="login-main-button" onclick="loginAccount()">INGRESAR</button>
 <button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
 </div>
-<div id="guestForm" class="login-form hidden">
-<h2>💬 Entrar como invitado</h2>
-<label for="nickname">Elegí tu Nick</label><input id="nickname" maxlength="25" placeholder="Escribí tu Nick" autocomplete="nickname">
-<div id="adminPinWrap" class="hidden"><label for="adminPin">PIN de administrador UNIX</label><input id="adminPin" type="password" placeholder="PIN de administrador UNIX"><p class="muted">El Nick UNIX está reservado para el administrador.</p></div>
-<label class="muted" for="initialRoom">Elegí una sala</label><select id="initialRoom"><option value="">Cargando salas...</option></select>
-<button id="enterBtn" class="login-main-button" onclick="enterChat()">ENTRAR AL CHAT</button>
-<button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
-</div>
+
 <div id="googleForm" class="login-form hidden">
 <h2>🌐 Ingresar con Google</h2>
 <p class="muted">Elegí el Nick que vas a usar en Wichat. Tu cuenta de Google quedará vinculada a tu perfil.</p>
@@ -718,7 +721,6 @@ authMode=mode;
 $("loginChoices").classList.toggle("hidden",mode!=="home");
 $("registerForm").classList.toggle("hidden",mode!=="register");
 $("emailLoginForm").classList.toggle("hidden",mode!=="login");
-$("guestForm").classList.toggle("hidden",mode!=="guest");
 $("googleForm").classList.toggle("hidden",mode!=="google");
 showError("");
 }
@@ -748,7 +750,6 @@ async function showGoogleSetup(user){
   $("loginChoices").classList.add("hidden");
   $("registerForm").classList.add("hidden");
   $("emailLoginForm").classList.add("hidden");
-  $("guestForm").classList.add("hidden");
   $("googleForm").classList.remove("hidden");
   const metadata=user?.user_metadata||{};
   let suggested=String(metadata.full_name||metadata.name||metadata.given_name||"").trim().replace(/\s+/g," ").slice(0,25);

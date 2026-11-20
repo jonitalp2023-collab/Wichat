@@ -308,7 +308,7 @@ Deno.serve(async (req: Request) => {
       case "list_user_reports": {
         const { data: reports, error: reportsError } = await adminDb
           .from("chat_user_reports")
-          .select("id,reporter_id,target_user_id,room_id,category,details,status,created_at,reviewed_at")
+          .select("id,reporter_id,target_user_id,room_id,category,details,status,created_at,reviewed_at,target_message_id,target_private_message_id,message_snapshot")
           .order("created_at", { ascending: false })
           .limit(100);
         if (reportsError) throw reportsError;

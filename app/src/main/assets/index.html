@@ -638,15 +638,20 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{flowType:
 const $=id=>document.getElementById(id);
 let nickname="",senderId="",currentRoom=null,rooms=[];
 
-// Registra de forma privada el token FCM del usuario autenticado en Supabase.
+// Registra el token FCM mediante la función segura del servidor.
+// El servidor valida la sesión y mantiene una sola asociación por dispositivo.
 window.onNativeFcmToken=async function(token){
-  if(!token||!senderId)return;
-  const {error}=await db.from("chat_push_tokens").upsert({
-    user_id:senderId,
-    fcm_token:token,
-    updated_at:new Date().toISOString()
-  },{onConflict:"user_id"});
-  if(error)console.warn("No se pudo registrar el dispositivo para notificaciones:",error.message);
+  if(!token)return;
+  try{
+    const {data,error}=await db.functions.invoke("send-chat-push",{
+      body:{action:"register",fcm_token:token}
+    });
+    if(error)throw error;
+    if(data?.success!==true)throw new Error(data?.error||"El servidor no confirmó el registro.");
+    console.log("Dispositivo registrado para recibir notificaciones.");
+  }catch(error){
+    console.warn("No se pudo registrar el dispositivo para notificaciones:",error?.message||error);
+  }
 };
 let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=null,nicknameHeartbeatTimer=null,nicknameLeaseActive=false;let accountSessionHeartbeatTimer=null,accountSessionLeaseActive=false,accountDeviceId=null;
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";

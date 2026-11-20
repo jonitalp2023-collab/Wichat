@@ -17,6 +17,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.webkit.WebViewAssetLoader
 import android.net.http.SslError
 import org.json.JSONObject
 
@@ -31,8 +32,9 @@ class MainActivity : Activity() {
     companion object {
         private const val FILE_CHOOSER_REQUEST_CODE = 4102
         private const val CHAT_HOST = "jonitalp2023-collab.github.io"
+        private const val ASSET_HOST = "appassets.androidplatform.net"
         private const val SUPABASE_HOST = "pqnnzkqxkndzelsbtxvv.supabase.co"
-        private const val CHAT_URL = "file:///android_asset/index.html"
+        private const val CHAT_URL = "https://appassets.androidplatform.net/assets/index.html"
         private const val AUTH_SCHEME = "com.wichat.app"
     }
 
@@ -43,12 +45,16 @@ class MainActivity : Activity() {
         pendingAuthCallback = authCallbackFrom(intent?.data)
 
         web = WebView(this)
+        val assetLoader = WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
+            .build()
+
         web.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             cacheMode = WebSettings.LOAD_DEFAULT
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-            allowFileAccess = true
+            allowFileAccess = false
             allowContentAccess = false
             javaScriptCanOpenWindowsAutomatically = false
             setSupportMultipleWindows(false)
@@ -64,6 +70,23 @@ class MainActivity : Activity() {
         WebView.setWebContentsDebuggingEnabled(false)
 
         web.webViewClient = object : WebViewClient() {
+            override fun shouldInterceptRequest(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): android.webkit.WebResourceResponse? {
+                val uri = request?.url ?: return null
+                return assetLoader.shouldInterceptRequest(uri)
+            }
+
+            @Suppress("DEPRECATION")
+            override fun shouldInterceptRequest(
+                view: WebView?,
+                url: String?
+            ): android.webkit.WebResourceResponse? {
+                val uri = url?.let(Uri::parse) ?: return null
+                return assetLoader.shouldInterceptRequest(uri)
+            }
+
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
                 request: WebResourceRequest?
@@ -136,12 +159,8 @@ class MainActivity : Activity() {
         val scheme = uri.scheme?.lowercase()
         val host = uri.host?.lowercase()
 
-        // Mantener la web local dentro del WebView conserva el origen y el almacenamiento
-        // usados por las versiones anteriores de la aplicación.
-        if (scheme == "file" && uri.path?.startsWith("/android_asset/") == true) return false
-
-        // La web oficial también puede abrirse dentro de la aplicación.
-        if (scheme == "https" && host == CHAT_HOST) return false
+        // Los recursos locales seguros y la web oficial permanecen dentro del WebView.
+        if (scheme == "https" && (host == ASSET_HOST || host == CHAT_HOST)) return false
 
         // Google OAuth debe abrirse en el navegador del sistema, no en un WebView embebido.
         if (scheme == "https" && host == SUPABASE_HOST &&

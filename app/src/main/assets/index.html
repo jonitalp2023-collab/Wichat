@@ -132,6 +132,12 @@ body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:non
 .user-menu-card .private-action{background:#168bea}
 .user-menu-card .kick-action{background:#344361}
 .user-menu-card .ban-action{background:#bd394d}
+#blockedUsersModal{display:none;position:fixed;inset:0;z-index:27000;background:rgba(0,0,0,.82);align-items:center;justify-content:center;padding:18px}
+#blockedUsersModal.show{display:flex}
+.blocked-users-card{width:100%;max-width:390px;max-height:82vh;overflow:auto;background:#141e35;border:1px solid #278bd2;border-radius:16px;padding:20px}
+.blocked-user-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #344361}
+.blocked-user-row strong{overflow-wrap:anywhere}
+.blocked-user-row button{flex:0 0 auto;background:#344361}
 #profileModal{display:none;position:fixed;inset:0;z-index:26000;background:radial-gradient(ellipse at 50% 8%,rgba(22,116,190,.24),transparent 52%),rgba(2,7,18,.91);align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(7px)}
 #profileModal.show{display:flex}
 .profile-card{position:relative;width:100%;max-width:410px;max-height:90vh;overflow-y:auto;background:linear-gradient(160deg,#172944 0%,#101b30 48%,#0b1426 100%);border:1px solid rgba(76,174,255,.48);border-radius:25px;padding:24px 21px 20px;box-shadow:0 22px 65px #000d,inset 0 1px 0 rgba(255,255,255,.06)}
@@ -334,12 +340,21 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <h3 id="userMenuTitle">Usuario</h3>
 <button class="private-action" onclick="userMenuPrivate()">💬 Enviar mensaje privado</button>
 <button id="viewProfileBtn" class="secondary hidden" onclick="userMenuViewProfile()">👤 Ver perfil</button>
+<button class="secondary" onclick="userMenuReport()">🚩 Reportar usuario</button>
+<button id="blockUserBtn" class="danger" onclick="userMenuBlock()">⛔ Bloquear usuario</button>
 <div id="adminUserActions" class="hidden">
 <button class="kick-action" onclick="userMenuModerate('kick')">🚪 Echar usuario</button>
 <button class="ban-action" onclick="userMenuModerate('ban')">🚫 Banear usuario por 5 minutos</button>
 </div>
 <button class="secondary" onclick="closeUserMenu()">Cerrar</button>
 </div></div>
+<div id="blockedUsersModal" onclick="if(event.target===this)closeBlockedUsers()">
+  <section class="blocked-users-card">
+    <h3>Usuarios bloqueados</h3>
+    <div id="blockedUsersList"></div>
+    <button class="secondary" style="width:100%;margin-top:14px" onclick="closeBlockedUsers()">Cerrar</button>
+  </section>
+</div>
 <div id="profileModal" onclick="if(event.target===this)closeProfileModal()">
 <div class="profile-card">
 <h3 id="profileTitle">Perfil</h3>
@@ -417,7 +432,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
 <input id="messageInput" maxlength="1000" placeholder="Escribí aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
 <div class="mention-wrap"><button id="mentionToggle" class="mention-toggle" type="button" aria-label="Mencionar usuario" title="Mencionar usuario" onclick="toggleMentionPicker()">#</button><div id="mentionPicker" class="mention-picker"></div></div><button id="sendBtn" class="send-button" onpointerdown="event.preventDefault()" onclick="sendMessage()">➤</button></div></div>
-<div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><div id="usersCountText" class="user-count">0 usuarios conectados</div><input id="userSearchInput" class="user-search" type="search" placeholder="🔎 Buscar usuario..." oninput="renderUsers()" autocomplete="off"><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
+<div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><button class="secondary" style="margin:0 0 10px" onclick="openBlockedUsers()">⛔ Usuarios bloqueados</button><div id="usersCountText" class="user-count">0 usuarios conectados</div><input id="userSearchInput" class="user-search" type="search" placeholder="🔎 Buscar usuario..." oninput="renderUsers()" autocomplete="off"><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
 <div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
 <div id="privateView" class="hidden"><div id="privateMessages"></div>
 <div class="composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
@@ -587,6 +602,32 @@ let messageChannel=null,roomChannel=null,presenceChannel=null,nicknameChannel=nu
 let privateChannel=null,privateNoticeChannel=null,moderationChannel=null,topicChannel=null,currentRoomTopic="";
 let receivedIds=new Set(),privateReceivedIds=new Set(),roomUsers=new Map(),activePrivateUser=null;
 let privateChats=[],privateUnread=new Set(),isAdmin=false,adminPin="",adminRole="",selectedMenuUser=null;
+const BLOCKED_USERS_KEY_PREFIX="chatargentina_blocked_users_";
+function getBlockedUsers(){
+  try{
+    const value=JSON.parse(localStorage.getItem(BLOCKED_USERS_KEY_PREFIX+String(senderId||"guest"))||"[]");
+    return Array.isArray(value)?value.filter(item=>item&&item.id).map(item=>({id:String(item.id),nick:String(item.nick||"Usuario")})):[];
+  }catch(_){return [];}
+}
+function isUserBlocked(id){return getBlockedUsers().some(item=>item.id===String(id));}
+function saveBlockedUsers(users){localStorage.setItem(BLOCKED_USERS_KEY_PREFIX+String(senderId||"guest"),JSON.stringify(users));}
+function renderBlockedUsers(){
+  const list=$("blockedUsersList");if(!list)return;list.innerHTML="";
+  const users=getBlockedUsers();
+  if(!users.length){const empty=document.createElement("p");empty.className="muted";empty.textContent="No bloqueaste a nadie.";list.appendChild(empty);return;}
+  users.forEach(user=>{
+    const row=document.createElement("div");row.className="blocked-user-row";
+    const name=document.createElement("strong");name.textContent=user.nick;
+    const button=document.createElement("button");button.textContent="Desbloquear";button.onclick=()=>unblockUser(user.id);
+    row.append(name,button);list.appendChild(row);
+  });
+}
+function openBlockedUsers(){renderBlockedUsers();$("blockedUsersModal").classList.add("show");}
+function closeBlockedUsers(){$("blockedUsersModal").classList.remove("show");}
+function unblockUser(id){
+  saveBlockedUsers(getBlockedUsers().filter(user=>user.id!==String(id)));
+  renderBlockedUsers();renderUsers();renderMentionUsers();
+}
 const adminUsers=new Set();
 let adminManagementUsers=[];
 let mentionNotifications=[];
@@ -1050,7 +1091,7 @@ function renderMentionUsers(){
 function renderMentionUserResults(query=""){
  const results=$("mentionResults");if(!results)return;results.innerHTML="";
  const term=String(query||"").trim().replace(/^#/,"").toLocaleLowerCase("es");
- const users=Array.from(roomUsers.values()).filter(user=>String(user.nick||"").toLocaleLowerCase("es").includes(term)).sort((a,b)=>a.nick.localeCompare(b.nick,"es",{sensitivity:"base"}));
+ const users=Array.from(roomUsers.values()).filter(user=>!isUserBlocked(user.id)&&String(user.nick||"").toLocaleLowerCase("es").includes(term)).sort((a,b)=>a.nick.localeCompare(b.nick,"es",{sensitivity:"base"}));
  if(!users.length){const empty=document.createElement("div");empty.className="mention-empty";empty.textContent=term?"No se encontraron usuarios con ese Nick.":"No hay usuarios conectados en esta sala.";results.appendChild(empty);return;}
  users.forEach(user=>{const option=document.createElement("button");option.type="button";option.className="mention-user";const dot=document.createElement("span");dot.className="online-dot";const nick=document.createElement("span");nick.textContent=user.nick;option.append(dot,nick);option.onclick=()=>insertMention(user.nick);results.appendChild(option);});
 }
@@ -1114,6 +1155,7 @@ if(!user||!user.id||String(user.id)===String(senderId))return;
 selectedMenuUser={id:user.id,nick:user.nick||"Usuario",registered:user.registered===true||registeredUsers.has(String(user.id))};
 $("userMenuTitle").textContent=selectedMenuUser.nick;
 $("viewProfileBtn").classList.add("hidden");
+$("blockUserBtn").textContent=isUserBlocked(selectedMenuUser.id)?"↩️ Desbloquear usuario":"⛔ Bloquear usuario";
 $("adminUserActions").classList.toggle("hidden",!isAdmin);
 $("userMenuModal").classList.add("show");
 if((isRegisteredAccount||isAdmin)&&selectedMenuUser.registered){
@@ -1125,6 +1167,49 @@ if((isRegisteredAccount||isAdmin)&&selectedMenuUser.registered){
 }
 }
 function closeUserMenu(){$("userMenuModal").classList.remove("show");}
+async function userMenuReport(){
+  if(!selectedMenuUser||!senderId){alert("Iniciá sesión para reportar a un usuario.");return;}
+  const user={...selectedMenuUser};
+  const categoryInput=prompt("Motivo del reporte:\n1. Spam\n2. Insultos\n3. Acoso\n4. Contenido inapropiado\n5. Otro","3");
+  if(categoryInput===null)return;
+  const categories={"1":"spam","2":"insultos","3":"acoso","4":"contenido_inapropiado","5":"otro"};
+  const category=categories[String(categoryInput).trim()];
+  if(!category){alert("Elegí un número del 1 al 5.");return;}
+  const details=prompt("Contanos brevemente qué ocurrió (entre 5 y 500 caracteres):","");
+  if(details===null)return;
+  if(details.trim().length<5||details.trim().length>500){alert("El detalle debe tener entre 5 y 500 caracteres.");return;}
+  if(!confirm("¿Enviar el reporte sobre "+user.nick+"?"))return;
+  try{
+    const roomId=Number(currentRoom);
+    const {error}=await db.from("chat_user_reports").insert({
+      reporter_id:senderId,
+      target_user_id:String(user.id),
+      room_id:Number.isSafeInteger(roomId)&&roomId>0?roomId:null,
+      category,
+      details:details.trim()
+    });
+    if(error)throw error;
+    closeUserMenu();alert("Reporte enviado. Gracias por ayudar a cuidar la comunidad.");
+  }catch(error){alert("No se pudo enviar el reporte: "+(error.message||String(error)));}
+}
+function userMenuBlock(){
+  if(!selectedMenuUser)return;
+  const user={...selectedMenuUser};
+  const current=getBlockedUsers();
+  if(current.some(item=>item.id===String(user.id))){
+    unblockUser(user.id);$("blockUserBtn").textContent="⛔ Bloquear usuario";alert(user.nick+" fue desbloqueado.");return;
+  }
+  if(!confirm("Bloquear a "+user.nick+" en este dispositivo? Sus mensajes públicos y privados dejarán de mostrarse."))return;
+  current.push({id:String(user.id),nick:user.nick});
+  saveBlockedUsers(current);
+  closeUserMenu();
+  const privateTab=privateChats.find(item=>String(item.id)===String(user.id));
+  if(privateTab)closePrivateTab(user.id);
+  document.querySelectorAll("[data-sender-id]").forEach(node=>{
+    if(node.dataset.senderId===String(user.id))node.remove();
+  });
+  renderUsers();renderMentionUsers();
+}
 async function userMenuViewProfile(){
  if(!selectedMenuUser||(!isRegisteredAccount&&!isAdmin))return;
  const target={...selectedMenuUser};closeUserMenu();
@@ -1201,7 +1286,7 @@ if(action==="ban")await loadBannedUsers();
 function renderUsers(){
 const list=$("usersList");if(!list)return;
 const query=($("userSearchInput")?.value||"").trim().toLocaleLowerCase();
-const users=Array.from(roomUsers.values()).sort((a,b)=>{
+const users=Array.from(roomUsers.values()).filter(user=>!isUserBlocked(user.id)).sort((a,b)=>{
 const aUnix=String(a.nick||"").toUpperCase()==="UNIX",bUnix=String(b.nick||"").toUpperCase()==="UNIX";
 if(aUnix!==bUnix)return aUnix?-1:1;
 return String(a.nick||"").localeCompare(String(b.nick||""),"es",{sensitivity:"base",numeric:true});
@@ -1229,8 +1314,10 @@ if(Array.from(s.options).some(o=>o.value===old))s.value=old;
 
 /* MENSAJES PÚBLICOS */
 function addMessage(m,notifyMention=false){
-if(!m||receivedIds.has(m.id))return;receivedIds.add(m.id);if(notifyMention)addMentionNotification(m);
-const div=document.createElement("div");div.className="message";const n=document.createElement("strong");n.className="nickname";const nick=m.nickname||"Usuario";let hash=0;
+if(!m)return;
+if(m.sender_id&&isUserBlocked(m.sender_id)){receivedIds.add(m.id);return;}
+if(receivedIds.has(m.id))return;receivedIds.add(m.id);if(notifyMention)addMentionNotification(m);
+const div=document.createElement("div");div.className="message";div.dataset.senderId=String(m.sender_id||"");const n=document.createElement("strong");n.className="nickname";const nick=m.nickname||"Usuario";let hash=0;
 for(let i=0;i<nick.length;i++)hash=nick.charCodeAt(i)+((hash<<5)-hash);
 const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];n.style.color=colors[Math.abs(hash)%colors.length];
 if(m.sender_id&&registeredUsers.has(String(m.sender_id)))addRegisteredPlus(n);
@@ -1382,8 +1469,10 @@ $("privateMessages").innerHTML="";privateReceivedIds.clear();(data||[]).forEach(
 if(!(data||[]).length)$("privateMessages").innerHTML='<p class="muted">Todavía no hay mensajes. ¡Saludá!</p>';
 }
 function addPrivateMessage(m){
-if(!m||privateReceivedIds.has(m.id))return;privateReceivedIds.add(m.id);const box=$("privateMessages"),empty=box.querySelector(".muted");if(empty)box.innerHTML="";
-const div=document.createElement("div");div.dataset.messageId=String(m.id);div.className="private-message"+(String(m.sender_id)===String(senderId)?" mine":"");
+if(!m)return;
+if(m.sender_id&&String(m.sender_id)!==String(senderId)&&isUserBlocked(m.sender_id)){privateReceivedIds.add(m.id);return;}
+if(privateReceivedIds.has(m.id))return;privateReceivedIds.add(m.id);const box=$("privateMessages"),empty=box.querySelector(".muted");if(empty)box.innerHTML="";
+const div=document.createElement("div");div.dataset.senderId=String(m.sender_id||"");div.dataset.messageId=String(m.id);div.className="private-message"+(String(m.sender_id)===String(senderId)?" mine":"");
 const who=document.createElement("strong");who.className="nickname";
 const privateNick=String(m.sender_id)===String(senderId)?nickname:(m.sender_nickname||"Usuario");let hash=0;
 for(let i=0;i<privateNick.length;i++)hash=privateNick.charCodeAt(i)+((hash<<5)-hash);
@@ -1399,6 +1488,7 @@ if(!activePrivateUser)return;
 const input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();
 if(!value||btn.disabled)return;
 const recipientId=activePrivateUser.id;
+if(isUserBlocked(recipientId)){alert("Desbloqueá a este usuario para enviarle mensajes.");return;}
 const pendingId="pending-"+crypto.randomUUID();
 btn.disabled=true;
 input.value="";

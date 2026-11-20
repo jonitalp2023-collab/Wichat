@@ -758,7 +758,8 @@ if(!requireAdultAccess())return;
       const {error}=await db.auth.signOut();
       if(error)throw error;
     }
-    const redirectTo=window.Android
+    const isAndroidApp=window.location.hostname==="appassets.androidplatform.net";
+    const redirectTo=isAndroidApp
       ?"com.wichat.app://auth/callback"
       :"https://jonitalp2023-collab.github.io/Wichat/";
     const {error}=await db.auth.signInWithOAuth({

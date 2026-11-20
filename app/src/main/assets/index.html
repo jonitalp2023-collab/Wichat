@@ -1212,7 +1212,9 @@ if(!allowed){const room=rooms.find(r=>String(r.id)===String(id));if(room?.is_vip
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}
-currentRoom=id;showMainTab("chat");$("roomTopic").style.display="flex";$("roomTopicText").textContent="Cargando tópico...";$("roomTopic").classList.add("empty");await loadRoomTopic(id);
+currentRoom=id;
+db.from("chat_push_room_subscriptions").upsert({user_id:senderId,room_id:id,updated_at:new Date().toISOString()},{onConflict:"user_id"}).then(({error})=>{if(error)console.warn("No se pudo actualizar la sala para notificaciones:",error.message);}).catch(error=>console.warn("No se pudo actualizar la sala para notificaciones:",error));
+showMainTab("chat");$("roomTopic").style.display="flex";$("roomTopicText").textContent="Cargando tópico...";$("roomTopic").classList.add("empty");await loadRoomTopic(id);
 topicChannel=db.channel("wichat-room-topic-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id)).subscribe();
 receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();renderUsers();renderMentionUsers();
 const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";
@@ -1473,10 +1475,16 @@ async function sendMessage(){
     if(!session?.user?.id)throw new Error("No hay una sesión activa. Salí y volvé a ingresar al chat.");
     if(String(session.user.id)!==String(senderId))throw new Error("La sesión cambió. Salí y volvé a ingresar al chat.");
 
-    const {error:insertError}=await db.from("messages").insert({
+    const {data:savedMessage,error:insertError}=await db.from("messages").insert({
       nickname:senderNickname,message:value,room_id:roomId,sender_id:senderId
-    });
+    }).select("id").single();
     if(insertError)throw insertError;
+    if(savedMessage?.id){
+      db.functions.invoke("send-chat-push",{body:{kind:"room",message_id:savedMessage.id}}).then(({data,error})=>{
+        if(error)console.warn("No se pudo enviar la notificación de sala:",error);
+        else if(data?.success!==true)console.warn("Notificación de sala no enviada:",data);
+      }).catch(error=>console.warn("No se pudo enviar la notificación de sala:",error));
+    }
 
     // Liberar el compositor apenas la base confirma el mensaje.
     // La respuesta de los bots se procesa aparte y no bloquea el siguiente envío.
@@ -1614,6 +1622,10 @@ try{
     .insert({sender_id:senderId,recipient_id:recipientId,sender_nickname:nickname,content:value})
     .select().single();
   if(error)throw error;
+  db.functions.invoke("send-chat-push",{body:{kind:"private",message_id:data.id}}).then(({data:pushData,error:pushError})=>{
+    if(pushError)console.warn("No se pudo enviar la notificación privada:",pushError);
+    else if(pushData?.success!==true)console.warn("Notificación privada no enviada:",pushData);
+  }).catch(pushError=>console.warn("No se pudo enviar la notificación privada:",pushError));
   const pending=document.querySelector('[data-message-id="'+pendingId+'"]');
   if(pending)pending.remove();
   privateReceivedIds.delete(pendingId);

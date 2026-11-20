@@ -2,11 +2,18 @@ package com.wichat.app
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.pm.PackageManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.webkit.JavascriptInterface
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.firebase.messaging.FirebaseMessaging
 import android.os.Handler
 import android.os.Looper
 import android.webkit.CookieManager
@@ -29,6 +36,8 @@ class MainActivity : Activity() {
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private var pendingAuthCallback: String? = null
 
+    private val fcmBridge = FcmBridge()
+
     companion object {
         private const val FILE_CHOOSER_REQUEST_CODE = 4102
         private const val CHAT_HOST = "jonitalp2023-collab.github.io"
@@ -43,6 +52,8 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         pendingAuthCallback = authCallbackFrom(intent?.data)
+        createNotificationChannel()
+        requestNotificationPermissionIfNeeded()
 
         web = WebView(this)
         val assetLoader = WebViewAssetLoader.Builder()
@@ -137,8 +148,42 @@ class MainActivity : Activity() {
             }
         }
 
+        web.addJavascriptInterface(fcmBridge, "ChatArgentinaNative")
         setContentView(web)
         web.loadUrl(CHAT_URL)
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                ChatFirebaseMessagingService.CHANNEL_ID,
+                "Mensajes de ChatArgentina",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply { description = "Notificaciones de nuevos mensajes" }
+            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 4103)
+        }
+    }
+
+    inner class FcmBridge {
+        @JavascriptInterface
+        fun requestFcmToken() {
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (!task.isSuccessful) return@addOnCompleteListener
+                val token = task.result ?: return@addOnCompleteListener
+                val quoted = JSONObject.quote(token)
+                if (::web.isInitialized) web.post {
+                    web.evaluateJavascript("if(window.onNativeFcmToken){window.onNativeFcmToken($quoted);}", null)
+                }
+            }
+        }
     }
 
     private fun authCallbackFrom(uri: Uri?): String? {

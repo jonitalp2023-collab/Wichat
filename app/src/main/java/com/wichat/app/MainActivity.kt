@@ -34,7 +34,6 @@ class MainActivity : Activity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var pauseWebViewRunnable: Runnable? = null
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
-    private var pendingAuthCallback: String? = null
 
     private val fcmBridge = FcmBridge()
 
@@ -46,20 +45,16 @@ class MainActivity : Activity() {
         private const val FILE_CHOOSER_REQUEST_CODE = 4102
         private const val CHAT_HOST = "jonitalp2023-collab.github.io"
         private const val ASSET_HOST = "appassets.androidplatform.net"
-        private const val SUPABASE_HOST = "pqnnzkqxkndzelsbtxvv.supabase.co"
         private const val CHAT_URL = "https://appassets.androidplatform.net/assets/index.html"
         private const val REMOTE_BASE_URL = "https://jonitalp2023-collab.github.io/Wichat/releases/"
         private const val UPDATE_MANIFEST_URL = "https://jonitalp2023-collab.github.io/Wichat/version.json"
         private const val UPDATE_PREFS = "chatargentina_updates"
         private const val UPDATE_VERSION_KEY = "web_version"
-        private const val AUTH_SCHEME = "com.wichat.app"
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        pendingAuthCallback = authCallbackFrom(intent?.data)
         createNotificationChannel()
         requestNotificationPermissionIfNeeded()
 
@@ -118,11 +113,6 @@ class MainActivity : Activity() {
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
                 val uri = url?.let(Uri::parse) ?: return true
                 return routeNavigation(uri)
-            }
-
-            override fun onPageFinished(view: WebView?, url: String?) {
-                super.onPageFinished(view, url)
-                deliverPendingAuthCallback()
             }
 
             override fun onReceivedSslError(
@@ -235,33 +225,13 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun authCallbackFrom(uri: Uri?): String? {
-        if (uri?.scheme != AUTH_SCHEME ||
-            uri.host != "auth" ||
-            uri.path != "/callback"
-        ) return null
-        return uri.toString()
-    }
-
     private fun routeNavigation(uri: Uri): Boolean {
-        if (authCallbackFrom(uri) != null) {
-            pendingAuthCallback = uri.toString()
-            deliverPendingAuthCallback()
-            return true
-        }
 
         val scheme = uri.scheme?.lowercase()
         val host = uri.host?.lowercase()
 
         // Los recursos locales seguros y la web oficial permanecen dentro del WebView.
         if (scheme == "https" && (host == ASSET_HOST || host == CHAT_HOST)) return false
-
-        // Google OAuth debe abrirse en el navegador del sistema, no en un WebView embebido.
-        if (scheme == "https" && host == SUPABASE_HOST &&
-            uri.path?.startsWith("/auth/v1/authorize") == true
-        ) {
-            return openExternal(uri)
-        }
 
         // El resto de destinos no confiables nunca se carga dentro del WebView.
         return openExternal(uri)
@@ -279,26 +249,6 @@ class MainActivity : Activity() {
         } catch (_: SecurityException) {
             true
         }
-    }
-
-    private fun deliverPendingAuthCallback() {
-        val callback = pendingAuthCallback ?: return
-        if (!::web.isInitialized) return
-        pendingAuthCallback = null
-        val safeUrl = JSONObject.quote(callback)
-        web.post {
-            web.evaluateJavascript(
-                "if (window.handleGoogleAuthCallback) window.handleGoogleAuthCallback($safeUrl);",
-                null
-            )
-        }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        pendingAuthCallback = authCallbackFrom(intent.data)
-        deliverPendingAuthCallback()
     }
 
     @Deprecated("Deprecated in Android, kept for WebView file chooser compatibility")
@@ -342,7 +292,6 @@ class MainActivity : Activity() {
                 "if(window.chatAppOnForeground){window.chatAppOnForeground();}",
                 null
             )
-            deliverPendingAuthCallback()
         }
     }
 

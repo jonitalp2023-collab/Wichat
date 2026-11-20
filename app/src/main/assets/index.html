@@ -405,8 +405,8 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div class="profile-section bio"><label>Sobre mí</label><div id="profileBioValue" class="profile-value"></div></div>
 </div>
 <div id="profileEditor" class="hidden"><div class="profile-photo-editor"><img id="profilePhotoPreview" class="profile-photo hidden" alt="Vista previa de la foto"><div><label for="profilePhotoInput">Foto de perfil</label><input id="profilePhotoInput" type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadProfilePhoto(this)"><small class="muted">JPG, PNG o WebP · máximo 3 MB</small></div></div>
-<label for="profileStatusInput">Estado</label><input id="profileStatusInput" type="text" maxlength="80" placeholder="¿Qué estás haciendo?">
-<label for="profileBioInput">Sobre mí</label><textarea id="profileBioInput" maxlength="300" placeholder="Contá algo sobre vos..."></textarea>
+<label for="profileStatusInput">Estado (máximo 40 caracteres)</label><input id="profileStatusInput" type="text" maxlength="40" placeholder="¿Qué estás haciendo?">
+<label for="profileBioInput">Sobre mí (máximo 160 caracteres)</label><textarea id="profileBioInput" maxlength="160" placeholder="Contá algo sobre vos..."></textarea>
 <label class="profile-privacy"><input id="profileVisibleInput" type="checkbox"> Mi perfil es visible para otros usuarios registrados</label>
 <p id="profilePrivacyHint" class="muted">Si desactivás esta opción, solamente vos podrás ver tu perfil.</p>
 <button id="profileSaveBtn" onclick="saveMyProfile()">💾 Guardar perfil</button>

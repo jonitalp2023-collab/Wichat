@@ -461,7 +461,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="registerForm" class="login-form hidden">
 <h2>✨ Crear mi cuenta</h2>
 <label for="registerNickname">Tu Nick</label><input id="registerNickname" maxlength="25" placeholder="Elegí tu nombre" autocomplete="nickname">
-<label for="registerPassword">Contraseña</label><input id="registerPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+<label for="registerPassword">Contraseña</label><input id="registerPassword" type="password" placeholder="Mínimo 8 caracteres" minlength="8" autocomplete="new-password">
 <label for="registerPasswordConfirm">Repetir contraseña</label><input id="registerPasswordConfirm" type="password" placeholder="Repetí tu contraseña" autocomplete="new-password">
 <button id="registerBtn" class="login-main-button" onclick="registerAccount()">CREAR CUENTA</button>
 <button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
@@ -890,7 +890,7 @@ showError("");
 const name=$("registerNickname").value.trim(),password=$("registerPassword").value,confirmation=$("registerPasswordConfirm").value,btn=$("registerBtn");
 if(!name||!password||!confirmation){showError("Completá todos los campos.");return;}
 if(name.toUpperCase()==="UNIX"){showError("El Nick UNIX está reservado para el administrador.");return;}
-if(password.length<6){showError("La contraseña debe tener al menos 6 caracteres.");return;}
+if(password.length<8){showError("La contraseña debe tener al menos 8 caracteres.");return;}
 if(password!==confirmation){showError("Las contraseñas no coinciden.");return;}
 btn.disabled=true;
 try{

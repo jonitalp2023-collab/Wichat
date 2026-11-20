@@ -177,6 +177,14 @@ class MainActivity : Activity() {
                     android.Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
+                val notificationPrefs = getSharedPreferences(
+                    "chatargentina_notifications",
+                    MODE_PRIVATE
+                )
+                if (notificationPrefs.getBoolean("permission_asked", false)) {
+                    return@runOnUiThread
+                }
+                notificationPrefs.edit().putBoolean("permission_asked", true).apply()
                 ActivityCompat.requestPermissions(
                     this,
                     arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
@@ -208,6 +216,8 @@ class MainActivity : Activity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode != 4103) return
+        getSharedPreferences("chatargentina_notifications", MODE_PRIVATE)
+            .edit().putBoolean("permission_asked", true).apply()
         if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             registerFcmToken()
         } else {

@@ -56,7 +56,6 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         createNotificationChannel()
-        requestNotificationPermissionIfNeeded()
 
         web = WebView(this)
         val assetLoader = WebViewAssetLoader.Builder()
@@ -168,11 +167,51 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= 33 &&
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 4103)
+    // Las notificaciones se solicitan cuando el usuario ya ingresó al chat.
+    // FCM permanece desactivado hasta que el usuario concede el permiso.
+    private fun requestFcmTokenWithPermission() {
+        runOnUiThread {
+            if (Build.VERSION.SDK_INT >= 33 &&
+                ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    4103
+                )
+                return@runOnUiThread
+            }
+            registerFcmToken()
+        }
+    }
+
+    private fun registerFcmToken() {
+        FirebaseMessaging.getInstance().setAutoInitEnabled(true)
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (!task.isSuccessful) return@addOnCompleteListener
+            val token = task.result ?: return@addOnCompleteListener
+            val quoted = JSONObject.quote(token)
+            if (::web.isInitialized) web.post {
+                web.evaluateJavascript("if(window.onNativeFcmToken){window.onNativeFcmToken($quoted);}", null)
+            }
+        }
+    }
+
+    @Deprecated("Deprecated in Android, kept for notification permission callback compatibility")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != 4103) return
+        if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            registerFcmToken()
+        } else {
+            FirebaseMessaging.getInstance().setAutoInitEnabled(false)
         }
     }
 
@@ -214,14 +253,7 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun requestFcmToken() {
-            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                if (!task.isSuccessful) return@addOnCompleteListener
-                val token = task.result ?: return@addOnCompleteListener
-                val quoted = JSONObject.quote(token)
-                if (::web.isInitialized) web.post {
-                    web.evaluateJavascript("if(window.onNativeFcmToken){window.onNativeFcmToken($quoted);}", null)
-                }
-            }
+            requestFcmTokenWithPermission()
         }
     }
 

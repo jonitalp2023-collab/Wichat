@@ -1945,7 +1945,7 @@ async function submitAgeGate(){
   const input=document.getElementById("ageGateBirthDate");
   const error=document.getElementById("ageGateError");
   const value=input?.value||"";
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value)){
     error.textContent="Ingresá una fecha de nacimiento válida.";
     return;
   }

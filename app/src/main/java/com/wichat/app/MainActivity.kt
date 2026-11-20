@@ -61,7 +61,7 @@ class MainActivity : Activity() {
             setAcceptCookie(true)
             setAcceptThirdPartyCookies(web, false)
         }
-        WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
+        WebView.setWebContentsDebuggingEnabled(false)
 
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(

@@ -39,6 +39,10 @@ class MainActivity : Activity() {
     private val fcmBridge = FcmBridge()
 
     companion object {
+        @Volatile
+        var isAppInForeground = false
+            private set
+
         private const val FILE_CHOOSER_REQUEST_CODE = 4102
         private const val CHAT_HOST = "jonitalp2023-collab.github.io"
         private const val ASSET_HOST = "appassets.androidplatform.net"
@@ -268,6 +272,7 @@ class MainActivity : Activity() {
     }
 
     override fun onPause() {
+        isAppInForeground = false
         if (::web.isInitialized) {
             web.evaluateJavascript(
                 "if(window.chatAppOnBackground){window.chatAppOnBackground();}",
@@ -283,6 +288,7 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        isAppInForeground = true
         pauseWebViewRunnable?.let { mainHandler.removeCallbacks(it) }
         pauseWebViewRunnable = null
         if (::web.isInitialized) {

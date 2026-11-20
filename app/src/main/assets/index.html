@@ -1164,7 +1164,7 @@ const available=await claimNickname(nickname);if(!available){currentRoom=null;th
 await saveChatProfile();
 loadMentionNotifications();updateNotificationBadge();
 await loadRegisteredProfiles();
-$("navProfile").classList.toggle("hidden",!senderId);
+$("navProfile").classList.toggle("hidden",!senderId||(!isRegisteredAccount&&isAdmin));
 $("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
 $("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom);
 subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
@@ -1342,7 +1342,7 @@ async function showProfileDetails(profile,editable){
  $("profileDisplay").classList.remove("hidden");$("profileEditor").classList.toggle("hidden",!editable);$("profileModal").classList.add("show");
 }
 async function openMyProfile(){
- if(!senderId)return;
+ if(!senderId||(!isRegisteredAccount&&isAdmin))return;
  $("guestAccountActions").classList.toggle("hidden",isRegisteredAccount);
  if(!isRegisteredAccount){
   $("profileTitle").textContent="Cuenta de invitado";

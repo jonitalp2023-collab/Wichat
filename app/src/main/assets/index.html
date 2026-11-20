@@ -78,6 +78,8 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .chat-welcome{display:none}
 #messages,#privateMessages{flex:1;min-height:0;overflow-y:auto;background:#222;border:0;border-radius:0;padding:10px 11px;margin:0 0 5px;overscroll-behavior:contain}
 .message{display:flex;align-items:baseline;gap:8px;background:transparent;padding:0;margin-bottom:13px;border-radius:0;overflow-wrap:anywhere}
+.message-report-button{flex:0 0 auto;margin-left:auto;padding:3px 7px;border:1px solid #40516b;border-radius:8px;background:#26364e;color:#c9d8ec;font-size:12px;line-height:1.2}
+.private-message .message-report-button{float:right;margin:0 0 4px 8px}
 .private-message{display:block;background:transparent;padding:5px 0;margin-bottom:9px;overflow-wrap:anywhere}
 .private-message.mine{background:transparent}
 .nickname{font-weight:bold;white-space:nowrap;font-size:14px}
@@ -346,6 +348,15 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 .age-gate-card input{width:100%;height:52px;padding:12px;border:1px solid #456487;border-radius:11px;background:#0b1528;color:#fff;font-size:17px}
 .age-gate-card button{width:100%;min-height:49px;margin-top:16px;background:linear-gradient(110deg,#0879d0,#16a9ef);border-radius:12px;font-size:15px}
 #ageGateError{min-height:22px;color:#ff9292;font-size:13px;margin-top:10px}
+.age-gate-terms{display:flex;align-items:flex-start;gap:9px;text-align:left!important;margin:18px 0 4px!important;color:#d6e4f5!important;font-size:13px!important;line-height:1.5}
+.age-gate-terms input{flex:0 0 19px;width:19px;height:19px;margin:1px 0 0;accent-color:#168bea}
+.age-gate-terms a{color:#79c8ff}
+
+.admin-report-item{padding:12px;margin:9px 0;border:1px solid #3b506d;border-radius:11px;background:#111e33;overflow-wrap:anywhere}
+.admin-report-item>strong{display:block;color:#e6f2ff;margin-bottom:5px}
+.admin-report-item p{white-space:pre-wrap;overflow-wrap:anywhere}
+.admin-report-evidence{margin:9px 0;padding:10px;border-left:3px solid #e4ad54;background:#0b1528;border-radius:8px}
+.admin-report-evidence p{margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -362,6 +373,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
     <button id="ageGateContinue" type="button" onclick="submitAgeGate()">Continuar</button>
     <div id="ageGateError" role="status" aria-live="polite"></div>
     <p class="muted">La fecha ingresada se utiliza para calcular la edad y no se guarda.</p>
+    <label class="age-gate-terms"><input id="ageGateTerms" type="checkbox"><span>Leí y acepto los <a href="terms.html" target="_blank" rel="noopener">Términos y condiciones</a> y las <a href="child-safety-standards.html" target="_blank" rel="noopener">Normas de seguridad</a> de ChatArgentina.</span></label>
     <p class="muted"><a href="privacy-policy.html">Política de privacidad</a> · <a href="terms.html">Términos y condiciones</a></p><p class="muted"><a href="child-safety-standards.html">Seguridad infantil</a> · <a href="delete-account.html">Eliminar cuenta</a></p><p class="muted">Contacto: <a href="mailto:jonitalp2023@gmail.com">jonitalp2023@gmail.com</a></p>
   </section>
 </div>
@@ -412,6 +424,17 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
   </div>
 </div>
 </div>
+<div id="guestAccountActions" class="hidden" style="padding:14px;border:1px solid #bd394d;border-radius:12px;background:#251720">
+  <h3>Cuenta de invitado</h3>
+  <p class="muted">Este acceso también utiliza una identidad de invitado. Podés eliminarla y borrar los datos asociados desde acá.</p>
+  <button type="button" class="danger" style="width:100%" onclick="beginAccountDeletion()">Eliminar cuenta de invitado</button>
+  <div id="guestDeleteAccountConfirm" class="hidden" style="margin-top:12px">
+    <p class="muted">La eliminación es permanente. Escribí ELIMINAR para confirmar.</p>
+    <input id="guestDeleteAccountPhrase" type="text" maxlength="8" autocomplete="off" placeholder="Escribí ELIMINAR">
+    <button id="guestDeleteAccountBtn" type="button" class="danger" style="width:100%" onclick="deleteMyAccount(true)">Confirmar eliminación</button>
+    <button type="button" class="secondary" style="width:100%" onclick="cancelAccountDeletion()">Cancelar</button>
+  </div>
+</div>
 <button class="secondary" onclick="closeProfileModal()">Cerrar</button>
 </div></div>
 <div id="moderationModal" role="alertdialog" aria-modal="true">
@@ -438,7 +461,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="registerForm" class="login-form hidden">
 <h2>✨ Crear mi cuenta</h2>
 <label for="registerNickname">Tu Nick</label><input id="registerNickname" maxlength="25" placeholder="Elegí tu nombre" autocomplete="nickname">
-<label for="registerPassword">Contraseña</label><input id="registerPassword" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+<label for="registerPassword">Contraseña</label><input id="registerPassword" type="password" placeholder="Mínimo 8 caracteres" minlength="8" autocomplete="new-password">
 <label for="registerPasswordConfirm">Repetir contraseña</label><input id="registerPasswordConfirm" type="password" placeholder="Repetí tu contraseña" autocomplete="new-password">
 <button id="registerBtn" class="login-main-button" onclick="registerAccount()">CREAR CUENTA</button>
 <button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>
@@ -597,6 +620,13 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
     <div class="admin-card">
       <h4>Acciones sobre usuarios</h4><p class="muted">Seleccioná primero un usuario en la sección Usuarios.</p>
       <div class="row"><button class="secondary" onclick="moderateUser('kick')">🚪 Expulsar</button><button class="danger" onclick="moderateUser('ban')">🚫 Banear 5 minutos</button></div>
+    </div>
+    <div class="admin-card" data-owner-only>
+      <h4>🚩 Denuncias de usuarios y mensajes</h4>
+      <p class="muted">Revisá los reportes recibidos, el contenido denunciado y las medidas tomadas.</p>
+      <button class="secondary" onclick="loadUserReports()">↻ Actualizar denuncias</button>
+      <p id="adminReportsStatus" class="admin-feedback" aria-live="polite"></p>
+      <div id="adminUserReportsList" class="admin-list"><p class="muted">Presioná actualizar para consultar las denuncias.</p></div>
     </div>
     <div class="admin-card" data-owner-only>
       <h4>🚫 Usuarios baneados</h4><p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
@@ -860,7 +890,7 @@ showError("");
 const name=$("registerNickname").value.trim(),password=$("registerPassword").value,confirmation=$("registerPasswordConfirm").value,btn=$("registerBtn");
 if(!name||!password||!confirmation){showError("Completá todos los campos.");return;}
 if(name.toUpperCase()==="UNIX"){showError("El Nick UNIX está reservado para el administrador.");return;}
-if(password.length<6){showError("La contraseña debe tener al menos 6 caracteres.");return;}
+if(password.length<8){showError("La contraseña debe tener al menos 8 caracteres.");return;}
 if(password!==confirmation){showError("Las contraseñas no coinciden.");return;}
 btn.disabled=true;
 try{
@@ -1147,7 +1177,7 @@ const available=await claimNickname(nickname);if(!available){currentRoom=null;th
 await saveChatProfile();
 loadMentionNotifications();updateNotificationBadge();
 await loadRegisteredProfiles();
-$("navProfile").classList.toggle("hidden",!isRegisteredAccount);
+$("navProfile").classList.toggle("hidden",!senderId||(!isRegisteredAccount&&isAdmin));
 $("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
 $("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom);
 subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
@@ -1257,11 +1287,11 @@ function closeUserMenu(){$("userMenuModal").classList.remove("show");}
 async function userMenuReport(){
   if(!selectedMenuUser||!senderId){alert("Iniciá sesión para reportar a un usuario.");return;}
   const user={...selectedMenuUser};
-  const categoryInput=prompt("Motivo del reporte:\n1. Spam\n2. Insultos\n3. Acoso\n4. Contenido inapropiado\n5. Otro","3");
+  const categoryInput=prompt("Motivo del reporte:\n1. Spam\n2. Insultos\n3. Acoso\n4. Contenido inapropiado\n5. Seguridad infantil\n6. Otro","3");
   if(categoryInput===null)return;
-  const categories={"1":"spam","2":"insultos","3":"acoso","4":"contenido_inapropiado","5":"otro"};
+  const categories={"1":"spam","2":"insultos","3":"acoso","4":"contenido_inapropiado","5":"seguridad_infantil","6":"otro"};
   const category=categories[String(categoryInput).trim()];
-  if(!category){alert("Elegí un número del 1 al 5.");return;}
+  if(!category){alert("Elegí un número del 1 al 6.");return;}
   const details=prompt("Contanos brevemente qué ocurrió (entre 5 y 500 caracteres):","");
   if(details===null)return;
   if(details.trim().length<5||details.trim().length>500){alert("El detalle debe tener entre 5 y 500 caracteres.");return;}
@@ -1315,6 +1345,7 @@ async function resolveProfilePhoto(path){
  return data?.signedUrl||"";
 }
 async function showProfileDetails(profile,editable){
+ $("guestAccountActions").classList.add("hidden");
  $("profileTitle").textContent=editable?"Mi perfil":"Perfil de "+(profile.nickname||"usuario");
  $("profileNickValue").textContent=profile.nickname||"";
  $("profileStatusValue").textContent=profile.status||"Sin estado";
@@ -1324,7 +1355,17 @@ async function showProfileDetails(profile,editable){
  $("profileDisplay").classList.remove("hidden");$("profileEditor").classList.toggle("hidden",!editable);$("profileModal").classList.add("show");
 }
 async function openMyProfile(){
- if(!isRegisteredAccount||!senderId)return;
+ if(!senderId||(!isRegisteredAccount&&isAdmin))return;
+ $("guestAccountActions").classList.toggle("hidden",isRegisteredAccount);
+ if(!isRegisteredAccount){
+  $("profileTitle").textContent="Cuenta de invitado";
+  $("profileDisplay").classList.add("hidden");
+  $("profileEditor").classList.add("hidden");
+  $("guestDeleteAccountConfirm").classList.add("hidden");
+  $("profileModal").classList.add("show");
+  $("navProfile").classList.add("active");
+  return;
+ }
  const {data,error}=await db.from("chat_profiles").select("nickname,status,bio,is_visible,avatar_url").eq("user_id",senderId).maybeSingle();
  if(error){alert("No se pudo cargar tu perfil: "+error.message);return;}
  const profile=data||{nickname,status:"",bio:"",is_visible:true,avatar_url:""};
@@ -1343,9 +1384,15 @@ async function uploadProfilePhoto(input){
  if(profileError){alert("La foto se subió, pero no se pudo guardar en el perfil: "+profileError.message);return;}
  const url=await resolveProfilePhoto(path);["profilePhotoDisplay","profilePhotoPreview"].forEach(id=>{const img=$(id);img.src=url;img.classList.toggle("hidden",!url);});alert("¡Foto de perfil actualizada!");
 }
-function closeProfileModal(){$("profileModal").classList.remove("show");$("navProfile").classList.remove("active");}
+function closeProfileModal(){$("profileModal").classList.remove("show");$("navProfile").classList.remove("active");$("guestAccountActions").classList.add("hidden");}
 function beginAccountDeletion(){
- if(!isRegisteredAccount||!senderId){alert("Esta opción está disponible para cuentas registradas.");return;}
+ if(!senderId){alert("No hay una sesión activa para eliminar.");return;}
+ if(!isRegisteredAccount){
+  $("guestDeleteAccountConfirm").classList.remove("hidden");
+  $("guestDeleteAccountPhrase").value="";
+  $("guestDeleteAccountPhrase").focus();
+  return;
+ }
  $("deleteAccountConfirm").classList.remove("hidden");
  $("deleteAccountPhrase").value="";
  $("deleteAccountPhrase").focus();
@@ -1353,14 +1400,16 @@ function beginAccountDeletion(){
 function cancelAccountDeletion(){
  $("deleteAccountConfirm").classList.add("hidden");
  $("deleteAccountPhrase").value="";
+ $("guestDeleteAccountConfirm").classList.add("hidden");
+ $("guestDeleteAccountPhrase").value="";
 }
-async function deleteMyAccount(){
- if(!isRegisteredAccount||!senderId)return;
- const phrase=$("deleteAccountPhrase").value.trim();
+async function deleteMyAccount(isGuest=false){
+ if(!senderId||(isGuest&&isRegisteredAccount)||(!isGuest&&!isRegisteredAccount))return;
+ const phrase=$(isGuest?"guestDeleteAccountPhrase":"deleteAccountPhrase").value.trim();
  if(phrase!=="ELIMINAR"){alert("Para confirmar, escribí exactamente ELIMINAR.");return;}
- if(!confirm("¿Estás seguro? Se eliminarán definitivamente tu cuenta y los datos asociados. Esta acción no se puede deshacer."))return;
- const btn=$("deleteAccountConfirmBtn");
- btn.disabled=true;btn.textContent="Eliminando cuenta...";
+ if(!confirm("¿Estás seguro? Se eliminarán definitivamente tu identidad y los datos asociados. Esta acción no se puede deshacer."))return;
+ const btn=$(isGuest?"guestDeleteAccountBtn":"deleteAccountConfirmBtn");
+ btn.disabled=true;btn.textContent="Eliminando...";
  try{
   const {data,error}=await db.functions.invoke("delete-account",{body:{confirmation:"ELIMINAR"}});
   if(error){
@@ -1369,13 +1418,13 @@ async function deleteMyAccount(){
    throw new Error(message);
   }
   if(!data?.success)throw new Error(data?.message||"No se pudo completar la eliminación.");
-  try{await db.auth.signOut({scope:"local"});}catch(signOutError){console.warn("La cuenta ya fue eliminada; no se pudo limpiar la sesión local:",signOutError);}
+  try{await db.auth.signOut({scope:"local"});}catch(signOutError){console.warn("La identidad ya fue eliminada; no se pudo limpiar la sesión local:",signOutError);}
   try{localStorage.clear();sessionStorage.clear();}catch(_){}
   alert("Tu cuenta de ChatArgentina fue eliminada correctamente.");
   window.location.reload();
  }catch(error){
   alert(error.message||"No se pudo eliminar la cuenta. Podés volver a intentarlo o escribir a jonitalp2023@gmail.com.");
-  btn.disabled=false;btn.textContent="Confirmar eliminación definitiva";
+  btn.disabled=false;btn.textContent=isGuest?"Confirmar eliminación":"Confirmar eliminación definitiva";
  }
 }
 async function saveMyProfile(){
@@ -1436,6 +1485,43 @@ if(Array.from(s.options).some(o=>o.value===old))s.value=old;
 }
 
 /* MENSAJES PÚBLICOS */
+async function submitContentReport({targetUserId,messageId,privateMessageId,roomId,nick,content}){
+  if(!senderId){alert("Iniciá sesión para denunciar contenido.");return;}
+  if(!targetUserId||String(targetUserId)===String(senderId)){alert("No podés denunciar tu propio mensaje.");return;}
+  const categoryInput=prompt("Motivo de la denuncia:\n1. Spam\n2. Insultos\n3. Acoso\n4. Contenido inapropiado\n5. Seguridad infantil\n6. Otro","4");
+  if(categoryInput===null)return;
+  const categories={"1":"spam","2":"insultos","3":"acoso","4":"contenido_inapropiado","5":"seguridad_infantil","6":"otro"};
+  const category=categories[String(categoryInput).trim()];
+  if(!category){alert("Elegí un número del 1 al 6.");return;}
+  const details=prompt("Contanos brevemente qué ocurrió (entre 5 y 500 caracteres). No adjuntes ni reenvíes material ilegal:","");
+  if(details===null)return;
+  if(details.trim().length<5||details.trim().length>500){alert("El detalle debe tener entre 5 y 500 caracteres.");return;}
+  if(!confirm("¿Enviar la denuncia sobre el mensaje de "+(nick||"este usuario")+"?"))return;
+  try{
+    const {data:authData,error:authError}=await db.auth.getSession();
+    if(authError)throw authError;
+    if(String(authData?.session?.user?.id||"")!==String(senderId))throw new Error("La sesión cambió. Volvé a ingresar.");
+    const report={
+      reporter_id:senderId,
+      target_user_id:String(targetUserId),
+      room_id:Number.isSafeInteger(Number(roomId))&&Number(roomId)>0?Number(roomId):null,
+      category,
+      details:details.trim(),
+      message_snapshot:String(content||"").slice(0,2000)
+    };
+    if(messageId!==undefined&&messageId!==null)report.target_message_id=Number(messageId);
+    if(privateMessageId!==undefined&&privateMessageId!==null)report.target_private_message_id=Number(privateMessageId);
+    const {error}=await db.from("chat_user_reports").insert(report);
+    if(error)throw error;
+    alert("Denuncia enviada. El equipo de moderación podrá revisarla.");
+  }catch(error){alert("No se pudo enviar la denuncia: "+(error.message||String(error)));}
+}
+function reportPublicMessage(message){
+  return submitContentReport({targetUserId:message?.sender_id,messageId:message?.id,roomId:message?.room_id||currentRoom,nick:message?.nickname,content:message?.message||message?.content});
+}
+function reportPrivateMessage(message){
+  return submitContentReport({targetUserId:message?.sender_id,privateMessageId:message?.id,nick:message?.sender_nickname,content:message?.content});
+}
 function addMessage(m,notifyMention=false){
 if(!m)return;
 if(m.sender_id&&isUserBlocked(m.sender_id)){receivedIds.add(m.id);return;}
@@ -1449,7 +1535,9 @@ if(nick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.class
 n.appendChild(document.createTextNode(nick));
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,n);
-const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";div.append(n,t);$("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
+const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";div.append(n,t);
+if(m.sender_id&&String(m.sender_id)!==String(senderId)&&m.id){const report=document.createElement("button");report.type="button";report.className="message-report-button";report.textContent="🚩";report.title="Denunciar mensaje";report.setAttribute("aria-label","Denunciar mensaje de "+nick);report.onclick=event=>{event.stopPropagation();reportPublicMessage(m);};div.appendChild(report);}
+$("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
 }
 async function loadRoomMessages(roomId){
 const cutoff=new Date(Date.now()-12*60*60*1000).toISOString();let from=0;const pageSize=500;
@@ -1610,7 +1698,9 @@ if(m.sender_id&&registeredUsers.has(String(m.sender_id)))addRegisteredPlus(who);
 if(m.sender_id&&adminUsers.has(String(m.sender_id)))addAdminBadge(who,privateNick.toUpperCase()==="UNIX");
 if(privateNick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";who.appendChild(at);who.classList.add("admin-unix");}
 who.appendChild(document.createTextNode(privateNick+": "));
-if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);box.appendChild(div);box.scrollTop=box.scrollHeight;
+if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);
+if(m.sender_id&&String(m.sender_id)!==String(senderId)&&m.id&&!String(m.id).startsWith("pending-")){const report=document.createElement("button");report.type="button";report.className="message-report-button";report.textContent="🚩";report.title="Denunciar mensaje privado";report.setAttribute("aria-label","Denunciar mensaje privado de "+privateNick);report.onclick=event=>{event.stopPropagation();reportPrivateMessage(m);};div.appendChild(report);}
+box.appendChild(div);box.scrollTop=box.scrollHeight;
 }
 async function sendPrivateMessage(){
 if(!activePrivateUser)return;
@@ -1707,6 +1797,7 @@ function openAdmin(){
     renderRoomDelete();
     renderRoomVipSelect();
     loadBannedUsers();
+    loadUserReports();
     loadBots();
     loadAdminManagement();
   }
@@ -1806,6 +1897,79 @@ await callAdminApi("moderate_user",{target_sender_id:target,room_id_input:curren
 $("adminStatus").textContent=action==="ban"?"Usuario baneado por cinco minutos en esta sala.":"Usuario expulsado de esta sala.";
 if(action==="ban")await loadBannedUsers();
 }catch(error){$("adminStatus").textContent="Error: "+error.message;}
+}
+async function loadUserReports(){
+if(!isAdmin||adminRole!=="owner")return;
+const list=$("adminUserReportsList"),status=$("adminReportsStatus");
+if(!list||!status)return;
+list.innerHTML='<p class="muted">Cargando denuncias...</p>';
+status.textContent="";
+try{
+ const reports=await callAdminApi("list_user_reports");
+ list.innerHTML="";
+ if(!Array.isArray(reports)||!reports.length){
+  list.innerHTML='<p class="muted">No hay denuncias pendientes ni anteriores.</p>';
+  status.textContent="Consulta completada.";
+  return;
+ }
+ reports.forEach(report=>{
+  const card=document.createElement("article");
+  card.className="admin-report-item";
+  const heading=document.createElement("strong");
+  heading.textContent="#"+report.id+" · "+(report.target_nickname||"Usuario denunciado")+" · "+String(report.category||"otro").replace(/_/g," ");
+  const meta=document.createElement("p");
+  meta.className="muted";
+  const created=report.created_at?new Date(report.created_at).toLocaleString("es-AR"):"Fecha no disponible";
+  meta.textContent=(report.reporter_nickname||"Usuario")+" denunció a "+(report.target_nickname||"Usuario")+" · "+created+" · Estado: "+(report.status||"pending");
+  const detail=document.createElement("p");
+  detail.textContent="Detalle del reporte: "+(report.details||"Sin detalle adicional.");
+  card.append(heading,meta,detail);
+  if(report.target_message_id||report.target_private_message_id||report.message_snapshot){
+   const evidence=document.createElement("div");
+   evidence.className="admin-report-evidence";
+   const evidenceTitle=document.createElement("strong");
+   evidenceTitle.textContent=report.target_private_message_id?"Mensaje privado denunciado":"Mensaje público denunciado";
+   const evidenceText=document.createElement("p");
+   evidenceText.textContent=report.message_snapshot||"No hay copia textual disponible.";
+   const evidenceId=document.createElement("small");
+   evidenceId.className="muted";
+   evidenceId.textContent=report.target_private_message_id?"ID de mensaje privado: "+report.target_private_message_id:"ID de mensaje público: "+(report.target_message_id||"No disponible");
+   evidence.append(evidenceTitle,evidenceText,evidenceId);
+   card.appendChild(evidence);
+  }
+  if(report.status==="pending"){
+   const actions=document.createElement("div");
+   actions.className="row";
+   [["reviewed","Marcar revisada"],["dismissed","Descartar"],["action_taken","Acción tomada"]].forEach(([value,label])=>{
+    const button=document.createElement("button");
+    button.type="button";
+    button.className=value==="action_taken"?"danger":"secondary";
+    button.textContent=label;
+    button.onclick=()=>reviewUserReport(report.id,value);
+    actions.appendChild(button);
+   });
+   card.appendChild(actions);
+  }
+  list.appendChild(card);
+ });
+ status.textContent=reports.length+" denuncia(s) cargada(s).";
+}catch(error){
+ list.textContent="No se pudieron cargar las denuncias: "+(error.message||String(error));
+ status.textContent="Error al consultar los reportes.";
+}
+}
+async function reviewUserReport(reportId,reportStatus){
+if(!isAdmin||adminRole!=="owner")return;
+if(!confirm("¿Confirmás actualizar el estado de esta denuncia?"))return;
+const status=$("adminReportsStatus");
+status.textContent="Guardando revisión...";
+try{
+ await callAdminApi("review_user_report",{report_id:reportId,report_status:reportStatus});
+ status.textContent="Estado de la denuncia actualizado.";
+ await loadUserReports();
+}catch(error){
+ status.textContent="No se pudo actualizar la denuncia: "+(error.message||String(error));
+}
 }
 async function loadBannedUsers(){
 if(!isAdmin||adminRole!=="owner")return;const list=$("bannedUsersList");list.innerHTML='<p class="muted">Cargando baneos...</p>';
@@ -2002,12 +2166,18 @@ $("bannedUsersList").innerHTML='<p class="muted">Presioná actualizar para ver l
 
 /* CONTROL DE EDAD: se conserva solo la confirmación de mayoría de edad, nunca la fecha de nacimiento. */
 const AGE_GATE_KEY="chatargentina_adult_access_v1";
+const TERMS_ACCEPTANCE_KEY="chatargentina_terms_acceptance_v1";
+const TERMS_VERSION="2026-11-20";
 function hasAdultAccess(){
   try{return localStorage.getItem(AGE_GATE_KEY)==="adult";}
   catch(_){return false;}
 }
+function hasTermsAcceptance(){
+  try{return localStorage.getItem(TERMS_ACCEPTANCE_KEY)===TERMS_VERSION;}
+  catch(_){return false;}
+}
 function requireAdultAccess(){
-  if(hasAdultAccess())return true;
+  if(hasAdultAccess()&&hasTermsAcceptance())return true;
   showAgeGate();
   return false;
 }
@@ -2033,29 +2203,41 @@ function initAgeDateSelectors(){
   for(let y=currentYear;y>=1900;y--){const option=document.createElement("option");option.value=String(y);option.textContent=String(y);year.appendChild(option);}
 }
 async function submitAgeGate(){
-  const day=Number(document.getElementById("ageGateDay")?.value||0);
-  const monthValue=document.getElementById("ageGateMonth")?.value;
-  const year=Number(document.getElementById("ageGateYear")?.value||0);
   const error=document.getElementById("ageGateError");
-  if(!day||monthValue===null||monthValue===""||!year){
-    error.textContent="Elegí el día, el mes y el año de nacimiento.";
+  error.textContent="";
+  if(!document.getElementById("ageGateTerms")?.checked){
+    error.textContent="Para continuar, tenés que aceptar los Términos y condiciones y las Normas de seguridad.";
     return;
   }
-  const birthDate=new Date(year,Number(monthValue),day,12,0,0);
-  const now=new Date();
-  if(birthDate.getFullYear()!==year||birthDate.getMonth()!==Number(monthValue)||birthDate.getDate()!==day||birthDate>now||year<1900){
-    error.textContent="Revisá la fecha ingresada.";
+  if(!hasAdultAccess()){
+    const day=Number(document.getElementById("ageGateDay")?.value||0);
+    const monthValue=document.getElementById("ageGateMonth")?.value;
+    const year=Number(document.getElementById("ageGateYear")?.value||0);
+    if(!day||monthValue===null||monthValue===""||!year){
+      error.textContent="Elegí el día, el mes y el año de nacimiento.";
+      return;
+    }
+    const birthDate=new Date(year,Number(monthValue),day,12,0,0);
+    const now=new Date();
+    if(birthDate.getFullYear()!==year||birthDate.getMonth()!==Number(monthValue)||birthDate.getDate()!==day||birthDate>now||year<1900){
+      error.textContent="Revisá la fecha ingresada.";
+      return;
+    }
+    if(calculateAge(birthDate,now)<18){
+      error.textContent="No podés ingresar a ChatArgentina. El servicio es exclusivo para mayores de 18 años.";
+      document.getElementById("ageGateDay").value="";
+      document.getElementById("ageGateMonth").value="";
+      document.getElementById("ageGateYear").value="";
+      return;
+    }
+  }
+  try{
+    if(!hasAdultAccess())localStorage.setItem(AGE_GATE_KEY,"adult");
+    localStorage.setItem(TERMS_ACCEPTANCE_KEY,TERMS_VERSION);
+  }catch(_){
+    error.textContent="No se pudo guardar la aceptación en este dispositivo. Habilitá el almacenamiento para continuar.";
     return;
   }
-  if(calculateAge(birthDate,now)<18){
-    error.textContent="No podés ingresar a ChatArgentina. El servicio es exclusivo para mayores de 18 años.";
-    document.getElementById("ageGateDay").value="";
-    document.getElementById("ageGateMonth").value="";
-    document.getElementById("ageGateYear").value="";
-    return;
-  }
-  try{localStorage.setItem(AGE_GATE_KEY,"adult");}
-  catch(_){error.textContent="No se pudo guardar la confirmación en este dispositivo. Habilitá el almacenamiento para continuar.";return;}
   document.getElementById("ageGate").classList.add("hidden");
   let pending="";
   try{pending=sessionStorage.getItem("chatargentina_pending_oauth_callback")||"";sessionStorage.removeItem("chatargentina_pending_oauth_callback");}catch(_){}
@@ -2063,7 +2245,7 @@ async function submitAgeGate(){
   else await restoreGoogleLogin();
 }
 initAgeDateSelectors();
-if(!hasAdultAccess())showAgeGate();
+if(!hasAdultAccess()||!hasTermsAcceptance())showAgeGate();
 
 /* INICIO */
 (async()=>{try{await fetchRooms();await restoreGoogleLogin();}catch(e){$("initialRoom").innerHTML='<option value="">Configuración pendiente</option>';showError(e.message);}})();

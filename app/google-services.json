@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "278631251048",
+    "project_id": "chatargentina-eef8c",
+    "storage_bucket": "chatargentina-eef8c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:278631251048:android:1bc56f38d6a238b7054fdd",
+        "android_client_info": {
+          "package_name": "com.wichat.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgQ8lsemRAz5Xo_fyvsJZWUtkuJktJdRI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

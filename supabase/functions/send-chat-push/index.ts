@@ -172,7 +172,22 @@ Deno.serve(async (req: Request) => {
       recipientIds = (subscriptions || []).map((item: { user_id: string }) => String(item.user_id));
     }
 
-    recipientIds = [...new Set(recipientIds)].filter((id) => id && id !== senderId).slice(0, 500);
+    // Respect user blocks for push delivery too. Realtime/RLS hides blocked messages,
+    // but push notifications bypass those read policies unless recipients are filtered here.
+    const { data: blockRows, error: blockError } = await admin
+      .from("chat_user_blocks")
+      .select("blocker_id, blocked_id")
+      .or("blocker_id.eq." + senderId + ",blocked_id.eq." + senderId);
+    if (blockError) throw blockError;
+    const blockedRecipientIds = new Set(
+      (blockRows || []).map((row: { blocker_id: string; blocked_id: string }) =>
+        row.blocker_id === senderId ? row.blocked_id : row.blocker_id
+      ),
+    );
+
+    recipientIds = [...new Set(recipientIds)]
+      .filter((id) => id && id !== senderId && !blockedRecipientIds.has(id))
+      .slice(0, 500);
     if (!recipientIds.length) return json({ success: true, sent: 0, message: "No hay destinatarios registrados para esta notificación." });
 
     const { data: tokenRows, error: tokenError } = await admin

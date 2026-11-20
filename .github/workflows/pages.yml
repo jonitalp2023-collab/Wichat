@@ -39,14 +39,12 @@ jobs:
           VERSION=$(python3 -c 'import json; print(json.load(open("app/src/main/assets/version.json"))["version"])')
           mkdir -p "site/releases/$VERSION"
           cp -R app/src/main/assets/. "site/releases/$VERSION/"
+
       - name: Preparar artefacto de Pages
         uses: actions/upload-pages-artifact@v4
         with:
           path: site
-          name: github-pages-${{ github.run_attempt }}
 
       - name: Publicar CHAT ARGENTINA
         id: deployment
         uses: actions/deploy-pages@v4
-        with:
-          artifact_name: github-pages-${{ github.run_attempt }}

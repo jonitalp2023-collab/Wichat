@@ -2105,6 +2105,35 @@ document.addEventListener("focusout",function(event){
 });
 updateScreen();
 })();
+
+/* ACTUALIZACIONES WEB DE CHATARGENTINA */
+(function(){
+  function showWebUpdate(info){
+    if(document.getElementById("chatUpdateOverlay"))return;
+    const style=document.createElement("style");
+    style.textContent="#chatUpdateOverlay{position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:22px;font-family:Arial,sans-serif}#chatUpdateCard{width:100%;max-width:360px;background:linear-gradient(155deg,#192b49,#101a30);border:1px solid #398bd0;border-radius:20px;padding:24px 20px;color:#fff;text-align:center;box-shadow:0 16px 50px #000b}#chatUpdateCard h2{margin:0 0 10px;color:#75caff;font-size:21px}#chatUpdateCard p{color:#d5e3f5;font-size:14px;line-height:1.5;white-space:pre-wrap}#chatUpdateCard .update-version{color:#8ca9c9;font-size:12px}#chatUpdateCard button{width:100%;min-height:46px;margin-top:10px;border-radius:11px;font-size:15px}#chatUpdateLater{background:#344361;color:white}#chatUpdateNow{background:#168bea;color:white}#chatUpdateNow:disabled{opacity:.65}";
+    document.head.appendChild(style);
+    const overlay=document.createElement("div");overlay.id="chatUpdateOverlay";
+    const card=document.createElement("div");card.id="chatUpdateCard";
+    const title=document.createElement("h2");title.textContent="Hay una actualización nueva";
+    const message=document.createElement("p");message.textContent=info.notes||"Hay una nueva versión de ChatArgentina disponible.";
+    const version=document.createElement("div");version.className="update-version";version.textContent="Nueva versión: "+info.version;
+    const later=document.createElement("button");later.id="chatUpdateLater";later.textContent="Más tarde";later.onclick=()=>overlay.remove();
+    const update=document.createElement("button");update.id="chatUpdateNow";update.textContent="Actualizar";
+    update.onclick=()=>{update.disabled=true;update.textContent="Actualizando...";window.ChatArgentinaNative.applyWebUpdate(info.version);};
+    card.append(title,message,version,later,update);overlay.appendChild(card);document.body.appendChild(overlay);
+  }
+  function checkWebUpdate(){
+    try{
+      const bridge=window.ChatArgentinaNative;
+      if(!bridge||typeof bridge.getAvailableWebUpdate!=="function")return;
+      const info=JSON.parse(bridge.getAvailableWebUpdate());
+      if(info&&info.available&&info.version)showWebUpdate(info);
+    }catch(error){console.log("No se pudo consultar la actualización",error);}
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",checkWebUpdate,{once:true});
+  else setTimeout(checkWebUpdate,300);
+})();
 </script>
 </body>
 </html>

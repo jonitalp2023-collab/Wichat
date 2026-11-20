@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const action = String(body.action ?? "");
-    const isOwner = activeAdmin.role === "owner" || activeAdmin.nickname === "UNIX";
+    const isOwner = activeAdmin.role === "owner";
     if (action === "check_admin_role") {
       return respond({ success: true, data: { role: isOwner ? "owner" : "admin", nickname: activeAdmin.nickname } });
     }

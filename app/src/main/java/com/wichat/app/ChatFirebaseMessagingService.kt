@@ -24,6 +24,11 @@ class ChatFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
+
+        // Mientras el chat está abierto, los mensajes se muestran dentro de la app.
+        // Las notificaciones del sistema se reservan para segundo plano o app cerrada.
+        if (MainActivity.isAppInForeground) return
+
         val title = message.notification?.title
             ?: message.data["title"]
             ?: "ChatArgentina"

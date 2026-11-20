@@ -41,7 +41,7 @@ button:disabled{opacity:.5}
 #login .login-form input{width:100%;height:49px;margin:6px 0;padding:13px;background:#0b1528;border:1px solid #385477;border-radius:11px;color:white}
 #login .login-main-button{width:100%;min-height:49px;margin-top:17px;background:linear-gradient(110deg,#0879d0,#16a9ef);border-radius:12px;font-size:15px}
 #login .login-back{width:100%;margin-top:10px;background:#344361}
-#login .login-footer{color:#7189a8;font-size:11px;margin-top:23px}
+#login .login-footer{color:#7189a8;font-size:11px;margin-top:23px;line-height:1.8}#login .login-footer a{color:#79c8ff;text-decoration:underline;margin:0 3px}
 #login #error{display:block;margin-top:13px;line-height:1.5;overflow-wrap:anywhere}
 #login .hidden{display:none!important}
 #login input,#login select{text-align:left}
@@ -106,7 +106,7 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .user-count{font-size:12px;color:#9baac5;margin-bottom:10px}
 .room-tab{width:100%;text-align:left;margin:5px 0;background:#292929;border:1px solid #383838}
 .room-tab.active{background:#07549a;border-color:#168bea}
-#bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:2000;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;background:#17191e;border-top:1px solid #292d35;padding:8px 10px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -5px 18px #0004}
+#bottomNav{position:fixed;left:0;right:0;bottom:0;z-index:2000;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;background:#17191e;border-top:1px solid #292d35;padding:8px 10px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -5px 18px #0004}
 body.chat-active #bottomNav{position:fixed;left:0;right:0;bottom:0;transform:none!important;transition:none!important;z-index:2000}
 .nav-btn{position:relative;min-width:0;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:transparent;color:#aab3c2;border-radius:14px;padding:6px 2px;font-size:11px;font-weight:600;letter-spacing:.1px;transition:background .18s ease,color .18s ease,transform .18s ease}
 .nav-btn .nav-icon{width:25px;height:25px;display:flex;align-items:center;justify-content:center;line-height:1}
@@ -354,7 +354,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
     <button id="ageGateContinue" type="button" onclick="submitAgeGate()">Continuar</button>
     <div id="ageGateError" role="status" aria-live="polite"></div>
     <p class="muted">La fecha ingresada se utiliza para calcular la edad y no se guarda.</p>
-    <p class="muted"><a href="privacy-policy.html">Política de privacidad</a> · <a href="child-safety-standards.html">Seguridad infantil</a></p>
+    <p class="muted"><a href="privacy-policy.html">Política de privacidad</a> · <a href="terms.html">Términos y condiciones</a></p><p class="muted"><a href="child-safety-standards.html">Seguridad infantil</a> · <a href="delete-account.html">Eliminar cuenta</a></p><p class="muted">Contacto: <a href="mailto:jonitalp2023@gmail.com">jonitalp2023@gmail.com</a></p>
   </section>
 </div>
 <div id="notificationModal" onclick="if(event.target===this)closeNotifications()"><section class="notification-card"><div class="notification-head"><span>🔔 Notificaciones</span><button onclick="closeNotifications()">Cerrar</button></div><div id="notificationList"></div></section></div>
@@ -445,7 +445,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 </div>
 <p id="error"></p>
 <p class="login-footer">CHAT ARGENTINA · Solo mayores de 18 años 🇦🇷</p>
-<p class="login-footer"><a href="privacy-policy.html">Privacidad</a> · <a href="child-safety-standards.html">Seguridad infantil</a> · <a href="delete-account.html">Solicitar eliminación de cuenta</a></p>
+<p class="login-footer"><a href="privacy-policy.html">Privacidad</a> · <a href="terms.html">Términos</a> · <a href="child-safety-standards.html">Seguridad infantil</a> · <a href="delete-account.html">Eliminar cuenta</a><br><a href="mailto:jonitalp2023@gmail.com">jonitalp2023@gmail.com</a></p>
 </section>
 <section id="chat"><div class="panel">
 <div id="roomPills" class="room-pills"></div>
@@ -470,6 +470,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <button id="navProfile" class="nav-btn hidden" onclick="openMyProfile()" aria-label="Mi perfil"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span>Perfil</span></button><button id="adminOpenBtn" class="nav-btn hidden" onclick="openAdmin()" aria-label="Administración"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 3z"/><path d="M8 20h8"/></svg></span><span>ADMIN</span></button>
 <button id="navNotifications" class="nav-btn" onclick="openNotifications()" aria-label="Notificaciones"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></span><span>Avisos</span><span id="notificationBadge" class="hidden">0</span></button>
 <button id="navExit" class="nav-btn exit" onclick="exitChat()" aria-label="Salir"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></span><span>Salir</span></button>
+<a id="navLegal" class="nav-btn" href="legal.html" aria-label="Información legal"><span class="nav-icon" aria-hidden="true">ℹ️</span><span>Legal</span></a>
 </nav>
 <div id="adminPanel" class="panel admin-box hidden">
   <div class="admin-topbar">

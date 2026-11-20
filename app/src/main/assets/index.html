@@ -349,8 +349,12 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
   <section class="age-gate-card">
     <h1 id="ageGateTitle">CHAT ARGENTINA 🇦🇷</h1>
     <p>Antes de continuar, ingresá tu fecha de nacimiento.</p>
-    <label for="ageGateBirthDate">Fecha de nacimiento</label>
-    <input id="ageGateBirthDate" type="date" autocomplete="bday" inputmode="numeric">
+    <label>Fecha de nacimiento</label>
+    <div class="row" style="gap:7px;align-items:center">
+      <select id="ageGateDay" aria-label="Día de nacimiento" style="flex:1;min-width:0"><option value="">Día</option></select>
+      <select id="ageGateMonth" aria-label="Mes de nacimiento" style="flex:1.5;min-width:0"><option value="">Mes</option></select>
+      <select id="ageGateYear" aria-label="Año de nacimiento" style="flex:1.2;min-width:0"><option value="">Año</option></select>
+    </div>
     <button id="ageGateContinue" type="button" onclick="submitAgeGate()">Continuar</button>
     <div id="ageGateError" role="status" aria-live="polite"></div>
     <p class="muted">La fecha ingresada se utiliza para calcular la edad y no se guarda.</p>
@@ -1944,23 +1948,36 @@ function calculateAge(birthDate,today=new Date()){
   if(beforeBirthday)age--;
   return age;
 }
+function initAgeDateSelectors(){
+  const day=document.getElementById("ageGateDay");
+  const month=document.getElementById("ageGateMonth");
+  const year=document.getElementById("ageGateYear");
+  if(!day||!month||!year)return;
+  for(let d=1;d<=31;d++){const option=document.createElement("option");option.value=String(d);option.textContent=String(d);day.appendChild(option);}
+  ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].forEach((name,index)=>{const option=document.createElement("option");option.value=String(index);option.textContent=name;month.appendChild(option);});
+  const currentYear=new Date().getFullYear();
+  for(let y=currentYear;y>=1900;y--){const option=document.createElement("option");option.value=String(y);option.textContent=String(y);year.appendChild(option);}
+}
 async function submitAgeGate(){
-  const input=document.getElementById("ageGateBirthDate");
+  const day=Number(document.getElementById("ageGateDay")?.value||0);
+  const monthValue=document.getElementById("ageGateMonth")?.value;
+  const year=Number(document.getElementById("ageGateYear")?.value||0);
   const error=document.getElementById("ageGateError");
-  const value=input?.value||"";
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(value)){
-    error.textContent="Ingresá una fecha de nacimiento válida.";
+  if(!day||monthValue===null||monthValue===""||!year){
+    error.textContent="Elegí el día, el mes y el año de nacimiento.";
     return;
   }
-  const birthDate=new Date(value+"T12:00:00");
+  const birthDate=new Date(year,Number(monthValue),day,12,0,0);
   const now=new Date();
-  if(Number.isNaN(birthDate.getTime())||birthDate>now||birthDate.getFullYear()<1900){
+  if(birthDate.getFullYear()!==year||birthDate.getMonth()!==Number(monthValue)||birthDate.getDate()!==day||birthDate>now||year<1900){
     error.textContent="Revisá la fecha ingresada.";
     return;
   }
   if(calculateAge(birthDate,now)<18){
     error.textContent="No podés ingresar a ChatArgentina. El servicio es exclusivo para mayores de 18 años.";
-    input.value="";
+    document.getElementById("ageGateDay").value="";
+    document.getElementById("ageGateMonth").value="";
+    document.getElementById("ageGateYear").value="";
     return;
   }
   try{localStorage.setItem(AGE_GATE_KEY,"adult");}
@@ -1971,6 +1988,7 @@ async function submitAgeGate(){
   if(pending)await handleGoogleAuthCallback(pending);
   else await restoreGoogleLogin();
 }
+initAgeDateSelectors();
 if(!hasAdultAccess())showAgeGate();
 
 /* INICIO */

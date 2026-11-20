@@ -32,10 +32,17 @@ jobs:
       - name: Preparar GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Preparar archivos
+      - name: Preparar archivos y versión OTA
+        run: |
+          mkdir -p site
+          cp -R app/src/main/assets/. site/
+          VERSION=$(python3 -c 'import json; print(json.load(open("app/src/main/assets/version.json"))["version"])')
+          mkdir -p "site/releases/$VERSION"
+          cp -R app/src/main/assets/. "site/releases/$VERSION/"
+      - name: Preparar artefacto de Pages
         uses: actions/upload-pages-artifact@v4
         with:
-          path: app/src/main/assets
+          path: site
           name: github-pages-${{ github.run_attempt }}
 
       - name: Publicar CHAT ARGENTINA

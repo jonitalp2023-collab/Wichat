@@ -51,10 +51,6 @@ Deno.serve(async (req: Request) => {
     if (authError || !user?.id) {
       return respond({ success: false, message: "La sesión venció. Iniciá sesión nuevamente." }, 401);
     }
-    if (user.is_anonymous) {
-      return respond({ success: false, message: "Las cuentas de invitado no tienen una cuenta registrada para eliminar." }, 403);
-    }
-
     const userId = user.id;
     // Revocar los tokens de renovación en todos los dispositivos antes de tocar los datos.
     // Los access tokens JWT existentes siguen siendo válidos hasta su vencimiento, por lo que

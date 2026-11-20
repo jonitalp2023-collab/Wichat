@@ -48,6 +48,10 @@ class MainActivity : Activity() {
         private const val ASSET_HOST = "appassets.androidplatform.net"
         private const val SUPABASE_HOST = "pqnnzkqxkndzelsbtxvv.supabase.co"
         private const val CHAT_URL = "https://appassets.androidplatform.net/assets/index.html"
+        private const val REMOTE_BASE_URL = "https://jonitalp2023-collab.github.io/Wichat/releases/"
+        private const val UPDATE_MANIFEST_URL = "https://jonitalp2023-collab.github.io/Wichat/version.json"
+        private const val UPDATE_PREFS = "chatargentina_updates"
+        private const val UPDATE_VERSION_KEY = "web_version"
         private const val AUTH_SCHEME = "com.wichat.app"
     }
 
@@ -154,7 +158,13 @@ class MainActivity : Activity() {
 
         web.addJavascriptInterface(fcmBridge, "ChatArgentinaNative")
         setContentView(web)
-        web.loadUrl(CHAT_URL)
+        val installedWebVersion = getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE)
+            .getString(UPDATE_VERSION_KEY, null)
+        if (installedWebVersion.isNullOrBlank()) {
+            web.loadUrl(CHAT_URL)
+        } else {
+            web.loadUrl(REMOTE_BASE_URL + installedWebVersion + "/index.html")
+        }
     }
 
     private fun createNotificationChannel() {
@@ -177,6 +187,41 @@ class MainActivity : Activity() {
     }
 
     inner class FcmBridge {
+        @JavascriptInterface
+        fun getAvailableWebUpdate(): String {
+            return try {
+                val connection = java.net.URL(UPDATE_MANIFEST_URL).openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+                connection.setRequestProperty("Cache-Control", "no-cache")
+                val body = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                connection.disconnect()
+                val manifest = JSONObject(body)
+                val latest = manifest.optString("version", "")
+                val installed = getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE)
+                    .getString(UPDATE_VERSION_KEY, "local") ?: "local"
+                if (!latest.matches(Regex("""\\d+\\.\\d+\\.\\d+""")) || latest == installed) {
+                    JSONObject().put("available", false).toString()
+                } else {
+                    JSONObject().put("available", true)
+                        .put("version", latest)
+                        .put("notes", manifest.optString("notes", "Mejoras y correcciones."))
+                        .toString()
+                }
+            } catch (_: Exception) {
+                JSONObject().put("available", false).toString()
+            }
+        }
+
+        @JavascriptInterface
+        fun applyWebUpdate(version: String) {
+            if (!version.matches(Regex("""\\d+\\.\\d+\\.\\d+"""))) return
+            getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE).edit()
+                .putString(UPDATE_VERSION_KEY, version).apply()
+            runOnUiThread { recreate() }
+        }
+
         @JavascriptInterface
         fun requestFcmToken() {
             FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->

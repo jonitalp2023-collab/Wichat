@@ -1362,6 +1362,27 @@ roomUsers.forEach(u=>{if(u.id===senderId)return;const o=document.createElement("
 if(Array.from(s.options).some(o=>o.value===old))s.value=old;
 }
 
+/* Denuncias sin botón permanente: mantener presionado (o clic derecho) el mensaje. */
+function attachMessageReportGesture(element,message,isPrivate=false){
+  if(!message?.sender_id||String(message.sender_id)===String(senderId)||!message?.id)return;
+  let holdTimer=null,handled=false;
+  const report=()=>{if(isPrivate)reportPrivateMessage(message);else reportPublicMessage(message);};
+  element.addEventListener("pointerdown",event=>{
+    if(event.pointerType==="mouse"&&event.button!==0)return;
+    handled=false;
+    holdTimer=setTimeout(()=>{holdTimer=null;handled=true;report();},650);
+  });
+  const cancel=()=>{if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}};
+  element.addEventListener("pointerup",cancel);
+  element.addEventListener("pointercancel",cancel);
+  element.addEventListener("pointerleave",cancel);
+  element.addEventListener("contextmenu",event=>{
+    event.preventDefault();
+    if(!handled)report();
+    handled=false;
+  });
+}
+
 /* MENSAJES PÚBLICOS */
 async function submitContentReport({targetUserId,messageId,privateMessageId,roomId,nick,content}){
   if(!senderId){alert("Iniciá sesión para denunciar contenido.");return;}
@@ -1414,7 +1435,7 @@ n.appendChild(document.createTextNode(nick));
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,n);
 const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";div.append(n,t);
-if(m.sender_id&&String(m.sender_id)!==String(senderId)&&m.id){const report=document.createElement("button");report.type="button";report.className="message-report-button";report.textContent="🚩";report.title="Denunciar mensaje";report.setAttribute("aria-label","Denunciar mensaje de "+nick);report.onclick=event=>{event.stopPropagation();reportPublicMessage(m);};div.appendChild(report);}
+attachMessageReportGesture(div,m,false);
 $("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
 }
 async function loadRoomMessages(roomId){
@@ -1577,7 +1598,7 @@ if(m.sender_id&&adminUsers.has(String(m.sender_id)))addAdminBadge(who,privateNic
 if(privateNick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";who.appendChild(at);who.classList.add("admin-unix");}
 who.appendChild(document.createTextNode(privateNick+": "));
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);
-if(m.sender_id&&String(m.sender_id)!==String(senderId)&&m.id&&!String(m.id).startsWith("pending-")){const report=document.createElement("button");report.type="button";report.className="message-report-button";report.textContent="🚩";report.title="Denunciar mensaje privado";report.setAttribute("aria-label","Denunciar mensaje privado de "+privateNick);report.onclick=event=>{event.stopPropagation();reportPrivateMessage(m);};div.appendChild(report);}
+attachMessageReportGesture(div,m,true);
 box.appendChild(div);box.scrollTop=box.scrollHeight;
 }
 async function sendPrivateMessage(){

@@ -1,15 +1,21 @@
-
-name: Compilar CHAT ARGENTINA
+name: Validar y compilar ChatArgentina
 
 on:
   workflow_dispatch:
   push:
     branches:
       - main
+      - release-readiness-android
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    name: Crear APK
+    name: Compilar y analizar Android
     runs-on: ubuntu-latest
 
     steps:
@@ -22,15 +28,27 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Configurar Gradle
+      - name: Instalar Android SDK 36
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar plataforma y herramientas Android
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          yes | sdkmanager --licenses
+
+      - name: Configurar Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
 
-      - name: Compilar CHAT ARGENTINA
-        run: gradle --no-daemon :app:assembleDebug --stacktrace
+      - name: Compilar APK, AAB y ejecutar Lint
+        run: gradle --no-daemon :app:assembleDebug :app:bundleRelease :app:lintDebug --stacktrace
 
-      - name: Guardar APK
+      - name: Guardar artefactos de prueba
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: CHAT-ARGENTINA
-          path: app/build/outputs/apk/debug/*.apk
+          name: ChatArgentina-Android-candidatos
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/bundle/release/*.aab

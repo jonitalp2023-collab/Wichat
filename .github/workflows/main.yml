@@ -30,11 +30,11 @@ jobs:
 
       - name: Instalar Android SDK 36
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Instalar plataforma y herramientas Android
-        run: |
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
-          yes | sdkmanager --licenses
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
       - name: Configurar Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4

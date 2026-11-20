@@ -85,7 +85,14 @@ Deno.serve(async (req: Request) => {
       if (photoDeleteError) throw new Error("No se pudieron eliminar las fotos de perfil.");
     }
 
-    // Borrar mensajes y relaciones sociales de la cuenta.
+    // Eliminar primero las denuncias vinculadas: sus referencias a mensajes
+    // usan restricciones que impiden borrar el mensaje mientras la denuncia exista.
+    await updateNullBy("chat_user_reports", "reviewed_by");
+    const { error: reportsError } = await adminDb.from("chat_user_reports")
+      .delete().or(`reporter_id.eq.${userId},target_user_id.eq.${userId}`);
+    if (reportsError) throw new Error("No se pudieron eliminar las denuncias asociadas a la cuenta.");
+
+    // Borrar mensajes y relaciones sociales de la cuenta una vez quitadas las referencias.
     const { error: publicMessagesError } = await adminDb.from("messages").delete().eq("sender_id", userId);
     if (publicMessagesError) throw new Error("No se pudieron eliminar los mensajes públicos.");
 
@@ -118,12 +125,6 @@ Deno.serve(async (req: Request) => {
         .delete().eq("created_by", userId);
       if (pollsDeleteError) throw new Error("No se pudieron eliminar las encuestas creadas por la cuenta.");
     }
-
-    // Eliminar denuncias donde la cuenta figure como denunciante o denunciada.
-    await updateNullBy("chat_user_reports", "reviewed_by");
-    const { error: reportsError } = await adminDb.from("chat_user_reports")
-      .delete().or(`reporter_id.eq.${userId},target_user_id.eq.${userId}`);
-    if (reportsError) throw new Error("No se pudieron eliminar las denuncias asociadas a la cuenta.");
 
     // Los registros de moderación de terceros conservan su historial, sin identificar a este usuario como moderador.
     await updateNullBy("wichat_moderation_events", "moderated_by");

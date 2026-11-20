@@ -929,15 +929,13 @@ if(isAdmin&&$("roomTopicInput"))$("roomTopicInput").value=currentRoomTopic;
 async function saveRoomTopic(){
 if(!isAdmin||!currentRoom)return;
 const input=$("roomTopicInput"),status=$("topicAdminStatus"),topic=input.value.trim();
-const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:currentRoom,topic_input:topic||null});
-status.textContent=error?"Error: "+error.message:"Tópico guardado correctamente.";
-if(!error)await loadRoomTopic(currentRoom);
+try{await callAdminApi("set_room_topic",{room_id_input:currentRoom,topic_input:topic||null});status.textContent="Tópico guardado correctamente.";await loadRoomTopic(currentRoom);}
+catch(error){status.textContent="Error: "+(error.message||String(error));}
 }
 async function deleteRoomTopic(){
 if(!isAdmin||!currentRoom)return;
-const {error}=await db.rpc("admin_set_room_topic",{pin_input:adminPin,room_id_input:currentRoom,topic_input:null});
-$("topicAdminStatus").textContent=error?"Error: "+error.message:"Tópico borrado.";
-if(!error){$("roomTopicInput").value="";await loadRoomTopic(currentRoom);}
+try{await callAdminApi("set_room_topic",{room_id_input:currentRoom,topic_input:null});$("topicAdminStatus").textContent="Tópico borrado.";$("roomTopicInput").value="";await loadRoomTopic(currentRoom);}
+catch(error){$("topicAdminStatus").textContent="Error: "+(error.message||String(error));}
 }
 
 /* MODERACIÓN */

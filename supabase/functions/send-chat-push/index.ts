@@ -219,10 +219,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const googleToken = await getGoogleAccessToken(serviceAccount);
-    const title = kind === "private" ? "Nuevo mensaje de " + senderNickname : "ChatArgentina · Sala";
-    const preview = messageText.trim()
-      ? (kind === "private" ? messageText.trim() : senderNickname + ": " + messageText.trim())
-      : "Te enviaron un mensaje";
+    const title = kind === "private" ? "ChatArgentina · Mensaje privado" : "ChatArgentina · Sala";
+    const preview = kind === "private"
+      ? "Tenés un mensaje privado nuevo"
+      : (messageText.trim() ? senderNickname + ": " + messageText.trim() : "Te enviaron un mensaje");
     const notificationBody = preview.length > 180 ? preview.slice(0, 177) + "..." : preview;
     let sent = 0;
     const failures: string[] = [];

@@ -49,7 +49,7 @@ class MainActivity : Activity() {
         private const val REMOTE_BASE_URL = "https://jonitalp2023-collab.github.io/Wichat/releases/"
         private const val UPDATE_MANIFEST_URL = "https://jonitalp2023-collab.github.io/Wichat/version.json"
         private const val UPDATE_PREFS = "chatargentina_updates"
-        private const val UPDATE_VERSION_KEY = "web_version"
+        private const val UPDATE_VERSION_KEY = "web_version_v2"
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -91,8 +91,22 @@ class MainActivity : Activity() {
                 super.onReceivedHttpError(view, request, errorResponse)
                 val uri = request?.url ?: return
                 val statusCode = errorResponse?.statusCode ?: return
-                if (request.isForMainFrame && statusCode == 404 && isRemoteReleaseUrl(uri)) {
+                if (request.isForMainFrame && statusCode >= 400 && isRemoteReleaseUrl(uri)) {
                     // La versión remota ya no existe: volver al contenido incluido en el APK.
+                    getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE).edit()
+                        .remove(UPDATE_VERSION_KEY).apply()
+                    view?.post { view.loadUrl(CHAT_URL) }
+                }
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: android.webkit.WebResourceError?
+            ) {
+                super.onReceivedError(view, request, error)
+                val uri = request?.url ?: return
+                if (request.isForMainFrame && isRemoteReleaseUrl(uri)) {
                     getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE).edit()
                         .remove(UPDATE_VERSION_KEY).apply()
                     view?.post { view.loadUrl(CHAT_URL) }

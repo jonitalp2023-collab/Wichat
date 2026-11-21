@@ -206,7 +206,7 @@ Deno.serve(async (req: Request) => {
       }
 
       case "list_bans": {
-        ({ data: result, error } = await adminDb.rpc("admin_list_bans", { pin_input: pin }));
+        ({ data: result, error } = await userDb.rpc("admin_list_bans", { pin_input: pin }));
         break;
       }
 
@@ -441,7 +441,7 @@ Deno.serve(async (req: Request) => {
       case "unban_user": {
         const target = String(body.target_sender_id ?? "").trim();
         if (!target) return respond({ success: false, message: "Usuario no válido." }, 400);
-        ({ data: result, error } = await adminDb.rpc("admin_unban_user", {
+        ({ data: result, error } = await userDb.rpc("admin_unban_user", {
           pin_input: pin,
           target_sender_id: target,
         }));

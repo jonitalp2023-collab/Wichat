@@ -374,6 +374,56 @@ Deno.serve(async (req: Request) => {
         break;
       }
 
+      case "list_account_deletion_requests": {
+        const [pendingResult, historyResult] = await Promise.all([
+          adminDb.from("account_deletion_requests")
+            .select("id,nickname,contact_email,account_type,details,status,created_at,reviewed_at,resolution_note")
+            .eq("status", "pending")
+            .order("created_at", { ascending: false })
+            .limit(100),
+          adminDb.from("account_deletion_requests")
+            .neq("status", "pending")
+            .select("id,nickname,contact_email,account_type,details,status,created_at,reviewed_at,resolution_note")
+            .order("created_at", { ascending: false })
+            .limit(100),
+        ]);
+        if (pendingResult.error) throw pendingResult.error;
+        if (historyResult.error) throw historyResult.error;
+        result = [...(pendingResult.data || []), ...(historyResult.data || [])];
+        break;
+      }
+
+      case "review_account_deletion_request": {
+        const requestId = String(body.request_id ?? "").trim();
+        const requestStatus = String(body.request_status ?? "");
+        const resolutionNote = String(body.resolution_note ?? "").trim();
+        if (!UUID_RE.test(requestId) ||
+            !["pending", "verified", "completed", "rejected"].includes(requestStatus) ||
+            resolutionNote.length > 500) {
+          return respond({ success: false, message: "Datos de la solicitud de eliminación no válidos." }, 400);
+        }
+        const { data: existingRequest, error: existingRequestError } = await adminDb
+          .from("account_deletion_requests")
+          .select("id,status")
+          .eq("id", requestId)
+          .maybeSingle();
+        if (existingRequestError) throw existingRequestError;
+        if (!existingRequest) return respond({ success: false, message: "La solicitud no existe." }, 404);
+        const { data: updatedRequest, error: updateRequestError } = await adminDb
+          .from("account_deletion_requests")
+          .update({
+            status: requestStatus,
+            reviewed_at: requestStatus === "pending" ? null : new Date().toISOString(),
+            resolution_note: resolutionNote || null,
+          })
+          .eq("id", requestId)
+          .select("id,status,reviewed_at,resolution_note")
+          .single();
+        if (updateRequestError) throw updateRequestError;
+        result = updatedRequest;
+        break;
+      }
+
       case "list_moderation_terms": {
         const { data: terms, error: termsError } = await adminDb
           .from("chat_moderation_terms")

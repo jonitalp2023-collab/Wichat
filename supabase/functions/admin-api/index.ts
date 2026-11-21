@@ -382,8 +382,8 @@ Deno.serve(async (req: Request) => {
             .order("created_at", { ascending: false })
             .limit(100),
           adminDb.from("account_deletion_requests")
-            .neq("status", "pending")
             .select("id,nickname,contact_email,account_type,details,status,created_at,reviewed_at,resolution_note")
+            .neq("status", "pending")
             .order("created_at", { ascending: false })
             .limit(100),
         ]);

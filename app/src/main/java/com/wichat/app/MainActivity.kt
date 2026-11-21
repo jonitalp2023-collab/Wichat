@@ -50,6 +50,7 @@ class MainActivity : Activity() {
         private const val UPDATE_MANIFEST_URL = "https://jonitalp2023-collab.github.io/Wichat/version.json"
         private const val UPDATE_PREFS = "chatargentina_updates"
         private const val UPDATE_VERSION_KEY = "web_version_v2"
+        private const val BUNDLED_WEB_VERSION = "1.3.4"
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -275,7 +276,7 @@ class MainActivity : Activity() {
                 val manifest = JSONObject(body)
                 val latest = manifest.optString("version", "")
                 val installed = getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE)
-                    .getString(UPDATE_VERSION_KEY, "local") ?: "local"
+                    .getString(UPDATE_VERSION_KEY, BUNDLED_WEB_VERSION) ?: BUNDLED_WEB_VERSION
                 if (!latest.matches(Regex("""\d+\.\d+\.\d+""")) || latest == installed) {
                     JSONObject().put("available", false).toString()
                 } else {

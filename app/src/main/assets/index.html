@@ -616,6 +616,13 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <div id="adminUserReportsList" class="admin-list"><p class="muted">Presioná actualizar para consultar las denuncias.</p></div>
     </div>
     <div class="admin-card" data-owner-only>
+      <h4>🗑️ Solicitudes de eliminación de cuentas</h4>
+      <p class="muted">Bandeja privada para revisar solicitudes recibidas desde la página pública. Verificá la titularidad antes de marcar una solicitud como completada.</p>
+      <button class="secondary" onclick="loadAccountDeletionRequests()">↻ Actualizar solicitudes</button>
+      <p id="accountDeletionRequestsStatus" class="admin-feedback" aria-live="polite"></p>
+      <div id="accountDeletionRequestsList" class="admin-list"><p class="muted">Presioná actualizar para consultar las solicitudes.</p></div>
+    </div>
+    <div class="admin-card" data-owner-only>
       <h4>🚫 Usuarios baneados</h4><p class="muted">Consultá los baneos activos y desbloqueá usuarios.</p>
       <button class="secondary" onclick="loadBannedUsers()">↻ Actualizar lista</button>
       <div id="bannedUsersList" class="admin-list"><p class="muted">Presioná actualizar para ver los baneados.</p></div>
@@ -1867,6 +1874,81 @@ try{
 }catch(error){
  status.textContent="No se pudo actualizar la denuncia: "+(error.message||String(error));
 }
+}
+async function loadAccountDeletionRequests(){
+ if(!isAdmin||adminRole!=="owner")return;
+ const list=$("accountDeletionRequestsList"),status=$("accountDeletionRequestsStatus");
+ if(!list||!status)return;
+ list.innerHTML='<p class="muted">Cargando solicitudes...</p>';
+ status.textContent="";
+ try{
+  const requests=await callAdminApi("list_account_deletion_requests");
+  list.innerHTML="";
+  if(!Array.isArray(requests)||!requests.length){
+   list.innerHTML='<p class="muted">No hay solicitudes registradas.</p>';
+   status.textContent="Consulta completada.";
+   return;
+  }
+  requests.forEach(request=>{
+   const card=document.createElement("article");
+   card.className="admin-report-item";
+   const heading=document.createElement("strong");
+   heading.textContent=(request.nickname||"Nick no informado")+" · "+(request.status||"pending").toUpperCase();
+   const meta=document.createElement("p");
+   meta.className="muted";
+   const created=request.created_at?new Date(request.created_at).toLocaleString("es-AR"):"Fecha no disponible";
+   meta.textContent=(request.account_type==="registered"?"Cuenta registrada":"Cuenta de invitado")+" · "+created;
+   const email=document.createElement("p");
+   email.textContent="Contacto: "+(request.contact_email||"No informado");
+   const details=document.createElement("p");
+   details.textContent="Información adicional: "+(request.details||"Sin detalles.");
+   card.append(heading,meta,email,details);
+   if(request.resolution_note){
+    const note=document.createElement("p");
+    note.className="muted";
+    note.textContent="Nota de revisión: "+request.resolution_note;
+    card.appendChild(note);
+   }
+   if(request.status!=="completed"&&request.status!=="rejected"){
+    const noteInput=document.createElement("input");
+    noteInput.type="text";
+    noteInput.maxLength=500;
+    noteInput.placeholder="Nota interna (opcional, hasta 500 caracteres)";
+    noteInput.setAttribute("aria-label","Nota de revisión para "+(request.nickname||"la solicitud"));
+    card.appendChild(noteInput);
+    const actions=document.createElement("div");
+    actions.className="row";
+    [["verified","Titularidad verificada"],["completed","Marcar completada"],["rejected","Rechazar"]].forEach(([value,label])=>{
+     const button=document.createElement("button");
+     button.type="button";
+     button.className=value==="rejected"?"danger":"secondary";
+     button.textContent=label;
+     button.onclick=()=>reviewAccountDeletionRequest(request.id,value,noteInput.value);
+     actions.appendChild(button);
+    });
+    card.appendChild(actions);
+   }
+   list.appendChild(card);
+  });
+  status.textContent=requests.length+" solicitud(es) cargada(s).";
+ }catch(error){
+  list.textContent="No se pudieron cargar las solicitudes: "+(error.message||String(error));
+  status.textContent="Error al consultar las solicitudes.";
+ }
+}
+async function reviewAccountDeletionRequest(requestId,requestStatus,note){
+ if(!isAdmin||adminRole!=="owner")return;
+ const labels={verified:"verificar la titularidad",completed:"marcar como completada",rejected:"rechazar"};
+ if(!confirm("¿Confirmás "+(labels[requestStatus]||"actualizar")+" esta solicitud? Recordá procesar la eliminación real antes de marcarla como completada."))return;
+ const status=$("accountDeletionRequestsStatus");
+ status.textContent="Guardando revisión...";
+ try{
+  await callAdminApi("review_account_deletion_request",{request_id:requestId,request_status:requestStatus,resolution_note:note||""});
+  status.textContent="Estado actualizado.";
+  await loadAccountDeletionRequests();
+ }catch(error){
+  status.textContent="No se pudo actualizar la solicitud: "+(error.message||String(error));
+ }
 }
 async function loadBannedUsers(){
 if(!isAdmin||adminRole!=="owner")return;const list=$("bannedUsersList");list.innerHTML='<p class="muted">Cargando baneos...</p>';

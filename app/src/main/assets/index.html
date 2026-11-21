@@ -75,8 +75,6 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .chat-welcome{display:none}
 #messages,#privateMessages{flex:1;min-height:0;overflow-y:auto;background:#222;border:0;border-radius:0;padding:10px 11px;margin:0 0 5px;overscroll-behavior:contain}
 .message{display:flex;align-items:baseline;gap:8px;background:transparent;padding:0;margin-bottom:13px;border-radius:0;overflow-wrap:anywhere}
-.message-report-button{flex:0 0 auto;margin-left:auto;padding:3px 7px;border:1px solid #40516b;border-radius:8px;background:#26364e;color:#c9d8ec;font-size:12px;line-height:1.2}
-.private-message .message-report-button{float:right;margin:0 0 4px 8px}
 .private-message{display:block;background:transparent;padding:5px 0;margin-bottom:9px;overflow-wrap:anywhere}
 .private-message.mine{background:transparent}
 .nickname{font-weight:bold;white-space:nowrap;font-size:14px}
@@ -2066,7 +2064,7 @@ $("bannedUsersList").innerHTML='<p class="muted">Presioná actualizar para ver l
 /* CONTROL DE EDAD: se conserva solo la confirmación de mayoría de edad, nunca la fecha de nacimiento. */
 const AGE_GATE_KEY="chatargentina_adult_access_v1";
 const TERMS_ACCEPTANCE_KEY="chatargentina_terms_acceptance_v1";
-const TERMS_VERSION="2026-11-20";
+const TERMS_VERSION="2026-11-20-v2";
 function hasAdultAccess(){
   try{return localStorage.getItem(AGE_GATE_KEY)==="adult";}
   catch(_){return false;}

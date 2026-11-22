@@ -2282,6 +2282,8 @@ if(moderationChannel){await db.removeChannel(moderationChannel);moderationChanne
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await presenceChannel.untrack();await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null;}
+// Cerrar la sesión Auth actual después de liberar canales e identidad: el próximo invitado recibirá otro UUID.
+try{const {error:signOutError}=await db.auth.signOut({scope:"local"});if(signOutError)console.warn("No se pudo cerrar la sesión local de Auth:",signOutError.message);}catch(signOutError){console.warn("No se pudo cerrar la sesión local de Auth:",signOutError);}
 closeNotifications();mentionNotifications=[];receivedIds.clear();privateReceivedIds.clear();roomUsers.clear();activePrivateUser=null;privateChats=[];privateUnread.clear();
 adminPin="";isAdmin=false;adminRole="";isRegisteredAccount=false;adminUsers.clear();publicAdminUsers.clear();adminOwnerUsers.clear();registeredUsers.clear();checkedProfiles.clear();roomUsers.clear();$("navProfile").classList.add("hidden");currentRoom=null;nickname="";senderId="";renderTabs();
 $("chat").style.display="none";$("login").style.display="block";document.body.classList.remove("chat-active");$("enterBtn").disabled=false;showLoginMode("home");

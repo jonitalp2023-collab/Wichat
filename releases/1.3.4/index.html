@@ -1002,9 +1002,10 @@ async function saveChatProfile(){
   else registeredUsers.delete(String(senderId));
 }
 async function loadPublicIdentityBadges(){
+  // Cada sesión comienza sin distintivos heredados. Si falla la RPC, nadie recibe insignias administrativas.
+  registeredUsers.clear();publicAdminUsers.clear();adminOwnerUsers.clear();checkedProfiles.clear();
   const {data,error}=await db.rpc("get_chat_identity_badges");
-  if(error){console.warn("No se pudieron cargar los distintivos públicos:",error.message);return;}
-  registeredUsers.clear();publicAdminUsers.clear();adminOwnerUsers.clear();
+  if(error){console.warn("No se pudieron cargar los distintivos públicos:",error.message);renderUsers();refreshVisibleIdentityBadges();return;}
   (data||[]).forEach(item=>{
     const id=String(item.sender_id||"");if(!id)return;
     if(item.is_registered===true){registeredUsers.add(id);checkedProfiles.add(id);}
@@ -1012,8 +1013,8 @@ async function loadPublicIdentityBadges(){
     if(item.is_owner===true)adminOwnerUsers.add(id);
   });
   roomUsers.forEach((user,id)=>{
-    user.registered=user.registered===true||registeredUsers.has(String(id));
-    user.admin=user.admin===true||publicAdminUsers.has(String(id));
+    user.registered=registeredUsers.has(String(id));
+    user.admin=publicAdminUsers.has(String(id));
   });
   renderUsers();refreshVisibleIdentityBadges();
 }
@@ -2184,7 +2185,7 @@ if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await presenceChannel.untrack();await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(roomChannel){await db.removeChannel(roomChannel);roomChannel=null;}
 closeNotifications();mentionNotifications=[];receivedIds.clear();privateReceivedIds.clear();roomUsers.clear();activePrivateUser=null;privateChats=[];privateUnread.clear();
-adminPin="";isAdmin=false;adminRole="";isRegisteredAccount=false;adminUsers.clear();$("navProfile").classList.add("hidden");registeredUsers.clear();checkedProfiles.clear();currentRoom=null;nickname="";senderId="";renderTabs();
+adminPin="";isAdmin=false;adminRole="";isRegisteredAccount=false;adminUsers.clear();publicAdminUsers.clear();adminOwnerUsers.clear();registeredUsers.clear();checkedProfiles.clear();roomUsers.clear();$("navProfile").classList.add("hidden");currentRoom=null;nickname="";senderId="";renderTabs();
 $("chat").style.display="none";$("login").style.display="block";document.body.classList.remove("chat-active");$("enterBtn").disabled=false;showLoginMode("home");
 $("messages").innerHTML="";$("privateMessages").innerHTML="";$("privateInput").value="";$("messageInput").value="";
 $("adminPanel").classList.add("hidden");$("adminOpenBtn").classList.add("hidden");$("adminPin").value="";$("adminPinWrap").classList.add("hidden");$("error").textContent="";

@@ -1142,11 +1142,22 @@ presenceChannel.on("presence",{event:"sync"},updatePresenceList).on("presence",{
 if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,is_registered:isRegisteredAccount,online_at:new Date().toISOString()});updatePresenceList();}
 });
 }
+function refreshVisibleIdentityBadges(){
+  document.querySelectorAll(".message[data-sender-id],.private-message[data-sender-id]").forEach(message=>{
+    const id=String(message.dataset.senderId||"");
+    if(!id)return;
+    const user=roomUsers.get(id);
+    const name=message.querySelector(".nickname");
+    if(!name||!user)return;
+    if(user.registered===true||registeredUsers.has(id))addRegisteredPlus(name);
+    if(user.admin===true||adminUsers.has(id))addAdminBadge(name,String(user.nick||"").toUpperCase()==="UNIX");
+  });
+}
 function updatePresenceList(){
 if(!presenceChannel)return;const state=presenceChannel.presenceState(),next=new Map();
 adminUsers.clear();
 Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length){const p=entries[entries.length-1],id=p.sender_id||key,admin=p.is_admin===true;if(admin)adminUsers.add(String(id));next.set(id,{id,nick:p.nickname||"Usuario",admin,registered:p.is_registered===true||registeredUsers.has(String(id))});}});
-roomUsers=next;renderUsers();renderModerationUsers();renderMentionUsers();
+roomUsers=next;renderUsers();renderModerationUsers();renderMentionUsers();refreshVisibleIdentityBadges();
 }
 
 /* MENÚ DE USUARIO */
@@ -1433,8 +1444,9 @@ if(receivedIds.has(m.id))return;receivedIds.add(m.id);if(notifyMention)addMentio
 const div=document.createElement("div");div.className="message";div.dataset.senderId=String(m.sender_id||"");const n=document.createElement("strong");n.className="nickname";const nick=m.nickname||"Usuario";let hash=0;
 for(let i=0;i<nick.length;i++)hash=nick.charCodeAt(i)+((hash<<5)-hash);
 const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];n.style.color=colors[Math.abs(hash)%colors.length];
-if(m.sender_id&&registeredUsers.has(String(m.sender_id)))addRegisteredPlus(n);
-if(m.sender_id&&adminUsers.has(String(m.sender_id)))addAdminBadge(n,nick.toUpperCase()==="UNIX");
+const senderInfo=m.sender_id?roomUsers.get(String(m.sender_id)):null;
+if(m.sender_id&&(registeredUsers.has(String(m.sender_id))||senderInfo?.registered===true))addRegisteredPlus(n);
+if(m.sender_id&&(adminUsers.has(String(m.sender_id))||senderInfo?.admin===true))addAdminBadge(n,nick.toUpperCase()==="UNIX");
 if(nick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";n.appendChild(at);n.classList.add("admin-unix");}
 n.appendChild(document.createTextNode(nick));
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
@@ -1616,8 +1628,9 @@ const who=document.createElement("strong");who.className="nickname";
 const privateNick=String(m.sender_id)===String(senderId)?nickname:(m.sender_nickname||"Usuario");let hash=0;
 for(let i=0;i<privateNick.length;i++)hash=privateNick.charCodeAt(i)+((hash<<5)-hash);
 const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];who.style.color=colors[Math.abs(hash)%colors.length];
-if(m.sender_id&&registeredUsers.has(String(m.sender_id)))addRegisteredPlus(who);
-if(m.sender_id&&adminUsers.has(String(m.sender_id)))addAdminBadge(who,privateNick.toUpperCase()==="UNIX");
+const privateSenderInfo=m.sender_id?roomUsers.get(String(m.sender_id)):null;
+if(m.sender_id&&(registeredUsers.has(String(m.sender_id))||privateSenderInfo?.registered===true))addRegisteredPlus(who);
+if(m.sender_id&&(adminUsers.has(String(m.sender_id))||privateSenderInfo?.admin===true))addAdminBadge(who,privateNick.toUpperCase()==="UNIX");
 if(privateNick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";who.appendChild(at);who.classList.add("admin-unix");}
 who.appendChild(document.createTextNode(privateNick+": "));
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);

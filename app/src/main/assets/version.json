@@ -1,4 +1,4 @@
 {
-  "version": "1.3.7",
-  "notes": "Salas VIP visibles para todos con ingreso restringido. Tilde verde pequeño solo para usuarios registrados. Moderación y anti-spam reforzados."
+  "version": "1.3.8",
+  "notes": "Las salas VIP se muestran a todos. Al intentar entrar sin autorización aparece el cartel de acceso restringido. Se mantiene el bloqueo de mensajes VIP."
 }

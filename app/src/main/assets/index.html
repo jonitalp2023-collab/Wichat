@@ -1072,7 +1072,10 @@ isAdmin=true;adminRole="admin";
 await fetchRooms();currentRoom=$("initialRoom").value||rooms[0]?.id;if(!currentRoom)throw new Error("No hay salas disponibles.");
 const selectedRoom=rooms.find(r=>String(r.id)===String(currentRoom));
 const {data:allowed,error}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:currentRoom});
-if(error)throw error;
+if(error){
+  if(selectedRoom?.is_vip){currentRoom=null;showModerationModal("blocked",selectedRoom.name,true);btn.disabled=false;return;}
+  throw error;
+}
 if(!allowed){currentRoom=null;showModerationModal("blocked",selectedRoom?.name||"esta sala",true);btn.disabled=false;return;}
 const available=await claimNickname(nickname);if(!available){currentRoom=null;throw new Error("Este Nick ya está en uso. Elegí otro.");}
 await saveChatProfile();
@@ -1142,9 +1145,20 @@ const b=document.createElement("button");b.className="room-tab"+(active?" active
 renderPrivateTabs();
 }
 async function switchRoom(id){
+const room=rooms.find(r=>String(r.id)===String(id));
 const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:id});
-if(accessError){$("status").textContent="Error de acceso: "+accessError.message;return;}
-if(!allowed){const room=rooms.find(r=>String(r.id)===String(id));if(room?.is_vip){showModerationModal("blocked",room.name,true);}else{$("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";}return;}
+// Si la sala es VIP, ante una denegación o un error de verificación mostramos
+// el cartel de acceso restringido y nunca abrimos el canal de mensajes.
+if(accessError){
+  if(room?.is_vip){showModerationModal("blocked",room.name,true);}
+  else{$("status").textContent="Error de acceso: "+accessError.message;}
+  return;
+}
+if(!allowed){
+  if(room?.is_vip){showModerationModal("blocked",room.name,true);}
+  else{$("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";}
+  return;
+}
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}

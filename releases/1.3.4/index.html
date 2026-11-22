@@ -754,9 +754,17 @@ showError("");
 async function ensureAuthUser(){
 let {data:{session},error}=await db.auth.getSession();
 if(error)throw error;
-if(authMode==="guest"&&session&&!session.user.is_anonymous){const {error:signOutError}=await db.auth.signOut();if(signOutError)throw signOutError;session=null;}
-if((authMode==="account")&&(!session||session.user.is_anonymous))throw new Error("No hay una sesión de cuenta activa. Iniciá sesión nuevamente.");
-if(!session){if(authMode!=="guest")throw new Error("No hay una sesión activa. Iniciá sesión nuevamente.");const result=await db.auth.signInAnonymously();if(result.error)throw result.error;session=result.data.session;}
+// Cada ingreso como invitado crea un UUID anónimo nuevo. No reutiliza la identidad
+// anónima con la que pudo haberse conectado UNIX en la sesión anterior.
+if(authMode==="guest"){
+ const {error:signOutError}=await db.auth.signOut({scope:"local"});
+ if(signOutError)throw signOutError;
+ const result=await db.auth.signInAnonymously();
+ if(result.error)throw result.error;
+ session=result.data.session;
+}else if(authMode==="account"&&(!session||session.user.is_anonymous)){
+ throw new Error("No hay una sesión de cuenta activa. Iniciá sesión nuevamente.");
+}
 if(!session?.user?.id)throw new Error("No se pudo identificar al usuario.");
 return session.user.id;
 }
@@ -1046,7 +1054,7 @@ if(!requireAdultAccess())return;
 if(authMode==="home")authMode="guest";
 showError("");const name=$("nickname").value.trim(),btn=$("enterBtn");
 if(!name){showError("Escribí tu Nick.");return;}
-nickname=name;isAdmin=false;adminPin="";adminRole="";adminUsers.clear();btn.disabled=true;
+nickname=name;isAdmin=false;adminPin="";adminRole="";adminUsers.clear();publicAdminUsers.clear();adminOwnerUsers.clear();registeredUsers.clear();checkedProfiles.clear();btn.disabled=true;
 try{
 senderId=await ensureAuthUser();
 isRegisteredAccount=authMode==="account";

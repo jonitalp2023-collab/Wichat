@@ -445,7 +445,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="loginChoices">
 <div id="guestForm" class="guest-entry">
 <label for="nickname">Tu Nick para entrar</label>
-<input id="nickname" maxlength="8" oninput="this.value=this.value.replace(/\\s/g,'').slice(0,8)" placeholder="Nick (máx. 8 caracteres, sin espacios)" autocomplete="nickname">
+<input id="nickname" maxlength="8" oninput="this.value=this.value.replace(/\s/g,'').slice(0,8)" placeholder="Nick (máx. 8 caracteres, sin espacios)" autocomplete="nickname">
 <div id="adminPinWrap" class="hidden"><label for="adminPin">PIN de administrador UNIX</label><input id="adminPin" type="password" placeholder="PIN de administrador UNIX"><p class="muted">El Nick UNIX está reservado para el administrador.</p></div>
 <select id="initialRoom" class="hidden"><option value="">Cargando salas...</option></select>
 <button id="enterBtn" class="login-main-button" onclick="enterChat()">ENTRAR AL CHAT</button>
@@ -455,7 +455,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 </div>
 <div id="registerForm" class="login-form hidden">
 <h2>✨ Crear mi cuenta</h2>
-<label for="registerNickname">Tu Nick</label><input id="registerNickname" maxlength="8" oninput="this.value=this.value.replace(/\\s/g,'').slice(0,8)" placeholder="Nick (máx. 8 caracteres, sin espacios)" autocomplete="nickname">
+<label for="registerNickname">Tu Nick</label><input id="registerNickname" maxlength="8" oninput="this.value=this.value.replace(/\s/g,'').slice(0,8)" placeholder="Nick (máx. 8 caracteres, sin espacios)" autocomplete="nickname">
 <label for="registerPassword">Contraseña</label><input id="registerPassword" type="password" placeholder="Mínimo 8 caracteres" minlength="8" autocomplete="new-password">
 <label for="registerPasswordConfirm">Repetir contraseña</label><input id="registerPasswordConfirm" type="password" placeholder="Repetí tu contraseña" autocomplete="new-password">
 <button id="registerBtn" class="login-main-button" onclick="registerAccount()">CREAR CUENTA</button>
@@ -463,7 +463,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 </div>
 <div id="emailLoginForm" class="login-form hidden">
 <h2>🔐 Bienvenido nuevamente</h2>
-<label for="accountNickname">Tu Nick</label><input id="accountNickname" maxlength="8" oninput="this.value=this.value.replace(/\\s/g,'').slice(0,8)" placeholder="Nick (máx. 8 caracteres, sin espacios)" autocomplete="username">
+<label for="accountNickname">Tu Nick</label><input id="accountNickname" maxlength="8" oninput="this.value=this.value.replace(/\s/g,'').slice(0,8)" placeholder="Nick (máx. 8 caracteres, sin espacios)" autocomplete="username">
 <label for="loginPassword">Contraseña</label><input id="loginPassword" type="password" placeholder="Tu contraseña" autocomplete="current-password">
 <button id="accountLoginBtn" class="login-main-button" onclick="loginAccount()">INGRESAR</button>
 <button class="login-back" onclick="showLoginMode('home')">← VOLVER</button>

@@ -1167,7 +1167,7 @@ db.from("chat_push_room_subscriptions").upsert({user_id:senderId,room_id:id,upda
 showMainTab("chat");$("roomTopic").style.display="flex";$("roomTopicText").textContent="Cargando tópico...";$("roomTopic").classList.add("empty");await loadRoomTopic(id);
 topicChannel=db.channel("wichat-room-topic-"+id).on("postgres_changes",{event:"*",schema:"public",table:"chat_room_topics",filter:"room_id=eq."+id},()=>loadRoomTopic(id)).subscribe();
 receivedIds.clear();roomUsers.clear();$("messages").innerHTML="";renderTabs();renderUsers();renderMentionUsers();
-const room=rooms.find(r=>String(r.id)===String(id));$("status").textContent="Cargando "+(room?.name||"sala")+"...";
+$("status").textContent="Cargando "+(room?.name||"sala")+"...";
 messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new,true)).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
 presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
 presenceChannel.on("presence",{event:"sync"},updatePresenceList).on("presence",{event:"join"},updatePresenceList).on("presence",{event:"leave"},updatePresenceList).subscribe(async state=>{

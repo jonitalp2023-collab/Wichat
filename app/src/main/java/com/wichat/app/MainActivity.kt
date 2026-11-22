@@ -14,8 +14,6 @@ import android.webkit.JavascriptInterface
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.firebase.messaging.FirebaseMessaging
-import android.os.Handler
-import android.os.Looper
 import android.webkit.CookieManager
 import android.webkit.SslErrorHandler
 import android.webkit.ValueCallback
@@ -31,8 +29,6 @@ import org.json.JSONObject
 class MainActivity : Activity() {
 
     private lateinit var web: WebView
-    private val mainHandler = Handler(Looper.getMainLooper())
-    private var pauseWebViewRunnable: Runnable? = null
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
 
     private val fcmBridge = FcmBridge()
@@ -178,12 +174,16 @@ class MainActivity : Activity() {
 
         web.addJavascriptInterface(fcmBridge, "ChatArgentinaNative")
         setContentView(web)
-        val installedWebVersion = getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE)
-            .getString(UPDATE_VERSION_KEY, null)
-        if (installedWebVersion.isNullOrBlank()) {
-            web.loadUrl(CHAT_URL)
-        } else {
-            web.loadUrl(REMOTE_BASE_URL + installedWebVersion + "/index.html")
+        // Restaurar el WebView evita recargar el chat al recrearse la Activity.
+        val restored = savedInstanceState != null && web.restoreState(savedInstanceState) != null
+        if (!restored) {
+            val installedWebVersion = getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE)
+                .getString(UPDATE_VERSION_KEY, null)
+            if (installedWebVersion.isNullOrBlank()) {
+                web.loadUrl(CHAT_URL)
+            } else {
+                web.loadUrl(REMOTE_BASE_URL + installedWebVersion + "/index.html")
+            }
         }
     }
 
@@ -348,14 +348,12 @@ class MainActivity : Activity() {
     override fun onPause() {
         isAppInForeground = false
         if (::web.isInitialized) {
+            // Mantener vivo el WebView al cambiar a otra aplicación.
+            // No pausar sus procesos: al volver se conserva la pantalla y el chat.
             web.evaluateJavascript(
                 "if(window.chatAppOnBackground){window.chatAppOnBackground();}",
                 null
             )
-            pauseWebViewRunnable = Runnable {
-                if (::web.isInitialized) web.onPause()
-            }
-            mainHandler.postDelayed(pauseWebViewRunnable!!, 400)
         }
         super.onPause()
     }
@@ -363,8 +361,6 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         isAppInForeground = true
-        pauseWebViewRunnable?.let { mainHandler.removeCallbacks(it) }
-        pauseWebViewRunnable = null
         if (::web.isInitialized) {
             web.onResume()
             web.evaluateJavascript(
@@ -372,6 +368,11 @@ class MainActivity : Activity() {
                 null
             )
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        if (::web.isInitialized) web.saveState(outState)
+        super.onSaveInstanceState(outState)
     }
 
     @Suppress("DEPRECATION")
@@ -386,7 +387,6 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         filePathCallback?.onReceiveValue(null)
         filePathCallback = null
-        pauseWebViewRunnable?.let { mainHandler.removeCallbacks(it) }
         if (::web.isInitialized) {
             web.stopLoading()
             web.webChromeClient = null

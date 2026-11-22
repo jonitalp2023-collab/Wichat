@@ -1453,7 +1453,7 @@ if(String(currentRoom)!==String(roomId))return;(data||[]).forEach(addMessage);if
 }
 
 function detectChatUrl(text){
-  return /(?:https?:\\/\\/|ftp:\\/\\/|www\\.)\\S+|(?:^|[^\\w@])(?:[a-z0-9-]+\\.)+[a-z]{2,63}(?:[/:?#]\\S*)?/i.test(String(text||""));
+  return /(?:https?:\/\/|ftp:\/\/|www\.)\S+|(?:^|[^\w@])(?:[a-z0-9-]+\.)+[a-z]{2,63}(?:[/:?#]\S*)?/i.test(String(text||""));
 }
 function showContentBlocked(kind){
   const title=$("moderationTitle"),message=$("moderationMessage"),button=$("moderationModal").querySelector("button");
@@ -1621,6 +1621,7 @@ async function sendPrivateMessage(){
 if(!activePrivateUser)return;
 const input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();
 if(!value||btn.disabled)return;
+if(!isAdmin&&detectChatUrl(value)){showContentBlocked("url");return;}
 if(!isAdmin&&detectChatUrl(value)){showContentBlocked("url");return;}
 const recipientId=activePrivateUser.id;
 if(isUserBlocked(recipientId)){alert("Desbloqueá a este usuario para enviarle mensajes.");return;}

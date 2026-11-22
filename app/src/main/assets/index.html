@@ -738,6 +738,8 @@ async function unblockUser(id){
   renderBlockedUsers();renderUsers();renderMentionUsers();
 }
 const adminUsers=new Set();
+const publicAdminUsers=new Set();
+const adminOwnerUsers=new Set();
 let adminManagementUsers=[];
 let mentionNotifications=[];
 function notificationStorageKey(){return "wichat-mentions-"+String(senderId||"");}
@@ -1017,10 +1019,21 @@ async function saveChatProfile(){
   if(isRegisteredAccount)registeredUsers.add(String(senderId));
   else registeredUsers.delete(String(senderId));
 }
-async function loadRegisteredProfiles(){
-  const {data,error}=await db.from("chat_profiles").select("user_id,is_registered").eq("is_registered",true);
-  if(error){console.warn("No se pudieron cargar los perfiles registrados:",error.message);return;}
-  (data||[]).forEach(p=>{if(p.user_id){registeredUsers.add(String(p.user_id));checkedProfiles.add(String(p.user_id));}});
+async function loadPublicIdentityBadges(){
+  const {data,error}=await db.rpc("get_chat_identity_badges");
+  if(error){console.warn("No se pudieron cargar los distintivos públicos:",error.message);return;}
+  registeredUsers.clear();publicAdminUsers.clear();adminOwnerUsers.clear();
+  (data||[]).forEach(item=>{
+    const id=String(item.sender_id||"");if(!id)return;
+    if(item.is_registered===true){registeredUsers.add(id);checkedProfiles.add(id);}
+    if(item.is_admin===true)publicAdminUsers.add(id);
+    if(item.is_owner===true)adminOwnerUsers.add(id);
+  });
+  roomUsers.forEach((user,id)=>{
+    user.registered=user.registered===true||registeredUsers.has(String(id));
+    user.admin=user.admin===true||publicAdminUsers.has(String(id));
+  });
+  renderUsers();refreshVisibleIdentityBadges();
 }
 function addRegisteredPlus(element){
   if(!element||element.querySelector(".registered-check"))return;
@@ -1080,7 +1093,7 @@ if(!allowed){currentRoom=null;showModerationModal("blocked",selectedRoom?.name||
 const available=await claimNickname(nickname);if(!available){currentRoom=null;throw new Error("Este Nick ya está en uso. Elegí otro.");}
 await saveChatProfile();
 loadMentionNotifications();updateNotificationBadge();
-await loadRegisteredProfiles();
+await loadPublicIdentityBadges();
 $("navProfile").classList.toggle("hidden",!senderId||(!isRegisteredAccount&&isAdmin));
 $("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
 $("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom);
@@ -1186,9 +1199,9 @@ function refreshVisibleIdentityBadges(){
     if(!id)return;
     const user=roomUsers.get(id);
     const name=message.querySelector(".nickname");
-    if(!name||!user)return;
-    if(user.registered===true||registeredUsers.has(id))addRegisteredPlus(name);
-    if(user.admin===true||adminUsers.has(id))addAdminBadge(name,String(user.nick||"").toUpperCase()==="UNIX");
+    if(!name)return;
+    if(user?.registered===true||registeredUsers.has(id))addRegisteredPlus(name);
+    if(user?.admin===true||adminUsers.has(id)||publicAdminUsers.has(id))addAdminBadge(name,adminOwnerUsers.has(id)||String(user?.nick||"").toUpperCase()==="UNIX");
   });
 }
 function updatePresenceList(){
@@ -1404,7 +1417,7 @@ filtered.forEach(u=>{
 const item=document.createElement("div");item.className="user-item";const dot=document.createElement("span");dot.className="online-dot";
 const name=document.createElement("span");name.className="user-name";
 if(u.registered||registeredUsers.has(String(u.id)))addRegisteredPlus(name);
-if(u.admin||adminUsers.has(String(u.id)))addAdminBadge(name,String(u.nick||"").toUpperCase()==="UNIX");
+if(u.admin||adminUsers.has(String(u.id))||publicAdminUsers.has(String(u.id)))addAdminBadge(name,adminOwnerUsers.has(String(u.id))||String(u.nick||"").toUpperCase()==="UNIX");
 if(String(u.nick||"").toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";name.appendChild(at);name.classList.add("admin-unix");}
 name.appendChild(document.createTextNode(u.nick));item.append(dot,name);
 if(String(u.id)!==String(senderId)){item.onclick=()=>openUserMenu(u);}else{item.title="Vos";}list.appendChild(item);
@@ -1484,7 +1497,7 @@ for(let i=0;i<nick.length;i++)hash=nick.charCodeAt(i)+((hash<<5)-hash);
 const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];n.style.color=colors[Math.abs(hash)%colors.length];
 const senderInfo=m.sender_id?roomUsers.get(String(m.sender_id)):null;
 if(m.sender_id&&(registeredUsers.has(String(m.sender_id))||senderInfo?.registered===true))addRegisteredPlus(n);
-if(m.sender_id&&(adminUsers.has(String(m.sender_id))||senderInfo?.admin===true))addAdminBadge(n,nick.toUpperCase()==="UNIX");
+if(m.sender_id&&(adminUsers.has(String(m.sender_id))||publicAdminUsers.has(String(m.sender_id))||senderInfo?.admin===true))addAdminBadge(n,adminOwnerUsers.has(String(m.sender_id))||nick.toUpperCase()==="UNIX");
 if(nick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";n.appendChild(at);n.classList.add("admin-unix");}
 n.appendChild(document.createTextNode(nick));
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
@@ -1668,7 +1681,7 @@ for(let i=0;i<privateNick.length;i++)hash=privateNick.charCodeAt(i)+((hash<<5)-h
 const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];who.style.color=colors[Math.abs(hash)%colors.length];
 const privateSenderInfo=m.sender_id?roomUsers.get(String(m.sender_id)):null;
 if(m.sender_id&&(registeredUsers.has(String(m.sender_id))||privateSenderInfo?.registered===true))addRegisteredPlus(who);
-if(m.sender_id&&(adminUsers.has(String(m.sender_id))||privateSenderInfo?.admin===true))addAdminBadge(who,privateNick.toUpperCase()==="UNIX");
+if(m.sender_id&&(adminUsers.has(String(m.sender_id))||publicAdminUsers.has(String(m.sender_id))||privateSenderInfo?.admin===true))addAdminBadge(who,adminOwnerUsers.has(String(m.sender_id))||privateNick.toUpperCase()==="UNIX");
 if(privateNick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";who.appendChild(at);who.classList.add("admin-unix");}
 who.appendChild(document.createTextNode(privateNick+": "));
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);

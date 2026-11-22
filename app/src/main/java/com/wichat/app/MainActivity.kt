@@ -138,7 +138,7 @@ class MainActivity : Activity() {
             @Suppress("DEPRECATION")
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
                 val uri = url?.let(Uri::parse) ?: return true
-                return routeNavigation(uri)
+                return routeNavigation(uri, view)
             }
 
             override fun onReceivedSslError(

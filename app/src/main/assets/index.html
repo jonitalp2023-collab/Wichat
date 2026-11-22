@@ -609,6 +609,21 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <div class="row"><button class="secondary" onclick="moderateUser('kick')">🚪 Expulsar</button><button class="danger" onclick="moderateUser('ban')">🚫 Banear 5 minutos</button></div>
     </div>
     <div class="admin-card" data-owner-only>
+      <h4>🚫 Palabras y expresiones prohibidas</h4>
+      <p class="muted">Agregá términos que el sistema bloqueará antes de publicar. Se aplican también a los intentos de envío directo.</p>
+      <div class="row">
+        <input id="moderationTermInput" maxlength="40" placeholder="Palabra o expresión a bloquear">
+        <select id="moderationTermCategory" style="max-width:150px">
+          <option value="custom">Prohibida</option>
+          <option value="insulto">Insulto</option>
+        </select>
+        <button onclick="addModerationTerm()">Agregar</button>
+      </div>
+      <button class="secondary" onclick="loadModerationTerms()">↻ Actualizar palabras</button>
+      <p id="moderationTermsStatus" class="admin-feedback" aria-live="polite"></p>
+      <div id="moderationTermsList" class="admin-list"><p class="muted">Cargando palabras bloqueadas...</p></div>
+    </div>
+    <div class="admin-card" data-owner-only>
       <h4>🚩 Denuncias de usuarios y mensajes</h4>
       <p class="muted">Revisá los reportes recibidos, el contenido denunciado y las medidas tomadas.</p>
       <button class="secondary" onclick="loadUserReports()">↻ Actualizar denuncias</button>
@@ -976,7 +991,18 @@ $("nickname").addEventListener("input",()=>{const admin=$("nickname").value.trim
 
 async function fetchRooms(){
 const {data,error}=await db.from("rooms").select("id,name,is_vip");if(error)throw error;
-rooms=(data||[]).slice().sort((a,b)=>{
+const allRooms=data||[];
+if(senderId&&!isAdmin){
+  const accessChecks=await Promise.all(allRooms.map(async room=>{
+    if(!room.is_vip)return true;
+    const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:room.id});
+    return !accessError&&allowed===true;
+  }));
+  rooms=allRooms.filter((room,index)=>accessChecks[index]);
+}else{
+  rooms=allRooms.slice();
+}
+rooms=rooms.slice().sort((a,b)=>{
 const ag=String(a.name).trim().toLowerCase()==="general",bg=String(b.name).trim().toLowerCase()==="general";
 if(ag&&!bg)return -1;if(bg&&!ag)return 1;return String(a.name).localeCompare(String(b.name),"es");
 });
@@ -1474,8 +1500,12 @@ async function sendMessage(){
 
     const {data:savedMessage,error:insertError}=await db.from("messages").insert({
       nickname:senderNickname,message:value,room_id:roomId,sender_id:senderId
-    }).select("id").single();
-    if(insertError)throw insertError;
+    }).select("id").maybeSingle();
+    if(insertError){
+      if(insertError.code==="42501")throw new Error("Mensaje bloqueado: revisá las palabras permitidas o tu acceso a esta sala.");
+      throw insertError;
+    }
+    if(!savedMessage?.id)throw new Error("Mensaje bloqueado por moderación: no se publicó.");
     if(savedMessage?.id){
       db.functions.invoke("send-chat-push",{body:{kind:"room",message_id:savedMessage.id}}).then(({data,error})=>{
         if(error)console.warn("No se pudo enviar la notificación de sala:",error);
@@ -1670,6 +1700,7 @@ function adminShowSection(section){
   });
   const panel=$("adminPanel");
   if(panel)panel.scrollTop=0;
+  if(section==="moderation"&&adminRole==="owner")loadModerationTerms();
 }
 function updateAdminStats(){
   const roomCount=rooms.length;
@@ -1950,6 +1981,46 @@ async function reviewAccountDeletionRequest(requestId,requestStatus,note){
   status.textContent="No se pudo actualizar la solicitud: "+(error.message||String(error));
  }
 }
+async function loadModerationTerms(){
+if(!isAdmin||adminRole!=="owner")return;
+const list=$("moderationTermsList"),status=$("moderationTermsStatus");
+if(!list)return;
+list.innerHTML='<p class="muted">Cargando palabras bloqueadas...</p>';
+try{
+const terms=await callAdminApi("list_moderation_terms");
+list.innerHTML="";
+if(!terms||!terms.length){list.innerHTML='<p class="muted">No agregaste palabras personalizadas. El filtro básico del sistema sigue activo.</p>';return;}
+terms.forEach(term=>{
+ const card=document.createElement("div");card.className="banned-card";
+ const name=document.createElement("strong");name.className="banned-name";name.textContent=term.term;
+ const details=document.createElement("p");details.className="banned-details";
+ details.textContent=(term.category==="insulto"?"Insulto":"Palabra prohibida")+" · "+(term.active?"Activa":"Desactivada");
+ const button=document.createElement("button");button.className=term.active?"secondary":"unban-button";
+ button.textContent=term.active?"Desactivar":"Activar";
+ button.onclick=()=>toggleModerationTerm(term.id,!term.active);
+ card.append(name,details,button);list.appendChild(card);
+});
+}catch(error){list.textContent="Error al cargar palabras: "+error.message;}
+}
+async function addModerationTerm(){
+if(!isAdmin||adminRole!=="owner")return;
+const input=$("moderationTermInput"),status=$("moderationTermsStatus");
+const term=String(input?.value||"").trim();
+if(term.length<2||term.length>40){status.textContent="La palabra o expresión debe tener entre 2 y 40 caracteres.";return;}
+try{
+ await callAdminApi("add_moderation_term",{term,category:$("moderationTermCategory")?.value||"custom"});
+ input.value="";status.textContent="Palabra agregada. Ya está bloqueada en el servidor.";
+ await loadModerationTerms();
+}catch(error){status.textContent="No se pudo agregar: "+error.message;}
+}
+async function toggleModerationTerm(termId,active){
+if(!isAdmin||adminRole!=="owner")return;
+try{
+ await callAdminApi("toggle_moderation_term",{term_id:termId,active});
+ await loadModerationTerms();
+}catch(error){$("moderationTermsStatus").textContent="No se pudo actualizar: "+error.message;}
+}
+
 async function loadBannedUsers(){
 if(!isAdmin||adminRole!=="owner")return;const list=$("bannedUsersList");list.innerHTML='<p class="muted">Cargando baneos...</p>';
 try{

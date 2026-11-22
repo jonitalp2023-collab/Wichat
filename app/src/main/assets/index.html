@@ -1490,12 +1490,24 @@ if(String(currentRoom)!==String(roomId))return;(data||[]).forEach(addMessage);if
 }
 }
 
+function detectChatUrl(text){
+  return /(?:https?:\\/\\/|ftp:\\/\\/|www\\.)\\S+|(?:^|[^\\w@])(?:[a-z0-9-]+\\.)+[a-z]{2,63}(?:[/:?#]\\S*)?/i.test(String(text||""));
+}
+function showContentBlocked(kind){
+  const title=$("moderationTitle"),message=$("moderationMessage"),button=$("moderationModal").querySelector("button");
+  if(kind==="url"){title.textContent="🚫 Enlace no permitido";message.textContent="Está prohibido enviar enlaces o direcciones web en ChatArgentina. Tu mensaje no fue publicado.";}
+  else if(kind==="insult"){title.textContent="⚠️ Mensaje no permitido";message.textContent="Está prohibido utilizar malas palabras, insultos o expresiones ofensivas. Tu mensaje no fue publicado.";}
+  else{title.textContent="⏳ Evitá el spam";message.textContent="Estás enviando mensajes demasiado rápido o repetidos. Esperá unos segundos antes de volver a escribir. Tu mensaje no fue publicado.";}
+  button.textContent="ENTENDIDO";$("moderationModal").classList.add("show");
+}
+
 /* ENVÍO DE MENSAJES + CONEXIÓN CON LOS BOTS */
 async function sendMessage(){
   const input=$("messageInput");
   const btn=$("sendBtn");
   const value=input.value.trim();
   if(!value||!nickname||!currentRoom||btn.disabled)return;
+  if(!isAdmin&&detectChatUrl(value)){showContentBlocked("url");return;}
 
   btn.disabled=true;
   const roomId=String(currentRoom).trim();
@@ -1514,7 +1526,8 @@ async function sendMessage(){
       nickname:senderNickname,message:value,room_id:roomId,sender_id:senderId
     }).select("id").maybeSingle();
     if(insertError){
-      if(insertError.code==="42501")throw new Error("Mensaje bloqueado: revisá las palabras permitidas o tu acceso a esta sala.");
+      if(insertError.code==="42501"){showContentBlocked("insult");return;}
+      if(String(insertError.message||"").includes("demasiado rápido")||String(insertError.message||"").includes("repetido")||String(insertError.message||"").includes("Esperá")){showContentBlocked("spam");return;}
       throw insertError;
     }
     if(!savedMessage?.id)throw new Error("Mensaje bloqueado por moderación: no se publicó.");

@@ -548,8 +548,8 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
       <p id="roomVipStatus" class="muted"></p>
     </div>
     <div class="admin-card">
-      <h4>⭐ Membresías VIP</h4><p class="muted">Ingresá el Nick exacto de una cuenta registrada para otorgarle o quitarle la membresía VIP.</p>
-      <input id="vipMemberNickname" maxlength="24" placeholder="Nick del usuario registrado">
+      <h4>⭐ Membresías VIP</h4><p class="muted">Seleccioná la cuenta registrada a la que querés otorgar o quitar la membresía VIP. Si hay Nick repetidos, cada cuenta aparece por separado.</p>
+      <select id="vipMemberUser"><option value="">Cargando cuentas registradas...</option></select>
       <div class="row"><button onclick="setVipMember(true)">➕ Dar membresía</button><button class="secondary" onclick="setVipMember(false)">Quitar membresía</button></div>
       <p id="vipMemberStatus" class="muted"></p>
     </div>
@@ -1782,13 +1782,31 @@ try{
  status.textContent=enabled?"La sala ahora es VIP.":"La sala ahora es pública.";
 }catch(error){status.textContent="No se pudo actualizar la sala: "+error.message;}
 }
+async function loadVipMemberUsers(){
+if(!isAdmin)return;
+const select=$("vipMemberUser");
+if(!select)return;
+select.innerHTML='<option value="">Cargando cuentas registradas...</option>';
+try{
+ const users=await callAdminApi("list_registered_users");
+ select.innerHTML='<option value="">Elegí una cuenta registrada</option>';
+ (Array.isArray(users)?users:[]).forEach(user=>{
+  const option=document.createElement("option");
+  option.value=user.user_id;
+  option.textContent=String(user.nickname||"Sin Nick")+" · "+String(user.user_id||"").slice(0,8);
+  select.appendChild(option);
+ });
+ if(!users?.length)select.innerHTML='<option value="">No hay cuentas registradas</option>';
+}catch(error){select.innerHTML='<option value="">No se pudieron cargar las cuentas</option>';}
+}
 async function setVipMember(enabled){
 if(!isAdmin)return;
-const nicknameInput=$("vipMemberNickname"),status=$("vipMemberStatus"),target=nicknameInput.value.trim();
-if(!target){status.textContent="Ingresá el Nick del usuario registrado.";return;}
+const select=$("vipMemberUser"),status=$("vipMemberStatus"),target=select?.value||"";
+if(!target){status.textContent="Seleccioná una cuenta registrada.";return;}
+const label=select.options[select.selectedIndex]?.textContent||"la cuenta seleccionada";
 try{
- await callAdminApi("set_vip_member",{nickname_input:target,vip_enabled:enabled});
- status.textContent=enabled?"Membresía VIP otorgada a "+target+".":"Membresía VIP quitada a "+target+".";
+ await callAdminApi("set_vip_member",{target_user_id:target,vip_enabled:enabled});
+ status.textContent=enabled?"Membresía VIP otorgada a "+label+".":"Membresía VIP quitada a "+label+".";
 }catch(error){status.textContent="No se pudo actualizar la membresía: "+error.message;}
 }
 async function deleteRoom(){

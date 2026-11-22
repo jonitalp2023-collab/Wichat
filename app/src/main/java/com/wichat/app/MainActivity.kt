@@ -132,7 +132,7 @@ class MainActivity : Activity() {
                 request: WebResourceRequest?
             ): Boolean {
                 val uri = request?.url ?: return true
-                return routeNavigation(uri)
+                return routeNavigation(uri, view)
             }
 
             @Suppress("DEPRECATION")
@@ -304,10 +304,17 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun routeNavigation(uri: Uri): Boolean {
+    private fun routeNavigation(uri: Uri, view: WebView?): Boolean {
 
         val scheme = uri.scheme?.lowercase()
         val host = uri.host?.lowercase()
+
+        // Si un enlace relativo apunta al directorio /assets/ (sin index.html),
+        // abrir explícitamente la pantalla principal en vez de mostrar un error WebView.
+        if (scheme == "https" && host == ASSET_HOST && uri.path == "/assets/") {
+            view?.loadUrl(CHAT_URL)
+            return true
+        }
 
         // Los recursos locales seguros y la web oficial permanecen dentro del WebView.
         if (scheme == "https" && (host == ASSET_HOST || host == CHAT_HOST)) return false

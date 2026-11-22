@@ -1459,6 +1459,7 @@ function showContentBlocked(kind){
   const title=$("moderationTitle"),message=$("moderationMessage"),button=$("moderationModal").querySelector("button");
   if(kind==="url"){title.textContent="🚫 Enlace no permitido";message.textContent="Está prohibido enviar enlaces o direcciones web en ChatArgentina. Tu mensaje no fue publicado.";}
   else if(kind==="insult"){title.textContent="⚠️ Mensaje no permitido";message.textContent="Está prohibido utilizar malas palabras, insultos o expresiones ofensivas. Tu mensaje no fue publicado.";}
+  else if(kind==="content"){title.textContent="🚫 Mensaje bloqueado";message.textContent="Tu mensaje no se publicó porque contiene contenido no permitido o infringe las reglas de la sala.";}
   else{title.textContent="⏳ Evitá el spam";message.textContent="Estás enviando mensajes demasiado rápido o repetidos. Esperá unos segundos antes de volver a escribir. Tu mensaje no fue publicado.";}
   button.textContent="ENTENDIDO";$("moderationModal").classList.add("show");
 }
@@ -1488,11 +1489,11 @@ async function sendMessage(){
       nickname:senderNickname,message:value,room_id:roomId,sender_id:senderId
     }).select("id").maybeSingle();
     if(insertError){
-      if(insertError.code==="42501"){showContentBlocked("insult");return;}
+      if(insertError.code==="42501"){showContentBlocked("content");return;}
       if(String(insertError.message||"").includes("demasiado rápido")||String(insertError.message||"").includes("repetido")||String(insertError.message||"").includes("Esperá")){showContentBlocked("spam");return;}
       throw insertError;
     }
-    if(!savedMessage?.id)throw new Error("Mensaje bloqueado por moderación: no se publicó.");
+    if(!savedMessage?.id){showContentBlocked("content");return;}
     if(savedMessage?.id){
       db.functions.invoke("send-chat-push",{body:{kind:"room",message_id:savedMessage.id}}).then(({data,error})=>{
         if(error)console.warn("No se pudo enviar la notificación de sala:",error);
@@ -1638,7 +1639,7 @@ try{
   const {data,error}=await db.from("private_messages")
     .insert({sender_id:senderId,recipient_id:recipientId,sender_nickname:nickname,content:value})
     .select().single();
-  if(error){if(error.code==="42501"){showContentBlocked("insult");throw new Error("Mensaje bloqueado por moderación.");}if(String(error.message||"").includes("demasiado rápido")||String(error.message||"").includes("repetido")||String(error.message||"").includes("Esperá")){showContentBlocked("spam");throw new Error("Mensaje bloqueado por antispam.");}throw error;}
+  if(error){if(error.code==="42501"){showContentBlocked("content");throw new Error("Mensaje bloqueado por moderación.");}if(String(error.message||"").includes("demasiado rápido")||String(error.message||"").includes("repetido")||String(error.message||"").includes("Esperá")){showContentBlocked("spam");throw new Error("Mensaje bloqueado por antispam.");}throw error;}
   db.functions.invoke("send-chat-push",{body:{kind:"private",message_id:data.id}}).then(({data:pushData,error:pushError})=>{
     if(pushError)console.warn("No se pudo enviar la notificación privada:",pushError);
     else if(pushData?.success!==true)console.warn("Notificación privada no enviada:",pushData);

@@ -183,17 +183,15 @@ Deno.serve(async (req: Request) => {
       }
 
       case "set_vip_member": {
-        const nickname = String(body.nickname_input ?? "").trim();
+        const targetUserId = String(body.target_user_id ?? "").trim();
         const enabled = body.vip_enabled;
-        if (!nickname || nickname.length > 50 || typeof enabled !== "boolean") {
-          return respond({ success: false, message: "Datos de membresía VIP no válidos." }, 400);
+        if (!UUID_RE.test(targetUserId) || typeof enabled !== "boolean") {
+          return respond({ success: false, message: "Seleccioná una cuenta registrada válida." }, 400);
         }
-        const { data: matches, error: matchError } = await adminDb.from("chat_profiles")
-          .select("user_id,nickname").ilike("nickname", nickname).limit(2);
-        if (matchError) throw matchError;
-        if (!matches?.length) return respond({ success: false, message: "No se encontró ese usuario." }, 404);
-        if (matches.length > 1) return respond({ success: false, message: "Hay más de un usuario con ese Nick; no se modificó ninguna membresía." }, 409);
-        const targetUserId = matches[0].user_id;
+        const { data: targetProfile, error: profileError } = await adminDb.from("chat_profiles")
+          .select("user_id,nickname").eq("user_id", targetUserId).eq("is_registered", true).maybeSingle();
+        if (profileError) throw profileError;
+        if (!targetProfile) return respond({ success: false, message: "No se encontró esa cuenta registrada." }, 404);
         if (enabled) {
           ({ data: result, error } = await adminDb.from("chat_vip_members")
             .upsert({ user_id: targetUserId, granted_by: "UNIX", note: "Membresía otorgada desde el panel" }, { onConflict: "user_id" })

@@ -163,13 +163,30 @@ Deno.serve(async (req: Request) => {
       senderNickname = String(message.nickname || "Usuario");
       messageText = String(message.message || message.content || "");
       roomId = Number(message.room_id);
-      const { data: subscriptions, error: subscriptionsError } = await admin
-        .from("chat_push_room_subscriptions")
-        .select("user_id")
-        .eq("room_id", roomId)
-        .neq("user_id", senderId);
-      if (subscriptionsError) throw subscriptionsError;
-      recipientIds = (subscriptions || []).map((item: { user_id: string }) => String(item.user_id));
+      // Room messages must not notify everyone in the room. Resolve all devices'
+      // active nicknames and notify only users explicitly mentioned as #nickname.
+      // This works even when the recipient is currently in another room or the app is closed.
+      const { data: deviceUsers, error: deviceUsersError } = await admin
+        .from("chat_push_tokens")
+        .select("user_id");
+      if (deviceUsersError) throw deviceUsersError;
+      const deviceUserIds = [...new Set(
+        (deviceUsers || []).map((item: { user_id: string }) => String(item.user_id)).filter(Boolean),
+      )].filter((id) => id !== senderId);
+      if (deviceUserIds.length) {
+        const { data: profiles, error: profilesError } = await admin
+          .from("chat_profiles")
+          .select("user_id, nickname")
+          .in("user_id", deviceUserIds);
+        if (profilesError) throw profilesError;
+        const normalizedMessage = messageText.toLocaleLowerCase();
+        recipientIds = (profiles || [])
+          .filter((profile: { user_id: string; nickname: string | null }) => {
+            const nick = String(profile.nickname || "").trim().toLocaleLowerCase();
+            return nick.length > 0 && normalizedMessage.includes("#" + nick);
+          })
+          .map((profile: { user_id: string }) => String(profile.user_id));
+      }
     }
 
     // Respect user blocks for push delivery too. Realtime/RLS hides blocked messages,

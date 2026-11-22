@@ -1491,7 +1491,7 @@ if(String(currentRoom)!==String(roomId))return;(data||[]).forEach(addMessage);if
 }
 
 function detectChatUrl(text){
-  return /(?:https?:\\/\\/|ftp:\\/\\/|www\\.)\\S+|(?:^|[^\\w@])(?:[a-z0-9-]+\\.)+[a-z]{2,63}(?:[/:?#]\\S*)?/i.test(String(text||""));
+  return /(?:https?:\/\/|ftp:\/\/|www\.)\S+|(?:^|[^\w@])(?:[a-z0-9-]+\.)+[a-z]{2,63}(?:[/:?#]\S*)?/i.test(String(text||""));
 }
 function showContentBlocked(kind){
   const title=$("moderationTitle"),message=$("moderationMessage"),button=$("moderationModal").querySelector("button");
@@ -1665,6 +1665,7 @@ async function sendPrivateMessage(){
 if(!activePrivateUser)return;
 const input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();
 if(!value||btn.disabled)return;
+if(!isAdmin&&detectChatUrl(value)){showContentBlocked("url");return;}
 const recipientId=activePrivateUser.id;
 if(isUserBlocked(recipientId)){alert("Desbloqueá a este usuario para enviarle mensajes.");return;}
 const pendingId="pending-"+crypto.randomUUID();
@@ -1675,7 +1676,7 @@ try{
   const {data,error}=await db.from("private_messages")
     .insert({sender_id:senderId,recipient_id:recipientId,sender_nickname:nickname,content:value})
     .select().single();
-  if(error)throw error;
+  if(error){if(error.code==="42501"){showContentBlocked("insult");throw new Error("Mensaje bloqueado por moderación.");}if(String(error.message||"").includes("demasiado rápido")||String(error.message||"").includes("repetido")||String(error.message||"").includes("Esperá")){showContentBlocked("spam");throw new Error("Mensaje bloqueado por antispam.");}throw error;}
   db.functions.invoke("send-chat-push",{body:{kind:"private",message_id:data.id}}).then(({data:pushData,error:pushError})=>{
     if(pushError)console.warn("No se pudo enviar la notificación privada:",pushError);
     else if(pushData?.success!==true)console.warn("Notificación privada no enviada:",pushData);
@@ -1689,7 +1690,7 @@ try{
   if(pending)pending.remove();
   privateReceivedIds.delete(pendingId);
   if(!input.value)input.value=value;
-  alert("No se pudo enviar el mensaje privado: "+e.message);
+  if(!$("moderationModal").classList.contains("show"))alert("No se pudo enviar el mensaje privado: "+e.message);
 }finally{
   btn.disabled=false;
   // Mantener el foco existente sin forzar una reapertura del teclado.

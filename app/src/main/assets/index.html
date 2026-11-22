@@ -349,19 +349,31 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
   #messageInput,#privateInput{font-size:16px!important;}
 }
 
-/* Pantalla neutral de edad para acceso exclusivo de adultos */
-#ageGate{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(7,12,22,.98);overflow:auto}
+/* Pantalla de bienvenida +18 · identidad celeste y blanca de ChatArgentina */
+#ageGate{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(10,16,24,.985);overflow-y:auto}
 #ageGate.hidden{display:none!important}
-.age-gate-card{width:100%;max-width:430px;padding:28px 23px;border:1px solid #36577f;border-radius:22px;background:linear-gradient(155deg,#192b49,#101a30);box-shadow:0 18px 55px #0009;text-align:center}
-.age-gate-card h1{font-size:24px;margin:0 0 12px;color:#fff}
-.age-gate-card p{color:#b9cce5;font-size:14px;line-height:1.55}
-.age-gate-card label{display:block;text-align:left;color:#d6e4f5;font-size:13px;margin:20px 0 6px}
-.age-gate-card input{width:100%;height:52px;padding:12px;border:1px solid #456487;border-radius:11px;background:#0b1528;color:#fff;font-size:17px}
-.age-gate-card button{width:100%;min-height:49px;margin-top:16px;background:linear-gradient(110deg,#0879d0,#16a9ef);border-radius:12px;font-size:15px}
-#ageGateError{min-height:22px;color:#ff9292;font-size:13px;margin-top:10px}
-.age-gate-terms{display:flex;align-items:flex-start;gap:9px;text-align:left!important;margin:18px 0 4px!important;color:#d6e4f5!important;font-size:13px!important;line-height:1.5}
-.age-gate-terms input{flex:0 0 19px;width:19px;height:19px;margin:1px 0 0;accent-color:#168bea}
-.age-gate-terms a{color:#79c8ff}
+.age-gate-card{width:100%;max-width:430px;padding:25px 22px;border:1px solid #34536c;border-radius:20px;background:#111d29;box-shadow:0 16px 44px #0009;text-align:center}
+.age-gate-brand{display:flex;align-items:center;justify-content:center;gap:9px;padding-bottom:17px;margin-bottom:22px;border-bottom:1px solid #29445b;color:#fff;font-size:23px;font-weight:800;letter-spacing:.2px}
+.age-gate-brand span{color:#75caff}
+.age-gate-emblem{width:82px;height:82px;margin:0 auto 18px;border:2px solid #75caff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:800}
+.age-gate-card h1{font-size:23px;line-height:1.25;margin:0 0 12px;color:#fff}
+.age-gate-card h1 span{display:block;color:#75caff}
+.age-gate-card p{color:#c5d1dc;font-size:14px;line-height:1.55;margin:10px 0}
+.age-gate-declaration{margin:20px 0 17px;padding:14px;border:1px solid #344b5d;border-radius:13px;background:#172431;color:#e4edf5;font-size:13px;line-height:1.5;text-align:left}
+.age-gate-declaration strong{display:block;color:#75caff;margin-bottom:5px}
+.age-gate-slider-wrap{margin:18px 0 12px;padding:8px 12px;border:1px solid #4b9ac7;border-radius:999px;background:#0d1822}
+.age-gate-slider{display:block!important;width:100%!important;height:48px!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;accent-color:#75caff;cursor:grab;touch-action:pan-y}
+.age-gate-slider:active{cursor:grabbing}
+.age-gate-slider::-webkit-slider-runnable-track{height:8px;border-radius:99px;background:#29475c}
+.age-gate-slider::-moz-range-track{height:8px;border-radius:99px;background:#29475c}
+.age-gate-slider::-webkit-slider-thumb{-webkit-appearance:none;width:42px;height:42px;margin-top:-17px;border:2px solid #dff4ff;border-radius:50%;background:#75caff;box-shadow:0 2px 9px #0008}
+.age-gate-slider::-moz-range-thumb{width:38px;height:38px;border:2px solid #dff4ff;border-radius:50%;background:#75caff;box-shadow:0 2px 9px #0008}
+.age-gate-slider-hint{display:block;color:#fff;font-size:14px;font-weight:700;text-align:center;margin-top:2px}
+#ageGateError{min-height:18px;color:#ff9292;font-size:12px;margin-top:8px}
+.age-gate-links{display:flex;justify-content:center;flex-wrap:wrap;gap:7px 13px;margin-top:19px;padding-top:15px;border-top:1px solid #29445b}
+.age-gate-links a{color:#75caff;font-size:12px;text-decoration:underline;text-underline-offset:3px}
+.age-gate-footer{color:#8fa2b2!important;font-size:11px!important;margin-top:14px!important}
+@media(max-height:680px){.age-gate-card{padding:18px 18px}.age-gate-brand{margin-bottom:14px;padding-bottom:12px}.age-gate-emblem{width:64px;height:64px;margin-bottom:12px}.age-gate-card h1{font-size:20px}.age-gate-declaration{margin:13px 0;padding:11px}.age-gate-links{margin-top:12px;padding-top:10px}}
 
 .admin-report-item{padding:12px;margin:9px 0;border:1px solid #3b506d;border-radius:11px;background:#111e33;overflow-wrap:anywhere}
 .admin-report-item>strong{display:block;color:#e6f2ff;margin-bottom:5px}
@@ -373,19 +385,27 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <body>
 <div id="ageGate" role="dialog" aria-modal="true" aria-labelledby="ageGateTitle">
   <section class="age-gate-card">
-    <h1 id="ageGateTitle">CHAT ARGENTINA 🇦🇷</h1>
-    <p>Antes de continuar, ingresá tu fecha de nacimiento.</p>
-    <label>Fecha de nacimiento</label>
-    <div class="row" style="gap:7px;align-items:center">
-      <select id="ageGateDay" aria-label="Día de nacimiento" style="flex:1;min-width:0"><option value="">Día</option></select>
-      <select id="ageGateMonth" aria-label="Mes de nacimiento" style="flex:1.5;min-width:0"><option value="">Mes</option></select>
-      <select id="ageGateYear" aria-label="Año de nacimiento" style="flex:1.2;min-width:0"><option value="">Año</option></select>
+    <div class="age-gate-brand"><span aria-hidden="true">◉</span> CHAT<span>ARGENTINA</span></div>
+    <div class="age-gate-emblem" aria-hidden="true">18+</div>
+    <h1 id="ageGateTitle">ACCESO EXCLUSIVO <span>PARA MAYORES DE 18 AÑOS</span></h1>
+    <p>Para ingresar a ChatArgentina, confirmá que tenés 18 años o más.</p>
+    <div class="age-gate-declaration">
+      <strong>Declaración de mayoría de edad</strong>
+      Al deslizar, declarás que tenés 18 años o más y aceptás los Términos y Condiciones, la Política de Privacidad y las Normas de la Comunidad.
     </div>
-    <button id="ageGateContinue" type="button" onclick="submitAgeGate()">Continuar</button>
+    <div class="age-gate-slider-wrap">
+      <input id="ageGateSwipe" class="age-gate-slider" type="range" min="0" max="100" step="1" value="0" aria-label="Deslizá hasta el final para confirmar que tenés 18 años o más y aceptar los documentos legales" oninput="handleAgeGateSwipe(this.value)">
+      <span class="age-gate-slider-hint">Deslizá para ingresar</span>
+    </div>
     <div id="ageGateError" role="status" aria-live="polite"></div>
-    <p class="muted">La fecha ingresada se utiliza solo para calcular si declarás tener 18 años o más. Es una autodeclaración: no verifica tu identidad ni tu edad. La fecha no se guarda ni se envía al servidor.</p>
-    <label class="age-gate-terms"><input id="ageGateTerms" type="checkbox"><span>Leí y acepto los <a href="terms.html" target="_blank" rel="noopener">Términos y condiciones</a> y las <a href="child-safety-standards.html" target="_blank" rel="noopener">Normas de seguridad</a> de ChatArgentina.</span></label>
-    <p class="muted"><a href="privacy-policy.html">Política de privacidad</a> · <a href="terms.html">Términos y condiciones</a></p><p class="muted"><a href="child-safety-standards.html">Seguridad infantil</a> · <a href="delete-account.html">Eliminar cuenta</a></p><p class="muted">Contacto: <a href="mailto:jonitalp2023@gmail.com">jonitalp2023@gmail.com</a></p>
+    <nav class="age-gate-links" aria-label="Documentos legales">
+      <a href="terms.html" target="_blank" rel="noopener">Términos y Condiciones</a>
+      <a href="privacy-policy.html" target="_blank" rel="noopener">Política de Privacidad</a>
+      <a href="child-safety-standards.html" target="_blank" rel="noopener">Normas de la Comunidad</a>
+      <a href="delete-account.html" target="_blank" rel="noopener">Eliminar cuenta</a>
+    </nav>
+    <p class="age-gate-footer">La confirmación es una declaración del usuario; no constituye una verificación de identidad o edad.</p>
+    <p class="age-gate-footer">ChatArgentina © 2026 · <a href="mailto:jonitalp2023@gmail.com">Contacto</a></p>
   </section>
 </div>
 <div id="notificationModal" onclick="if(event.target===this)closeNotifications()"><section class="notification-card"><div class="notification-head"><span>🔔 Notificaciones</span><button onclick="closeNotifications()">Cerrar</button></div><div id="notificationList"></div></section></div>
@@ -2328,10 +2348,11 @@ $("bannedUsersList").innerHTML='<p class="muted">Presioná actualizar para ver l
 }
 
 
-/* CONTROL DE EDAD: se conserva solo la confirmación de mayoría de edad, nunca la fecha de nacimiento. */
+/* CONTROL DE EDAD Y ACEPTACIÓN LEGAL · declaración mediante deslizamiento */
 const AGE_GATE_KEY="chatargentina_adult_access_v1";
 const TERMS_ACCEPTANCE_KEY="chatargentina_terms_acceptance_v1";
-const TERMS_VERSION="2026-11-20-v2";
+const TERMS_VERSION="2026-11-22-v1";
+let ageGateAccepted=false;
 function hasAdultAccess(){
   try{return localStorage.getItem(AGE_GATE_KEY)==="adult";}
   catch(_){return false;}
@@ -2349,63 +2370,26 @@ function showAgeGate(){
   const gate=document.getElementById("ageGate");
   if(gate)gate.classList.remove("hidden");
 }
-function calculateAge(birthDate,today=new Date()){
-  let age=today.getFullYear()-birthDate.getFullYear();
-  const beforeBirthday=today.getMonth()<birthDate.getMonth()||
-    (today.getMonth()===birthDate.getMonth()&&today.getDate()<birthDate.getDate());
-  if(beforeBirthday)age--;
-  return age;
+function handleAgeGateSwipe(value){
+  if(Number(value)>=95)submitAgeGate();
 }
-function initAgeDateSelectors(){
-  const day=document.getElementById("ageGateDay");
-  const month=document.getElementById("ageGateMonth");
-  const year=document.getElementById("ageGateYear");
-  if(!day||!month||!year)return;
-  for(let d=1;d<=31;d++){const option=document.createElement("option");option.value=String(d);option.textContent=String(d);day.appendChild(option);}
-  ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].forEach((name,index)=>{const option=document.createElement("option");option.value=String(index);option.textContent=name;month.appendChild(option);});
-  const currentYear=new Date().getFullYear();
-  for(let y=currentYear;y>=1900;y--){const option=document.createElement("option");option.value=String(y);option.textContent=String(y);year.appendChild(option);}
-}
-async function submitAgeGate(){
+function submitAgeGate(){
+  if(ageGateAccepted)return;
   const error=document.getElementById("ageGateError");
   error.textContent="";
-  if(!document.getElementById("ageGateTerms")?.checked){
-    error.textContent="Para continuar, tenés que aceptar los Términos y condiciones y las Normas de seguridad.";
-    return;
-  }
-  if(!hasAdultAccess()){
-    const day=Number(document.getElementById("ageGateDay")?.value||0);
-    const monthValue=document.getElementById("ageGateMonth")?.value;
-    const year=Number(document.getElementById("ageGateYear")?.value||0);
-    if(!day||monthValue===null||monthValue===""||!year){
-      error.textContent="Elegí el día, el mes y el año de nacimiento.";
-      return;
-    }
-    const birthDate=new Date(year,Number(monthValue),day,12,0,0);
-    const now=new Date();
-    if(birthDate.getFullYear()!==year||birthDate.getMonth()!==Number(monthValue)||birthDate.getDate()!==day||birthDate>now||year<1900){
-      error.textContent="Revisá la fecha ingresada.";
-      return;
-    }
-    if(calculateAge(birthDate,now)<18){
-      error.textContent="No podés ingresar a ChatArgentina. El servicio es exclusivo para mayores de 18 años.";
-      document.getElementById("ageGateDay").value="";
-      document.getElementById("ageGateMonth").value="";
-      document.getElementById("ageGateYear").value="";
-      return;
-    }
-  }
   try{
-    if(!hasAdultAccess())localStorage.setItem(AGE_GATE_KEY,"adult");
+    localStorage.setItem(AGE_GATE_KEY,"adult");
     localStorage.setItem(TERMS_ACCEPTANCE_KEY,TERMS_VERSION);
   }catch(_){
-    error.textContent="No se pudo guardar la aceptación en este dispositivo. Habilitá el almacenamiento para continuar.";
+    error.textContent="No se pudo guardar la aceptación en este dispositivo. Revisá el almacenamiento.";
+    const slider=document.getElementById("ageGateSwipe");
+    if(slider)slider.value="0";
     return;
   }
-  document.getElementById("ageGate").classList.add("hidden");
-
+  ageGateAccepted=true;
+  const gate=document.getElementById("ageGate");
+  if(gate)gate.classList.add("hidden");
 }
-initAgeDateSelectors();
 if(!hasAdultAccess()||!hasTermsAcceptance())showAgeGate();
 
 /* INICIO */

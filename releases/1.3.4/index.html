@@ -1469,6 +1469,7 @@ async function sendMessage(){
   const btn=$("sendBtn");
   const value=input.value.trim();
   if(!value||!nickname||!currentRoom||btn.disabled)return;
+  if(!isAdmin&&detectChatUrl(value)){showContentBlocked("url");return;}
 
   btn.disabled=true;
   const roomId=String(currentRoom).trim();
@@ -1485,8 +1486,13 @@ async function sendMessage(){
 
     const {data:savedMessage,error:insertError}=await db.from("messages").insert({
       nickname:senderNickname,message:value,room_id:roomId,sender_id:senderId
-    }).select("id").single();
-    if(insertError)throw insertError;
+    }).select("id").maybeSingle();
+    if(insertError){
+      if(insertError.code==="42501"){showContentBlocked("insult");return;}
+      if(String(insertError.message||"").includes("demasiado rápido")||String(insertError.message||"").includes("repetido")||String(insertError.message||"").includes("Esperá")){showContentBlocked("spam");return;}
+      throw insertError;
+    }
+    if(!savedMessage?.id)throw new Error("Mensaje bloqueado por moderación: no se publicó.");
     if(savedMessage?.id){
       db.functions.invoke("send-chat-push",{body:{kind:"room",message_id:savedMessage.id}}).then(({data,error})=>{
         if(error)console.warn("No se pudo enviar la notificación de sala:",error);

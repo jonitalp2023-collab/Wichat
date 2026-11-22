@@ -1146,6 +1146,12 @@ renderPrivateTabs();
 }
 async function switchRoom(id){
 const room=rooms.find(r=>String(r.id)===String(id));
+// Bloqueo inmediato de invitados: solo UNIX propietario puede entrar sin cuenta.
+// La membresía de cuentas registradas se valida además en el servidor.
+if(room?.is_vip && !(isAdmin && adminRole==="owner") && !isRegisteredAccount){
+  showModerationModal("blocked",room.name,true);
+  return;
+}
 const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:id});
 // Si la sala es VIP, ante una denegación o un error de verificación mostramos
 // el cartel de acceso restringido y nunca abrimos el canal de mensajes.

@@ -1452,6 +1452,17 @@ if(String(currentRoom)!==String(roomId))return;(data||[]).forEach(addMessage);if
 }
 }
 
+function detectChatUrl(text){
+  return /(?:https?:\\/\\/|ftp:\\/\\/|www\\.)\\S+|(?:^|[^\\w@])(?:[a-z0-9-]+\\.)+[a-z]{2,63}(?:[/:?#]\\S*)?/i.test(String(text||""));
+}
+function showContentBlocked(kind){
+  const title=$("moderationTitle"),message=$("moderationMessage"),button=$("moderationModal").querySelector("button");
+  if(kind==="url"){title.textContent="🚫 Enlace no permitido";message.textContent="Está prohibido enviar enlaces o direcciones web en ChatArgentina. Tu mensaje no fue publicado.";}
+  else if(kind==="insult"){title.textContent="⚠️ Mensaje no permitido";message.textContent="Está prohibido utilizar malas palabras, insultos o expresiones ofensivas. Tu mensaje no fue publicado.";}
+  else{title.textContent="⏳ Evitá el spam";message.textContent="Estás enviando mensajes demasiado rápido o repetidos. Esperá unos segundos antes de volver a escribir. Tu mensaje no fue publicado.";}
+  button.textContent="ENTENDIDO";$("moderationModal").classList.add("show");
+}
+
 /* ENVÍO DE MENSAJES + CONEXIÓN CON LOS BOTS */
 async function sendMessage(){
   const input=$("messageInput");
@@ -1610,6 +1621,7 @@ async function sendPrivateMessage(){
 if(!activePrivateUser)return;
 const input=$("privateInput"),btn=$("privateSendBtn"),value=input.value.trim();
 if(!value||btn.disabled)return;
+if(!isAdmin&&detectChatUrl(value)){showContentBlocked("url");return;}
 const recipientId=activePrivateUser.id;
 if(isUserBlocked(recipientId)){alert("Desbloqueá a este usuario para enviarle mensajes.");return;}
 const pendingId="pending-"+crypto.randomUUID();
@@ -1620,7 +1632,7 @@ try{
   const {data,error}=await db.from("private_messages")
     .insert({sender_id:senderId,recipient_id:recipientId,sender_nickname:nickname,content:value})
     .select().single();
-  if(error)throw error;
+  if(error){if(error.code==="42501"){showContentBlocked("insult");return;}if(String(error.message||"").includes("demasiado rápido")||String(error.message||"").includes("repetido")||String(error.message||"").includes("Esperá")){showContentBlocked("spam");return;}throw error;}
   db.functions.invoke("send-chat-push",{body:{kind:"private",message_id:data.id}}).then(({data:pushData,error:pushError})=>{
     if(pushError)console.warn("No se pudo enviar la notificación privada:",pushError);
     else if(pushData?.success!==true)console.warn("Notificación privada no enviada:",pushData);
@@ -1634,7 +1646,7 @@ try{
   if(pending)pending.remove();
   privateReceivedIds.delete(pendingId);
   if(!input.value)input.value=value;
-  alert("No se pudo enviar el mensaje privado: "+e.message);
+  if(!document.getElementById("moderationModal").classList.contains("show"))alert("No se pudo enviar el mensaje privado: "+e.message);
 }finally{
   btn.disabled=false;
   // Mantener el foco existente sin forzar una reapertura del teclado.

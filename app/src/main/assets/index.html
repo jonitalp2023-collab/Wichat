@@ -1201,13 +1201,17 @@ function refreshVisibleIdentityBadges(){
     const name=message.querySelector(".nickname");
     if(!name)return;
     if(user?.registered===true||registeredUsers.has(id))addRegisteredPlus(name);
-    if(user?.admin===true||adminUsers.has(id)||publicAdminUsers.has(id))addAdminBadge(name,adminOwnerUsers.has(id)||String(user?.nick||"").toUpperCase()==="UNIX");
+    if(publicAdminUsers.has(id))addAdminBadge(name,adminOwnerUsers.has(id));
   });
 }
 function updatePresenceList(){
 if(!presenceChannel)return;const state=presenceChannel.presenceState(),next=new Map();
 adminUsers.clear();
-Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length){const p=entries[entries.length-1],id=p.sender_id||key,admin=p.is_admin===true;if(admin)adminUsers.add(String(id));next.set(id,{id,nick:p.nickname||"Usuario",admin,registered:p.is_registered===true||registeredUsers.has(String(id))});}});
+Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length){const p=entries[entries.length-1],id=String(p.sender_id||key);
+  // La presencia enviada por el cliente nunca concede privilegios ni insignias administrativas.
+  const admin=publicAdminUsers.has(id);
+  next.set(id,{id,nick:p.nickname||"Usuario",admin,registered:registeredUsers.has(id)});
+}});
 roomUsers=next;renderUsers();renderModerationUsers();renderMentionUsers();refreshVisibleIdentityBadges();
 }
 
@@ -1417,8 +1421,8 @@ filtered.forEach(u=>{
 const item=document.createElement("div");item.className="user-item";const dot=document.createElement("span");dot.className="online-dot";
 const name=document.createElement("span");name.className="user-name";
 if(u.registered||registeredUsers.has(String(u.id)))addRegisteredPlus(name);
-if(u.admin||adminUsers.has(String(u.id))||publicAdminUsers.has(String(u.id)))addAdminBadge(name,adminOwnerUsers.has(String(u.id))||String(u.nick||"").toUpperCase()==="UNIX");
-if(String(u.nick||"").toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";name.appendChild(at);name.classList.add("admin-unix");}
+if(publicAdminUsers.has(String(u.id)))addAdminBadge(name,adminOwnerUsers.has(String(u.id)));
+if(adminOwnerUsers.has(String(u.id))){const at=document.createElement("span");at.className="admin-at";at.textContent="@";name.appendChild(at);name.classList.add("admin-unix");}
 name.appendChild(document.createTextNode(u.nick));item.append(dot,name);
 if(String(u.id)!==String(senderId)){item.onclick=()=>openUserMenu(u);}else{item.title="Vos";}list.appendChild(item);
 });
@@ -1497,8 +1501,8 @@ for(let i=0;i<nick.length;i++)hash=nick.charCodeAt(i)+((hash<<5)-hash);
 const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];n.style.color=colors[Math.abs(hash)%colors.length];
 const senderInfo=m.sender_id?roomUsers.get(String(m.sender_id)):null;
 if(m.sender_id&&(registeredUsers.has(String(m.sender_id))||senderInfo?.registered===true))addRegisteredPlus(n);
-if(m.sender_id&&(adminUsers.has(String(m.sender_id))||publicAdminUsers.has(String(m.sender_id))||senderInfo?.admin===true))addAdminBadge(n,adminOwnerUsers.has(String(m.sender_id))||nick.toUpperCase()==="UNIX");
-if(nick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";n.appendChild(at);n.classList.add("admin-unix");}
+if(m.sender_id&&publicAdminUsers.has(String(m.sender_id)))addAdminBadge(n,adminOwnerUsers.has(String(m.sender_id)));
+if(adminOwnerUsers.has(String(m.sender_id||""))){const at=document.createElement("span");at.className="admin-at";at.textContent="@";n.appendChild(at);n.classList.add("admin-unix");}
 n.appendChild(document.createTextNode(nick));
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,n);
@@ -1681,8 +1685,8 @@ for(let i=0;i<privateNick.length;i++)hash=privateNick.charCodeAt(i)+((hash<<5)-h
 const colors=["#e58bdc","#55b8ff","#f28b45","#e77991","#65c9ba","#b7a1e8","#e6c56d","#72a9ed"];who.style.color=colors[Math.abs(hash)%colors.length];
 const privateSenderInfo=m.sender_id?roomUsers.get(String(m.sender_id)):null;
 if(m.sender_id&&(registeredUsers.has(String(m.sender_id))||privateSenderInfo?.registered===true))addRegisteredPlus(who);
-if(m.sender_id&&(adminUsers.has(String(m.sender_id))||publicAdminUsers.has(String(m.sender_id))||privateSenderInfo?.admin===true))addAdminBadge(who,adminOwnerUsers.has(String(m.sender_id))||privateNick.toUpperCase()==="UNIX");
-if(privateNick.toUpperCase()==="UNIX"){const at=document.createElement("span");at.className="admin-at";at.textContent="@";who.appendChild(at);who.classList.add("admin-unix");}
+if(m.sender_id&&publicAdminUsers.has(String(m.sender_id)))addAdminBadge(who,adminOwnerUsers.has(String(m.sender_id)));
+if(adminOwnerUsers.has(String(m.sender_id||""))){const at=document.createElement("span");at.className="admin-at";at.textContent="@";who.appendChild(at);who.classList.add("admin-unix");}
 who.appendChild(document.createTextNode(privateNick+": "));
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);
 attachMessageReportGesture(div,m,true);

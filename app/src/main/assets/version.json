@@ -1,4 +1,4 @@
 {
-  "version": "1.3.5",
-  "notes": "Bloqueo reforzado de salas VIP, filtro de palabras configurables y protección anti-spam/flood."
+  "version": "1.3.7",
+  "notes": "Salas VIP visibles para todos con ingreso restringido. Tilde verde pequeño solo para usuarios registrados. Moderación y anti-spam reforzados."
 }

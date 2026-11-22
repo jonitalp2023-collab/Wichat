@@ -391,7 +391,7 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
     <p>Para ingresar a ChatArgentina, confirmá que tenés 18 años o más.</p>
     <div class="age-gate-declaration">
       <strong>Declaración de mayoría de edad</strong>
-      Al deslizar, declarás que tenés 18 años o más y aceptás los Términos y Condiciones, la Política de Privacidad y las Normas de la Comunidad.
+      Al deslizar, declarás que tenés 18 años o más y aceptás los Términos y Condiciones y las Normas de la Comunidad. La Política de Privacidad está disponible para que puedas consultarla.
     </div>
     <div class="age-gate-slider-wrap">
       <input id="ageGateSwipe" class="age-gate-slider" type="range" min="0" max="100" step="1" value="0" aria-label="Deslizá hasta el final para confirmar que tenés 18 años o más y aceptar los documentos legales" oninput="handleAgeGateSwipe(this.value)">
@@ -2351,15 +2351,19 @@ $("bannedUsersList").innerHTML='<p class="muted">Presioná actualizar para ver l
 /* CONTROL DE EDAD Y ACEPTACIÓN LEGAL · declaración mediante deslizamiento */
 const AGE_GATE_KEY="chatargentina_adult_access_v1";
 const TERMS_ACCEPTANCE_KEY="chatargentina_terms_acceptance_v1";
-const TERMS_VERSION="2026-11-22-v1";
+const TERMS_VERSION="2026-11-22-v2";
 let ageGateAccepted=false;
 function hasAdultAccess(){
   try{return localStorage.getItem(AGE_GATE_KEY)==="adult";}
   catch(_){return false;}
 }
 function hasTermsAcceptance(){
-  try{return localStorage.getItem(TERMS_ACCEPTANCE_KEY)===TERMS_VERSION;}
-  catch(_){return false;}
+  try{
+    const saved=JSON.parse(localStorage.getItem(TERMS_ACCEPTANCE_KEY)||"null");
+    return !!saved&&saved.termsVersion===TERMS_VERSION&&
+      saved.adultDeclaration===true&&saved.termsAccepted===true&&
+      saved.communityRulesAccepted===true&&typeof saved.acceptedAt==="string";
+  }catch(_){return false;}
 }
 function requireAdultAccess(){
   if(hasAdultAccess()&&hasTermsAcceptance())return true;
@@ -2379,7 +2383,13 @@ function submitAgeGate(){
   error.textContent="";
   try{
     localStorage.setItem(AGE_GATE_KEY,"adult");
-    localStorage.setItem(TERMS_ACCEPTANCE_KEY,TERMS_VERSION);
+    localStorage.setItem(TERMS_ACCEPTANCE_KEY,JSON.stringify({
+      acceptedAt:new Date().toISOString(),
+      termsVersion:TERMS_VERSION,
+      adultDeclaration:true,
+      termsAccepted:true,
+      communityRulesAccepted:true
+    }));
   }catch(_){
     error.textContent="No se pudo guardar la aceptación en este dispositivo. Revisá el almacenamiento.";
     const slider=document.getElementById("ageGateSwipe");

@@ -991,17 +991,9 @@ $("nickname").addEventListener("input",()=>{const admin=$("nickname").value.trim
 
 async function fetchRooms(){
 const {data,error}=await db.from("rooms").select("id,name,is_vip");if(error)throw error;
-const allRooms=data||[];
-if(senderId&&!isAdmin){
-  const accessChecks=await Promise.all(allRooms.map(async room=>{
-    if(!room.is_vip)return true;
-    const {data:allowed,error:accessError}=await db.rpc("check_chat_access",{sender_id_input:senderId,room_id_input:room.id});
-    return !accessError&&allowed===true;
-  }));
-  rooms=allRooms.filter((room,index)=>accessChecks[index]);
-}else{
-  rooms=allRooms.slice();
-}
+// Las salas VIP se muestran a todos; el permiso se verifica al intentar entrar.
+// La protección real de mensajes sigue aplicada por check_chat_access y RLS.
+rooms=(data||[]).slice();
 rooms=rooms.slice().sort((a,b)=>{
 const ag=String(a.name).trim().toLowerCase()==="general",bg=String(b.name).trim().toLowerCase()==="general";
 if(ag&&!bg)return -1;if(bg&&!ag)return 1;return String(a.name).localeCompare(String(b.name),"es");

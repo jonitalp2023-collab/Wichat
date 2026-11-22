@@ -1280,7 +1280,7 @@ $("viewProfileBtn").classList.add("hidden");
 $("blockUserBtn").textContent=isUserBlocked(selectedMenuUser.id)?"↩️ Desbloquear usuario":"⛔ Bloquear usuario";
 $("adminUserActions").classList.toggle("hidden",!isAdmin);
 $("userMenuModal").classList.add("show");
-if((isRegisteredAccount||isAdmin)&&selectedMenuUser.registered){
+if(isAdmin||(isRegisteredAccount&&selectedMenuUser.registered)){
   const targetId=String(selectedMenuUser.id);
   let profileQuery=db.from("chat_profiles").select("user_id").eq("user_id",targetId).eq("is_registered",true);
   if(!isAdmin)profileQuery=profileQuery.eq("is_visible",true);

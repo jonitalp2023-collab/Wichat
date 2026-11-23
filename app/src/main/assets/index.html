@@ -390,6 +390,65 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 .admin-report-item p{white-space:pre-wrap;overflow-wrap:anywhere}
 .admin-report-evidence{margin:9px 0;padding:10px;border-left:3px solid #e4ad54;background:#0b1528;border-radius:8px}
 .admin-report-evidence p{margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* NUEVA BARRA DE MENSAJES · estilo limpio inspirado en ChatGPT */
+.message-composer,.private-message-composer{
+  position:relative;display:flex;align-items:center;gap:5px;
+  width:100%;padding:7px 9px;background:#303030;
+  border:1px solid #454545;border-radius:28px;
+  box-shadow:0 1px 2px #0003;min-height:54px;
+}
+.message-composer input,.private-message-composer input{
+  flex:1 1 auto;min-width:0;width:100%;height:40px;min-height:40px;
+  margin:0;padding:8px 76px 8px 39px;background:transparent!important;
+  border:0!important;border-radius:0;color:#f5f5f5;font-size:15px;
+  line-height:1.35;outline:none!important;box-shadow:none!important;
+}
+.message-composer input::placeholder,.private-message-composer input::placeholder{color:#aaa}
+.message-composer .emoji-wrap,.private-message-composer .emoji-wrap{
+  position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:3
+}
+.message-composer .emoji-toggle,.private-message-composer .emoji-toggle{
+  display:flex;align-items:center;justify-content:center;width:30px;height:32px;
+  padding:0;background:transparent;color:#d6d6d6;font-size:21px;border:0
+}
+.message-composer .mention-wrap,.private-message-composer .private-hashtag-wrap{
+  position:absolute;right:83px;top:50%;transform:translateY(-50%);z-index:3
+}
+.message-composer .mention-toggle,.private-message-composer .private-hashtag-wrap .mention-toggle{
+  display:flex;align-items:center;justify-content:center;width:25px;height:30px;min-width:25px;
+  padding:0;background:transparent;border:0;border-radius:50%;color:#aaa;
+  font-size:18px;font-weight:500
+}
+.message-composer .voice-button,.private-message-composer .voice-button{
+  order:2;display:flex;align-items:center;justify-content:center;flex:0 0 34px;
+  width:34px;height:34px;min-width:34px;padding:0;background:transparent;
+  border:0;border-radius:50%;color:#d0d0d0
+}
+.message-composer .voice-button svg,.private-message-composer .voice-button svg{
+  width:19px;height:19px;stroke:currentColor;stroke-width:1.8
+}
+.message-composer .send-button,.private-message-composer .send-button{
+  order:3;display:flex;align-items:center;justify-content:center;flex:0 0 34px;
+  width:34px;height:34px;min-width:34px;padding:0;border:0;border-radius:50%;
+  background:#f3f3f3;color:#171717;font-size:20px;font-weight:700;line-height:1
+}
+.message-composer .send-button:active,.private-message-composer .send-button:active{transform:scale(.94)}
+.message-composer .voice-button.recording,.private-message-composer .voice-button.recording{
+  background:#c93649;color:#fff;border:1px solid #ff8290
+}
+.message-composer .emoji-picker,.private-message-composer .emoji-picker{bottom:62px}
+.message-composer .mention-picker{bottom:62px}
+.voice-player{width:min(128px,48vw);gap:5px;padding:2px 5px;border-radius:18px;background:#303b49;border-color:#536274}
+.voice-play{width:21px;height:21px;min-width:21px}
+@media(max-width:380px){
+  .message-composer,.private-message-composer{gap:2px;padding:6px 7px}
+  .message-composer .voice-button,.private-message-composer .voice-button,
+  .message-composer .send-button,.private-message-composer .send-button{flex-basis:32px;width:32px;height:32px;min-width:32px}
+  .message-composer .mention-wrap,.private-message-composer .private-hashtag-wrap{right:76px}
+  .message-composer input,.private-message-composer input{padding-right:68px}
+}
+
 </style>
 </head>
 <body>

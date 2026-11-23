@@ -237,7 +237,7 @@ class MainActivity : Activity() {
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent?.hasExtra("push_kind") == true) {

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Solicitá la eliminación de tu cuenta y los datos asociados de ChatArgentina.">
+<title>Eliminar cuenta | ChatArgentina</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;background:#101827;color:#e8eef8;font:16px/1.65 Arial,sans-serif}
+main{max-width:760px;margin:32px auto;padding:28px;background:#18243a;border:1px solid #314766;border-radius:18px}
+h1,h2{color:#fff}a{color:#72c6ff}li,p,label{color:#d2dced}
+.notice{padding:14px;border-left:4px solid #e4ad54;background:#302a20;border-radius:8px}
+form{display:grid;gap:12px;margin-top:18px}
+label{display:block;font-weight:600}
+input,select,textarea{width:100%;padding:13px;border:1px solid #405675;border-radius:10px;background:#0d1729;color:#fff;font:inherit}
+textarea{min-height:100px;resize:vertical}
+button{padding:14px;border:0;border-radius:10px;background:#168bea;color:#fff;font-weight:700;font-size:15px}
+button:disabled{opacity:.6}
+.small{font-size:13px;color:#aebed3}
+#result{margin-top:14px;padding:12px;border-radius:9px;white-space:pre-wrap}
+#result.success{background:#153d30;color:#b8f4d4}
+#result.error{background:#4a2028;color:#ffd3d9}
+.hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+@media(max-width:600px){main{margin:0;padding:22px 17px;border:0;border-radius:0}h1{font-size:1.7rem}}
+</style>
+</head>
+<body><main>
+<p><a href="legal.html">← Información legal</a> · <a href="privacy-policy.html">Política de privacidad</a></p>
+<h1>Eliminar cuenta de ChatArgentina</h1>
+<p><strong>Responsable:</strong> Jonatan Alvarez · <a href="mailto:jonitalp2023@gmail.com">jonitalp2023@gmail.com</a></p>
+<p><strong>Última actualización: 20 de noviembre de 2026</strong></p>
+
+<h2>Solicitar la eliminación desde esta página</h2>
+<p>Si no podés entrar a ChatArgentina, completá este formulario. La solicitud queda registrada para que podamos verificar que sos titular y gestionar la eliminación de tu cuenta y los datos asociados.</p>
+<form id="deletionForm">
+  <label>Tu Nick en ChatArgentina
+    <input name="nickname" minlength="2" maxlength="25" required autocomplete="username" placeholder="Escribí tu Nick">
+  </label>
+  <label>Correo electrónico de contacto
+    <input name="contact_email" type="email" maxlength="254" required autocomplete="email" placeholder="tunombre@correo.com">
+  </label>
+  <label>Tipo de cuenta
+    <select name="account_type" required>
+      <option value="">Seleccioná una opción</option>
+      <option value="registered">Cuenta registrada (Nick y contraseña)</option>
+      <option value="guest">Cuenta de invitado</option>
+    </select>
+  </label>
+  <label>Información adicional (opcional)
+    <textarea name="details" maxlength="500" placeholder="Si necesitás aclarar algo sobre tu cuenta, escribilo acá. No incluyas contraseñas."></textarea>
+  </label>
+  <div class="hp" aria-hidden="true"><label>No completar<input name="website" tabindex="-1" autocomplete="off"></label></div>
+  <button id="submitDeletion" type="submit">Enviar solicitud de eliminación</button>
+</form>
+<div id="result" role="status" aria-live="polite"></div>
+<p class="small">Por seguridad, podemos pedirte información razonable para verificar la titularidad antes de eliminar los datos. Nunca envíes tu contraseña. La solicitud no elimina automáticamente la cuenta al enviarse; primero se verifica y luego se procesa. Si necesitás ayuda, escribí a <a href="mailto:jonitalp2023@gmail.com?subject=Solicitud%20de%20eliminaci%C3%B3n%20de%20ChatArgentina">jonitalp2023@gmail.com</a>.</p>
+
+<h2>También podés eliminarla desde la aplicación</h2>
+<ol>
+<li>Iniciá sesión en tu cuenta.</li>
+<li>Entrá en <strong>Perfil</strong> o <strong>Cuenta de invitado</strong>.</li>
+<li>Elegí <strong>Eliminar mi cuenta</strong>.</li>
+<li>Escribí <strong>ELIMINAR</strong> y confirmá.</li>
+</ol>
+<p>La eliminación desde la aplicación procesa la solicitud autenticada en el servidor. Se eliminan la identidad de acceso y los datos asociados, incluidos perfil, foto, mensajes, denuncias vinculadas, tokens de notificación y relaciones de la cuenta, según corresponda.</p>
+<p>Podemos conservar información limitada cuando sea necesaria para cumplir obligaciones legales, resolver disputas o documentar incidentes de seguridad y moderación, durante el tiempo estrictamente necesario.</p>
+<p>Consultá también la <a href="privacy-policy.html">Política de privacidad</a> o escribí a <a href="mailto:jonitalp2023@gmail.com">jonitalp2023@gmail.com</a>.</p>
+</main>
+<script>
+(() => {
+  const form = document.getElementById("deletionForm");
+  const button = document.getElementById("submitDeletion");
+  const result = document.getElementById("result");
+  const endpoint = "https://pqnnzkqxkndzelsbtxvv.supabase.co/functions/v1/request-account-deletion";
+  const publicKey = "sb_publishable_mS3wFkfT14nDbxkRsW531Q_7owMMqZv";
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    result.className = "";
+    result.textContent = "";
+    if (!form.reportValidity()) return;
+
+    const values = Object.fromEntries(new FormData(form).entries());
+    button.disabled = true;
+    button.textContent = "Enviando...";
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": publicKey },
+        body: JSON.stringify(values)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success !== true) {
+        throw new Error(data.message || "No se pudo enviar la solicitud.");
+      }
+      result.className = "success";
+      result.textContent = data.request_id
+        ? data.message + "\nReferencia: " + data.request_id
+        : data.message;
+      form.reset();
+    } catch (error) {
+      result.className = "error";
+      result.textContent = error.message || "Error de conexión. Intentá nuevamente o escribinos por correo.";
+    } finally {
+      button.disabled = false;
+      button.textContent = "Enviar solicitud de eliminación";
+    }
+  });
+})();
+</script>
+</body></html>

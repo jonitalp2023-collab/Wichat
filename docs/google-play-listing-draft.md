@@ -55,9 +55,9 @@ No pegar rutas relativas en Play Console: reemplazarlas por las URLs HTTPS públ
 
 ## Material gráfico pendiente para la ficha
 
-- Icono de tienda: 512 × 512 px, PNG de alta calidad, sin transparencias innecesarias.
-- Imagen destacada: 1024 × 500 px.
-- Capturas reales de la app en teléfono: preparar al menos 2; recomendadas 4–6, sin datos personales ni conversaciones reales identificables.
+- Icono de tienda: PNG de 32 bits, 512 × 512 px, máximo 1 MB.
+- Imagen destacada: JPEG o PNG de 24 bits sin transparencia, 1024 × 500 px.
+- Capturas de teléfono: entre 2 y 8 imágenes PNG o JPEG; usar pantallas reales y actuales, sin datos personales ni conversaciones identificables.
 - Revisar que las capturas correspondan a la versión que se va a publicar.
 
 ## Declaraciones que requieren completar/verificar en Play Console
@@ -71,20 +71,26 @@ No pegar rutas relativas en Play Console: reemplazarlas por las URLs HTTPS públ
 7. Moderación: comprobar que bloqueo, denuncia, revisión de reportes y normas publicadas funcionan como se describen.
 8. Eliminación de cuenta: probar tanto el flujo dentro de la app como el formulario web y confirmar que las solicitudes se procesan realmente.
 
+## Requisito adicional de pruebas para cuentas personales nuevas
+
+Si la cuenta que se cree es una cuenta personal sujeta al requisito vigente de Google (cuentas creadas después del 13 de noviembre de 2023), antes de solicitar acceso a producción habrá que completar una prueba cerrada con al menos 12 testers que permanezcan inscritos continuamente durante 14 días. Después se solicita acceso a producción desde Play Console y se responden las preguntas sobre la prueba y la preparación de la app. La prueba interna no reemplaza este requisito.
+
 ## Control técnico antes de subir
 
 - Volver a generar el AAB de producción desde el commit definitivo.
 - Verificar que el AAB está firmado con la clave de subida correcta y conservar una copia segura de la clave.
 - Confirmar que versionCode sea mayor que el de cualquier versión ya cargada en Play Console.
 - Probar el AAB en una pista interna y comprobar inicio de sesión, salas, mensajes privados, audio, notificaciones, bloqueo, denuncias y eliminación de cuenta.
-- Revisar consistencia entre la versión Android, la versión web y la política de privacidad (incluida la retención/eliminación de audios).
+- Revisar consistencia entre la versión Android, la versión web y la política de privacidad.
 
 ## Pendientes que impiden marcar la ficha como lista
 
 - Confirmar URLs HTTPS públicas de todas las páginas legales.
-- Revisar y alinear la política de privacidad con la retención real de audios (incluida la eliminación automática a los 7 días si ya está activa).
+- Resolver una inconsistencia detectada: la política actual dice que los audios se conservan mientras la cuenta esté activa, pero el requisito del proyecto es borrarlos automáticamente a los 7 días. No declarar el plazo de 7 días hasta verificar que la tarea automática está implementada y funcionando en Supabase; luego actualizar la política pública y la copia incluida en la app.
+- Revisar la diferencia de versión: Android figura como 1.6 (versionCode 7), mientras que `app/src/main/assets/version.json` figura como 1.4.1. Confirmar si es una versión web independiente o si hay que alinearlas.
 - Crear/seleccionar icono, banner y capturas definitivas.
 - Confirmar anuncios, datos recogidos/compartidos y credenciales de revisión.
 - Completar las declaraciones y formularios dentro de Play Console una vez creada la cuenta.
+- Si aplica el requisito de cuenta personal nueva, reclutar 12 testers y sostener la prueba cerrada durante 14 días.
 
 Este archivo es una guía interna de preparación. La información final debe reflejar el comportamiento real de la aplicación y verificarse antes de enviarla a Google.

@@ -269,10 +269,6 @@ Deno.serve(async (req: Request) => {
               },
               android: {
                 priority: "HIGH",
-                notification: {
-                  channel_id: "chatargentina_messages",
-                  sound: "default",
-                },
               },
             },
           }),

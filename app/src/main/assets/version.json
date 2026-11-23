@@ -1,4 +1,4 @@
 {
-  "version": "1.4.0",
-  "notes": "Mensajes de voz en todas las salas y conversaciones privadas, con reproductor compacto."
+  "version": "1.4.1",
+  "notes": "Mensajes de voz: compatibilidad mejorada con Android WebView y diagnóstico de errores de micrófono."
 }

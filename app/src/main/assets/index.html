@@ -1563,6 +1563,7 @@ function reportPrivateMessage(message){
 const VOICE_MIC_ICON="<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"9\" y=\"2\" width=\"6\" height=\"12\" rx=\"3\"></rect><path d=\"M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8\"></path></svg>";
 let activeVoiceRecorder=null,activeVoiceStream=null,activeVoiceChunks=[],activeVoiceContext=null,activeVoiceTimer=null,activeVoiceStartedAt=0;
 let activeVoiceFormat=null,voicePermissionPending=false,voiceUploadPending=false,activeVoicePlayback=null;
+let nativeVoiceRecording=false,nativeVoiceStartedAt=0;
 function voiceButtonFor(kind){return $(kind==="private"?"privateVoiceBtn":"roomVoiceBtn");}
 function resetVoiceButton(kind){
   const button=voiceButtonFor(kind);if(!button)return;
@@ -1639,8 +1640,20 @@ async function toggleVoiceRecording(kind){
     if(activeVoiceContext?.kind===kind){activeVoiceRecorder.stop();return;}
     alert("Ya hay una grabación en curso. Terminá de grabarla antes de iniciar otra.");return;
   }
+  if(nativeVoiceRecording){
+    if(window.ChatArgentinaNative?.stopVoiceRecording)window.ChatArgentinaNative.stopVoiceRecording();
+    return;
+  }
   if(kind==="private"&&!activePrivateUser){alert("Abrí primero una conversación privada.");return;}
   if(kind==="room"&&!currentRoom){alert("Primero entrá en una sala.");return;}
+  if(window.ChatArgentinaNative&&typeof window.ChatArgentinaNative.startVoiceRecording==="function"){
+    activeVoiceContext=kind==="room"
+      ?{kind:"room",roomId:String(currentRoom)}
+      :{kind:"private",recipientId:String(activePrivateUser.id),recipientNickname:String(activePrivateUser.nick||"Usuario")};
+    voicePermissionPending=true;
+    window.ChatArgentinaNative.startVoiceRecording();
+    return;
+  }
   if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){
     alert("Este dispositivo o navegador no permite grabar audio desde Chat Argentina.");return;
   }
@@ -1690,6 +1703,41 @@ async function toggleVoiceRecording(kind){
     alert("No se pudo acceder al micrófono ("+audioErrorName+"): "+audioErrorMessage+"\n\nRevisá que el permiso de micrófono esté habilitado y volvé a intentar.");
   }finally{voicePermissionPending=false;}
 }
+window.onNativeVoiceRecordingStarted=function(success,error){
+  voicePermissionPending=false;
+  if(!success){
+    activeVoiceContext=null;nativeVoiceRecording=false;
+    resetVoiceButton("room");resetVoiceButton("private");
+    alert("No se pudo iniciar el micrófono: "+(error||"Error desconocido"));
+    return;
+  }
+  nativeVoiceRecording=true;nativeVoiceStartedAt=Date.now();
+  const kind=activeVoiceContext?.kind||"room",button=voiceButtonFor(kind);
+  if(button){button.classList.add("recording");button.textContent="■";button.title="Grabando... tocá para terminar y enviar";}
+};
+window.onNativeVoiceRecordingFinished=function(base64,mime,error){
+  const context=activeVoiceContext,kind=context?.kind||"room";
+  nativeVoiceRecording=false;activeVoiceContext=null;
+  const duration=Date.now()-nativeVoiceStartedAt;
+  resetVoiceButton(kind);
+  if(error||!base64){
+    alert("No se pudo completar el audio: "+(error||"Grabación vacía."));
+    return;
+  }
+  if(duration<700){alert("El audio quedó demasiado corto. Grabá un poquito más y volvé a intentarlo.");return;}
+  try{
+    const binary=atob(base64),bytes=new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+    const blob=new Blob([bytes],{type:mime||"audio/mp4"});
+    voiceUploadPending=true;
+    uploadVoiceRecording(blob,context,mime||"audio/mp4").catch(uploadError=>{
+      console.error("No se pudo enviar el audio:",uploadError);
+      alert("No se pudo enviar el audio: "+(uploadError.message||String(uploadError)));
+    }).finally(()=>{voiceUploadPending=false;resetVoiceButton(kind);});
+  }catch(decodeError){
+    alert("No se pudo preparar el audio: "+(decodeError.message||String(decodeError)));
+  }
+};
 async function uploadVoiceRecording(blob,context,mimeType){
   if(!context||!senderId)throw new Error("La sesión del chat ya no está disponible.");
   const kind=context.kind,button=voiceButtonFor(kind);

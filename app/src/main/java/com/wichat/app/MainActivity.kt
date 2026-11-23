@@ -18,6 +18,7 @@ import android.webkit.CookieManager
 import android.webkit.SslErrorHandler
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.PermissionRequest
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -30,6 +31,7 @@ class MainActivity : Activity() {
 
     private lateinit var web: WebView
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
+    private var pendingAudioPermissionRequest: PermissionRequest? = null
 
     private val fcmBridge = FcmBridge()
 
@@ -39,6 +41,7 @@ class MainActivity : Activity() {
             private set
 
         private const val FILE_CHOOSER_REQUEST_CODE = 4102
+        private const val AUDIO_PERMISSION_REQUEST_CODE = 4104
         private const val CHAT_HOST = "jonitalp2023-collab.github.io"
         private const val ASSET_HOST = "appassets.androidplatform.net"
         private const val CHAT_URL = "https://appassets.androidplatform.net/assets/index.html"
@@ -46,7 +49,7 @@ class MainActivity : Activity() {
         private const val UPDATE_MANIFEST_URL = "https://jonitalp2023-collab.github.io/Wichat/version.json"
         private const val UPDATE_PREFS = "chatargentina_updates"
         private const val UPDATE_VERSION_KEY = "web_version_v2"
-        private const val BUNDLED_WEB_VERSION = "1.3.9"
+        private const val BUNDLED_WEB_VERSION = "1.4.0"
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -151,6 +154,38 @@ class MainActivity : Activity() {
         }
 
         web.webChromeClient = object : WebChromeClient() {
+            override fun onPermissionRequest(request: PermissionRequest) {
+                runOnUiThread {
+                    val originHost = request.origin.host.orEmpty()
+                    val trustedOrigin = originHost.equals(ASSET_HOST, ignoreCase = true) ||
+                        originHost.equals(CHAT_HOST, ignoreCase = true)
+                    val wantsAudio = request.resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)
+                    if (!trustedOrigin || !wantsAudio) {
+                        request.deny()
+                        return@runOnUiThread
+                    }
+                    if (ContextCompat.checkSelfPermission(
+                            this@MainActivity,
+                            android.Manifest.permission.RECORD_AUDIO
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE))
+                    } else {
+                        pendingAudioPermissionRequest?.deny()
+                        pendingAudioPermissionRequest = request
+                        ActivityCompat.requestPermissions(
+                            this@MainActivity,
+                            arrayOf(android.Manifest.permission.RECORD_AUDIO),
+                            AUDIO_PERMISSION_REQUEST_CODE
+                        )
+                    }
+                }
+            }
+
+            override fun onPermissionRequestCanceled(request: PermissionRequest) {
+                if (pendingAudioPermissionRequest == request) pendingAudioPermissionRequest = null
+            }
+
             override fun onShowFileChooser(
                 webView: WebView?,
                 callback: ValueCallback<Array<Uri>>?,
@@ -252,6 +287,16 @@ class MainActivity : Activity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == AUDIO_PERMISSION_REQUEST_CODE) {
+            val request = pendingAudioPermissionRequest
+            pendingAudioPermissionRequest = null
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                request?.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE))
+            } else {
+                request?.deny()
+            }
+            return
+        }
         if (requestCode != 4103) return
         getSharedPreferences("chatargentina_notifications", MODE_PRIVATE)
             .edit().putBoolean("permission_asked", true).apply()
@@ -394,6 +439,8 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         filePathCallback?.onReceiveValue(null)
         filePathCallback = null
+        pendingAudioPermissionRequest?.deny()
+        pendingAudioPermissionRequest = null
         if (::web.isInitialized) {
             web.stopLoading()
             web.webChromeClient = null

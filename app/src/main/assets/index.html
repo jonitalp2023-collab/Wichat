@@ -447,6 +447,10 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
   .message-composer input,.private-message-composer input{padding-right:110px}
 }
 
+
+/* Acercar el hashtag al micrófono sin superponer los controles. */
+.message-composer .mention-wrap,.private-message-composer .private-hashtag-wrap{right:84px}
+@media(max-width:380px){.message-composer .mention-wrap,.private-message-composer .private-hashtag-wrap{right:84px}}
 </style>
 </head>
 <body>

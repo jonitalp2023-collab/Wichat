@@ -29,19 +29,22 @@ class ChatFirebaseMessagingService : FirebaseMessagingService() {
         // Las notificaciones del sistema se reservan para segundo plano o app cerrada.
         if (MainActivity.isAppInForeground) return
 
-        val title = message.notification?.title
-            ?: message.data["title"]
-            ?: "ChatArgentina"
-        val body = message.notification?.body
-            ?: message.data["body"]
-            ?: "Tenés un mensaje nuevo"
+        val title = message.data["title"] ?: "ChatArgentina"
+        val body = message.data["body"] ?: "Tenés un mensaje nuevo"
 
-        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
-            ?: Intent(this, MainActivity::class.java)
-        launchIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        // Cada mensaje necesita su propio PendingIntent para conservar su destino.
+        val launchIntent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            putExtra("push_kind", message.data["kind"] ?: "")
+            putExtra("push_message_id", message.data["message_id"] ?: "")
+            putExtra("push_room_id", message.data["room_id"] ?: "")
+            putExtra("push_sender_id", message.data["sender_id"] ?: "")
+            putExtra("push_sender_nickname", message.data["sender_nickname"] ?: "")
+        }
+        val requestCode = (message.data["message_id"] ?: System.currentTimeMillis().toString()).hashCode()
         val pendingIntent = PendingIntent.getActivity(
             this,
-            0,
+            requestCode,
             launchIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or
                 (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)

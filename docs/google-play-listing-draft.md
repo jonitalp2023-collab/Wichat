@@ -9,7 +9,7 @@ Estado: borrador de preparación; no es una declaración enviada a Google Play.
 - Identificador Android: `com.wichat.app`
 - Versión Android revisada: `1.6` (versionCode `7`)
 - SDK objetivo configurado: Android 36
-- Edad mínima declarada en la aplicación y sus políticas: 18 años
+- Edad mínima declarada en la aplicación y sus políticas: 18 años; acceso mediante deslizador de autodeclaración y aceptación legal local en el dispositivo (sin solicitar fecha de nacimiento).
 - Responsable y contacto: Jonatan Alvarez — jonitalp2023@gmail.com
 - Sitio y políticas: se deben verificar las URLs públicas de GitHub Pages antes de copiarlas a Play Console.
 
@@ -82,6 +82,7 @@ Si la cuenta que se cree es una cuenta personal sujeta al requisito vigente de G
 - Confirmar que versionCode sea mayor que el de cualquier versión ya cargada en Play Console.
 - Probar el AAB en una pista interna y comprobar inicio de sesión, salas, mensajes privados, audio, notificaciones, bloqueo, denuncias y eliminación de cuenta.
 - Revisar consistencia entre la versión Android, la versión web y la política de privacidad.
+- Documentación legal actualizada el 23 de noviembre de 2026 para describir el deslizador real de mayoría de edad y aceptación de documentos; verificar que las páginas públicas reflejen estos cambios.
 
 ## Pendientes que impiden marcar la ficha como lista
 

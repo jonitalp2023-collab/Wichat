@@ -49,7 +49,7 @@ class MainActivity : Activity() {
         private const val UPDATE_MANIFEST_URL = "https://jonitalp2023-collab.github.io/Wichat/version.json"
         private const val UPDATE_PREFS = "chatargentina_updates"
         private const val UPDATE_VERSION_KEY = "web_version_v2"
-        private const val BUNDLED_WEB_VERSION = "1.4.0"
+        private const val BUNDLED_WEB_VERSION = "1.4.1"
     }
 
     @SuppressLint("SetJavaScriptEnabled")

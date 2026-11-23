@@ -8,6 +8,10 @@ on:
     paths:
       - 'app/src/main/assets/**'
       - 'releases/**'
+      - 'privacy-policy.html'
+      - 'delete-account.html'
+      - 'child-safety-standards.html'
+      - 'legal.html'
       - '.github/workflows/pages.yml'
 
 permissions:
@@ -38,6 +42,13 @@ jobs:
         run: |
           mkdir -p site/releases
           cp -R app/src/main/assets/. site/
+          # Las páginas legales de la raíz son la fuente pública vigente.
+          # Sobrescribir las copias incluidas en los assets de la app.
+          for file in privacy-policy.html delete-account.html child-safety-standards.html legal.html; do
+            if [ -f "$file" ]; then
+              cp "$file" "site/$file"
+            fi
+          done
           # Conservar las versiones anteriores para que las instalaciones
           # que ya guardaron una versión remota no terminen en un 404.
           if [ -d releases ]; then
@@ -58,5 +69,3 @@ jobs:
       - name: Publicar CHAT ARGENTINA
         id: deployment
         uses: actions/deploy-pages@v4
-
-# Publicación actualizada para la versión 1.4.0 con mensajes de voz.

@@ -87,7 +87,7 @@ Si la cuenta que se cree es una cuenta personal sujeta al requisito vigente de G
 
 - Confirmar URLs HTTPS públicas de todas las páginas legales.
 - Eliminación automática de audios a los 7 días: función cancelada por decisión del proyecto; no implementarla ni describirla como una función activa. La política pública vigente indica que los mensajes y audios se conservan mientras la cuenta esté activa y sean necesarios para prestar el servicio, la seguridad y la moderación. Antes de publicar, verificar que el comportamiento real del backend coincide con esa política.
-- Revisar la diferencia de versión: Android figura como 1.6 (versionCode 7), mientras que `app/src/main/assets/version.json` figura como 1.4.1. Confirmar si es una versión web independiente o si hay que alinearlas.
+- Revisar la diferencia de versión: Android figura como 1.6 (versionCode 7), mientras que `app/src/main/assets/version.json` figura como 1.4.1. El proyecto usa ese archivo para la actualización OTA de la versión web; confirmar que la numeración independiente es intencional y que el manifiesto coincide con los archivos publicados.
 - Crear/seleccionar icono, banner y capturas definitivas.
 - Confirmar anuncios, datos recogidos/compartidos y credenciales de revisión.
 - Completar las declaraciones y formularios dentro de Play Console una vez creada la cuenta.

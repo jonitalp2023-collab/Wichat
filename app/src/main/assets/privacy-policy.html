@@ -27,7 +27,8 @@ ul,ol{padding-left:24px}li{margin:7px 0}
 <ul>
 <li><strong>Cuenta y acceso:</strong> identificador interno de la cuenta, Nick, estado de cuenta y credenciales de acceso gestionadas por Supabase Auth. Para las cuentas creadas con Nick y contraseña, la aplicación genera un identificador técnico interno a partir del Nick; no es una dirección de correo electrónico real ni sirve para recibir mensajes. Las cuentas de invitado también tienen un identificador interno.</li>
 <li><strong>Perfil:</strong> Nick, biografía, estado, foto de perfil y preferencias que decidas completar. Si cargás una foto, se procesa el archivo de imagen que seleccionaste (JPG, PNG o WebP, con el límite indicado en la aplicación).</li>
-<li><strong>Actividad y contenido:</strong> mensajes enviados en salas públicas y conversaciones privadas, identificadores de sala y conversación, fecha y hora, reacciones, participación en encuestas y votos. Los mensajes y demás contenidos se procesan para mostrarlos y entregarlos a sus destinatarios.</li>
+<li><strong>Actividad y contenido:</strong> mensajes de texto enviados en salas públicas y conversaciones privadas, identificadores de sala y conversación, fecha y hora, reacciones, participación en encuestas y votos. Los mensajes y demás contenidos se procesan para mostrarlos y entregarlos a sus destinatarios.</li>
+<li><strong>Mensajes de voz:</strong> cuando tocás el botón de micrófono para grabar y enviar un audio, se utiliza el micrófono del dispositivo y se genera un archivo de audio. El archivo se carga en el almacenamiento de Supabase de ChatArgentina y se asocia al mensaje de voz y a la sala o conversación privada correspondiente. Los participantes autorizados pueden reproducirlo desde el chat.</li>
 <li><strong>Seguridad y moderación:</strong> denuncias que enviás, usuario o mensaje denunciado, categoría, detalles, identificadores y, cuando denunciás un mensaje, una copia textual limitada del contenido denunciado (hasta 2.000 caracteres) para que pueda revisarse. También se pueden tratar bloqueos, sanciones, registros de actividad y datos necesarios para detectar spam, abuso o accesos no autorizados.</li>
 <li><strong>Dirección IP:</strong> la dirección IP de conexión puede registrarse asociada a tu cuenta para aplicar bloqueos, prevenir abusos y proteger las salas. Se utiliza con fines de seguridad y moderación, no para mostrar tu ubicación precisa a otros usuarios.</li>
 <li><strong>Identificador técnico del dispositivo:</strong> la aplicación genera un identificador local para administrar la sesión de la cuenta y evitar que una misma cuenta registrada mantenga sesiones simultáneas no permitidas. Ese identificador y los datos de vigencia de la sesión pueden procesarse en el servidor.</li>
@@ -35,13 +36,14 @@ ul,ol{padding-left:24px}li{margin:7px 0}
 <li><strong>Información guardada en tu dispositivo:</strong> sesión de acceso, identificador técnico del dispositivo, usuarios bloqueados, preferencias, confirmación local de mayoría de edad y versión de los términos y normas aceptados. Estos datos permiten mantener tu sesión y tus elecciones entre aperturas.</li>
 <li><strong>Datos técnicos de conexión:</strong> información básica que los proveedores de infraestructura pueden generar al recibir solicitudes, como fecha y hora, dirección IP, registros de errores y datos de funcionamiento necesarios para prestar y proteger sus servicios.</li>
 </ul>
-<p>La aplicación Android solicita acceso a Internet y, en las versiones compatibles, permiso para mostrar notificaciones. Para elegir una foto de perfil se utiliza el selector de archivos del sistema y la imagen que vos seleccionás. La aplicación no necesita acceso a tus contactos, ubicación precisa, micrófono ni historial de llamadas para las funciones descriptas en esta política.</p>
+<p>La aplicación Android solicita acceso a Internet y, en las versiones compatibles, permiso para mostrar notificaciones. El permiso del micrófono se solicita cuando tocás el botón para grabar un mensaje de voz; la aplicación no debe utilizarlo para grabar en segundo plano. Para elegir una foto de perfil se utiliza el selector de archivos del sistema y la imagen que vos seleccionás. La aplicación no necesita acceso a tus contactos, ubicación precisa ni historial de llamadas para las funciones descriptas en esta política.</p>
 
 <h2>2. Para qué usamos la información</h2>
 <ul>
 <li>Crear, mantener y autenticar cuentas registradas o de invitado.</li>
 <li>Mostrar perfiles, salas, participantes, mensajes, reacciones y encuestas.</li>
-<li>Enviar mensajes públicos y privados a los usuarios correspondientes.</li>
+<li>Enviar mensajes de texto y mensajes de voz públicos o privados a los usuarios correspondientes.</li>
+<li>Grabar, cargar, almacenar y reproducir los audios que decidís enviar mediante el botón de micrófono.</li>
 <li>Permitir que bloquees usuarios y que envíes denuncias de cuentas o mensajes.</li>
 <li>Revisar denuncias, conservar la evidencia necesaria para la moderación y aplicar medidas ante incumplimientos.</li>
 <li>Administrar sesiones por dispositivo, prevenir suplantaciones, spam, fraude y accesos no autorizados.</li>
@@ -55,7 +57,7 @@ ul,ol{padding-left:24px}li{margin:7px 0}
 
 <h2>4. Proveedores y comunicación de información</h2>
 <ul>
-<li><strong>Supabase:</strong> presta servicios de autenticación, base de datos, almacenamiento de fotos de perfil y funciones seguras del servidor. La información de cuenta, perfil, mensajes, denuncias y seguridad necesaria para operar ChatArgentina se procesa mediante sus servicios.</li>
+<li><strong>Supabase:</strong> presta servicios de autenticación, base de datos, almacenamiento de fotos de perfil y archivos de audio, y funciones seguras del servidor. La información de cuenta, perfil, mensajes, audios, denuncias y seguridad necesaria para operar ChatArgentina se procesa mediante sus servicios.</li>
 <li><strong>Firebase Cloud Messaging (Google):</strong> permite entregar notificaciones push. Recibe el token técnico del dispositivo y el contenido del aviso. En mensajes privados, el aviso es genérico y no transmite el Nick del remitente ni el texto privado. En salas públicas, el aviso puede incluir el Nick y una vista previa del mensaje público.</li>
 <li><strong>GitHub Pages:</strong> aloja la versión web pública, las páginas legales y los archivos web de actualización.</li>
 <li><strong>jsDelivr:</strong> distribuye la biblioteca de cliente utilizada para conectar la versión web con Supabase.</li>
@@ -67,7 +69,7 @@ ul,ol{padding-left:24px}li{margin:7px 0}
 <p>Aplicamos medidas como conexiones cifradas HTTPS, reglas de acceso a la base de datos, controles de autenticación, restricciones para acceder a mensajes privados y validaciones del servidor al registrar denuncias. El acceso administrativo está limitado a personal autorizado. Ningún sistema conectado a Internet puede garantizar seguridad absoluta.</p>
 
 <h2>6. Conservación de la información</h2>
-<p>Conservamos los datos mientras la cuenta esté activa y sean necesarios para prestar las funciones solicitadas, mantener la seguridad y resolver denuncias. Los registros técnicos y de moderación se conservan durante el tiempo necesario para esos fines. Cuando una obligación legal, una disputa o un incidente de seguridad lo requiera, cierta información limitada podrá conservarse por el plazo aplicable.</p>
+<p>Conservamos los datos, incluidos los mensajes y archivos de audio enviados, mientras la cuenta esté activa y sean necesarios para prestar las funciones solicitadas, mantener la seguridad y resolver denuncias. Los registros técnicos y de moderación se conservan durante el tiempo necesario para esos fines. Cuando una obligación legal, una disputa o un incidente de seguridad lo requiera, cierta información limitada podrá conservarse por el plazo aplicable.</p>
 <p>Los proveedores de infraestructura también pueden conservar registros técnicos o copias de respaldo durante sus ciclos habituales de operación y seguridad. Esos registros se eliminan o sobrescriben de acuerdo con los plazos y procedimientos del proveedor.</p>
 
 <h2>7. Tus derechos y eliminación de cuenta</h2>

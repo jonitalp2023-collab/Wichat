@@ -86,7 +86,7 @@ Si la cuenta que se cree es una cuenta personal sujeta al requisito vigente de G
 ## Pendientes que impiden marcar la ficha como lista
 
 - Confirmar URLs HTTPS públicas de todas las páginas legales.
-- Resolver una inconsistencia detectada: la política actual dice que los audios se conservan mientras la cuenta esté activa, pero el requisito del proyecto es borrarlos automáticamente a los 7 días. No declarar el plazo de 7 días hasta verificar que la tarea automática está implementada y funcionando en Supabase; luego actualizar la política pública y la copia incluida en la app.
+- Eliminación automática de audios a los 7 días: función cancelada por decisión del proyecto; no implementarla ni describirla como una función activa. La política pública vigente indica que los mensajes y audios se conservan mientras la cuenta esté activa y sean necesarios para prestar el servicio, la seguridad y la moderación. Antes de publicar, verificar que el comportamiento real del backend coincide con esa política.
 - Revisar la diferencia de versión: Android figura como 1.6 (versionCode 7), mientras que `app/src/main/assets/version.json` figura como 1.4.1. Confirmar si es una versión web independiente o si hay que alinearlas.
 - Crear/seleccionar icono, banner y capturas definitivas.
 - Confirmar anuncios, datos recogidos/compartidos y credenciales de revisión.

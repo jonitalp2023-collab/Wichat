@@ -40,6 +40,8 @@ class MainActivity : Activity() {
     private var pendingNativeAudioStart = false
 
     private val fcmBridge = FcmBridge()
+    private var pendingPushIntent: Intent? = null
+    private var pushNavigationAttempts = 0
 
     companion object {
         @Volatile
@@ -62,6 +64,7 @@ class MainActivity : Activity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingPushIntent = intent?.takeIf { it.hasExtra("push_kind") }
         createNotificationChannel()
 
         web = WebView(this)
@@ -90,6 +93,11 @@ class MainActivity : Activity() {
         WebView.setWebContentsDebuggingEnabled(false)
 
         web.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                processPendingPushNavigation()
+            }
+
             override fun onReceivedHttpError(
                 view: WebView?,
                 request: WebResourceRequest?,
@@ -225,6 +233,47 @@ class MainActivity : Activity() {
                 web.loadUrl(CHAT_URL)
             } else {
                 web.loadUrl(REMOTE_BASE_URL + installedWebVersion + "/index.html")
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent?.hasExtra("push_kind") == true) {
+            pendingPushIntent = intent
+            pushNavigationAttempts = 0
+            processPendingPushNavigation()
+        }
+    }
+
+    // Espera hasta que el usuario haya ingresado al chat, incluso con inicio en frío.
+    private fun processPendingPushNavigation() {
+        val push = pendingPushIntent ?: return
+        if (!::web.isInitialized) return
+        val kind = push.getStringExtra("push_kind").orEmpty()
+        val roomId = push.getStringExtra("push_room_id").orEmpty()
+        val targetSenderId = push.getStringExtra("push_sender_id").orEmpty()
+        val senderNickname = push.getStringExtra("push_sender_nickname").orEmpty()
+        if (kind != "private" && kind != "room") {
+            pendingPushIntent = null
+            return
+        }
+        val script = if (kind == "private") {
+            "(function(){if(typeof senderId==='undefined'||!senderId||typeof openPrivateChat!=='function')return false;showMainTab('chat');openPrivateChat({id:" +
+                JSONObject.quote(targetSenderId) + ",nick:" + JSONObject.quote(senderNickname.ifBlank { "Usuario" }) +
+                "});return true;})();"
+        } else {
+            "(function(){if(typeof senderId==='undefined'||!senderId||typeof switchRoom!=='function')return false;showMainTab('chat');switchRoom(" +
+                JSONObject.quote(roomId) + ");return true;})();"
+        }
+        web.evaluateJavascript(script) { result ->
+            if (result == "true") {
+                pendingPushIntent = null
+                pushNavigationAttempts = 0
+            } else if (pendingPushIntent === push && pushNavigationAttempts < 180) {
+                pushNavigationAttempts++
+                web.postDelayed({ processPendingPushNavigation() }, 1000)
             }
         }
     }

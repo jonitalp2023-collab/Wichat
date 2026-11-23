@@ -10,6 +10,9 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.media.MediaRecorder
+import android.util.Base64
+import java.io.File
 import android.webkit.JavascriptInterface
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -32,6 +35,9 @@ class MainActivity : Activity() {
     private lateinit var web: WebView
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private var pendingAudioPermissionRequest: PermissionRequest? = null
+    private var nativeAudioRecorder: MediaRecorder? = null
+    private var nativeAudioFile: File? = null
+    private var pendingNativeAudioStart = false
 
     private val fcmBridge = FcmBridge()
 
@@ -42,6 +48,7 @@ class MainActivity : Activity() {
 
         private const val FILE_CHOOSER_REQUEST_CODE = 4102
         private const val AUDIO_PERMISSION_REQUEST_CODE = 4104
+        private const val NATIVE_AUDIO_PERMISSION_REQUEST_CODE = 4105
         private const val CHAT_HOST = "jonitalp2023-collab.github.io"
         private const val ASSET_HOST = "appassets.androidplatform.net"
         private const val CHAT_URL = "https://appassets.androidplatform.net/assets/index.html"
@@ -222,6 +229,85 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun notifyWebAudioStarted(success: Boolean, error: String = "") {
+        if (!::web.isInitialized) return
+        val quoted = JSONObject.quote(error)
+        web.post { web.evaluateJavascript("window.onNativeVoiceRecordingStarted($success,$quoted);", null) }
+    }
+
+    private fun notifyWebAudioFinished(base64: String, mime: String, error: String = "") {
+        if (!::web.isInitialized) return
+        val encoded = JSONObject.quote(base64)
+        val quotedMime = JSONObject.quote(mime)
+        val quotedError = JSONObject.quote(error)
+        web.post {
+            web.evaluateJavascript(
+                "window.onNativeVoiceRecordingFinished($encoded,$quotedMime,$quotedError);",
+                null
+            )
+        }
+    }
+
+    private fun startNativeAudioCapture() {
+        if (nativeAudioRecorder != null) return
+        val output = File(cacheDir, "chatargentina_voice_${System.currentTimeMillis()}.m4a")
+        val recorder = MediaRecorder()
+        try {
+            recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
+            recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            recorder.setAudioEncodingBitRate(96000)
+            recorder.setAudioSamplingRate(44100)
+            recorder.setMaxDuration(60000)
+            recorder.setOutputFile(output.absolutePath)
+            recorder.setOnInfoListener { _, what, _ ->
+                if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
+                    finishNativeAudioCapture()
+                }
+            }
+            recorder.setOnErrorListener { _, _, _ ->
+                finishNativeAudioCapture()
+            }
+            recorder.prepare()
+            recorder.start()
+            nativeAudioRecorder = recorder
+            nativeAudioFile = output
+            notifyWebAudioStarted(true)
+        } catch (error: Exception) {
+            try { recorder.reset(); recorder.release() } catch (_: Exception) {}
+            output.delete()
+            notifyWebAudioStarted(false, error.message ?: "No se pudo iniciar el micrófono.")
+        }
+    }
+
+    private fun finishNativeAudioCapture() {
+        val recorder = nativeAudioRecorder ?: return
+        val output = nativeAudioFile
+        nativeAudioRecorder = null
+        nativeAudioFile = null
+        var failure: String? = null
+        try {
+            recorder.stop()
+        } catch (error: Exception) {
+            failure = "La grabación fue demasiado corta o se interrumpió."
+        } finally {
+            try { recorder.reset(); recorder.release() } catch (_: Exception) {}
+        }
+        if (failure != null || output == null || !output.exists() || output.length() < 900) {
+            output?.delete()
+            notifyWebAudioFinished("", "audio/mp4", failure ?: "El audio quedó demasiado corto.")
+            return
+        }
+        try {
+            val encoded = Base64.encodeToString(output.readBytes(), Base64.NO_WRAP)
+            output.delete()
+            notifyWebAudioFinished(encoded, "audio/mp4")
+        } catch (error: Exception) {
+            output.delete()
+            notifyWebAudioFinished("", "audio/mp4", error.message ?: "No se pudo preparar el audio.")
+        }
+    }
+
     private fun isRemoteReleaseUrl(uri: Uri): Boolean {
         return uri.scheme.equals("https", ignoreCase = true) &&
             uri.host.equals(CHAT_HOST, ignoreCase = true) &&
@@ -287,6 +373,15 @@ class MainActivity : Activity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == NATIVE_AUDIO_PERMISSION_REQUEST_CODE) {
+            val granted = grantResults.isNotEmpty() &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED
+            val shouldStart = pendingNativeAudioStart
+            pendingNativeAudioStart = false
+            if (granted && shouldStart) startNativeAudioCapture()
+            else notifyWebAudioStarted(false, "No se concedió el permiso de micrófono.")
+            return
+        }
         if (requestCode == AUDIO_PERMISSION_REQUEST_CODE) {
             val request = pendingAudioPermissionRequest
             pendingAudioPermissionRequest = null
@@ -341,6 +436,32 @@ class MainActivity : Activity() {
             getSharedPreferences(UPDATE_PREFS, MODE_PRIVATE).edit()
                 .putString(UPDATE_VERSION_KEY, version).apply()
             runOnUiThread { recreate() }
+        }
+
+        @JavascriptInterface
+        fun startVoiceRecording() {
+            runOnUiThread {
+                if (nativeAudioRecorder != null) return@runOnUiThread
+                if (ContextCompat.checkSelfPermission(
+                        this@MainActivity,
+                        android.Manifest.permission.RECORD_AUDIO
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    pendingNativeAudioStart = true
+                    ActivityCompat.requestPermissions(
+                        this@MainActivity,
+                        arrayOf(android.Manifest.permission.RECORD_AUDIO),
+                        NATIVE_AUDIO_PERMISSION_REQUEST_CODE
+                    )
+                } else {
+                    startNativeAudioCapture()
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun stopVoiceRecording() {
+            runOnUiThread { finishNativeAudioCapture() }
         }
 
         @JavascriptInterface
@@ -441,6 +562,11 @@ class MainActivity : Activity() {
         filePathCallback = null
         pendingAudioPermissionRequest?.deny()
         pendingAudioPermissionRequest = null
+        try { nativeAudioRecorder?.stop() } catch (_: Exception) {}
+        try { nativeAudioRecorder?.release() } catch (_: Exception) {}
+        nativeAudioRecorder = null
+        nativeAudioFile?.delete()
+        nativeAudioFile = null
         if (::web.isInitialized) {
             web.stopLoading()
             web.webChromeClient = null

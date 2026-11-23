@@ -1647,12 +1647,9 @@ async function toggleVoiceRecording(kind){
   voicePermissionPending=true;
   let stream=null;
   try{
-    try{
-      stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-    }catch(firstAudioError){
-      console.warn("El micrófono rechazó las opciones de audio avanzadas; se probará el modo básico:",firstAudioError);
-      stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    }
+    // Android WebView puede fallar al iniciar la fuente de audio si se fuerzan
+    // procesamientos avanzados. Usar primero la fuente predeterminada del sistema.
+    stream=await navigator.mediaDevices.getUserMedia({audio:true});
     activeVoiceFormat=voiceRecordingFormat();
     const recorder=activeVoiceFormat.type?new MediaRecorder(stream,{mimeType:activeVoiceFormat.type}):new MediaRecorder(stream);
     activeVoiceRecorder=recorder;activeVoiceStream=stream;activeVoiceChunks=[];

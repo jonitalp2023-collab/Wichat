@@ -84,30 +84,30 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .msgtext{color:#f4f4f4;white-space:pre-wrap;min-width:0;overflow-wrap:anywhere;font-size:14px;line-height:1.35}
 .composer{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;background:#222}
 .composer input{margin:0;min-width:0;flex:1;padding:15px 17px;background:#303030;border:0;border-radius:30px;color:white;font-size:16px}
-.message-composer{position:relative;gap:6px;padding:6px 10px;background:#111}
-.message-composer input{min-height:40px;height:40px;padding:8px 82px 8px 42px;background:#000;border:0!important;border-radius:22px;color:white;font-size:14px;outline:none!important;box-shadow:none!important;align-self:center}
+.message-composer{position:relative;gap:4px;padding:5px 7px;background:#111}
+.message-composer input{min-height:36px;height:36px;padding:6px 72px 6px 40px;background:#000;border:0!important;border-radius:20px;color:white;font-size:14px;outline:none!important;box-shadow:none!important;align-self:center}
 .message-composer input::placeholder{color:#aaa}
 .message-composer .emoji-wrap{position:absolute;left:19px;top:50%;transform:translateY(-50%);z-index:2}
 .message-composer .emoji-toggle{display:flex;align-items:center;justify-content:center;width:28px;height:30px;padding:0;background:transparent;color:#fff;font-size:22px;border-radius:50%}
-.message-composer .mention-wrap{position:absolute;right:128px;top:50%;transform:translateY(-50%);z-index:2}
+.message-composer .mention-wrap{position:absolute;right:105px;top:50%;transform:translateY(-50%);z-index:2}
 .message-composer .mention-toggle{width:24px;height:28px;min-width:24px;padding:0;border:0;border-radius:0;background:transparent;color:#fff;font-size:22px;font-weight:400;line-height:1}
 .send-button{width:53px;height:53px;min-width:53px;border-radius:50%;background:#08a9ed;font-size:25px;padding:0}
-.message-composer .send-button{width:38px;height:38px;min-width:38px;background:#08a9ed;font-size:21px;padding:0;flex:0 0 38px}
-.voice-button{display:flex;align-items:center;justify-content:center;width:36px;height:36px;min-width:36px;padding:0;border-radius:50%;background:#263f5e;border:1px solid #398bd0;color:#8bd0ff;flex:0 0 36px}
-.voice-button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.message-composer .send-button{width:32px;height:32px;min-width:32px;background:#08a9ed;font-size:18px;padding:0;flex:0 0 32px}
+.voice-button{display:flex;align-items:center;justify-content:center;width:30px;height:30px;min-width:30px;padding:0;border-radius:50%;background:#263f5e;border:1px solid #398bd0;color:#8bd0ff;flex:0 0 30px}
+.voice-button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .voice-button.recording{background:#c93649;border-color:#ff8290;color:#fff;box-shadow:0 0 0 3px #c9364944;animation:voicePulse 1.1s infinite}
 .voice-button:disabled{opacity:.55;cursor:wait}
 @keyframes voicePulse{50%{box-shadow:0 0 0 6px #c9364922}}
-.voice-player{display:inline-flex;align-items:center;gap:6px;width:min(185px,62vw);max-width:100%;padding:3px 7px;margin:2px 0;border:1px solid #3c5877;border-radius:18px;background:#26374b;vertical-align:middle}
-.voice-play{display:flex;align-items:center;justify-content:center;width:26px;height:26px;min-width:26px;padding:0;border-radius:50%;background:#08a9ed;color:#fff;font-size:12px;line-height:1}
-.voice-progress{height:4px;flex:1;min-width:25px;overflow:hidden;border-radius:6px;background:#52677f;cursor:pointer}
+.voice-player{display:inline-flex;align-items:center;gap:4px;width:min(145px,54vw);max-width:100%;padding:2px 5px;margin:2px 0;border:1px solid #3c5877;border-radius:16px;background:#26374b;vertical-align:middle}
+.voice-play{display:flex;align-items:center;justify-content:center;width:22px;height:22px;min-width:22px;padding:0;border-radius:50%;background:#08a9ed;color:#fff;font-size:10px;line-height:1}
+.voice-progress{height:3px;flex:1;min-width:18px;overflow:hidden;border-radius:6px;background:#52677f;cursor:pointer}
 .voice-progress-fill{height:100%;width:0;background:#68caff;border-radius:6px}
-.voice-time{min-width:29px;color:#d8e7f6;font-size:10px;text-align:right;font-variant-numeric:tabular-nums}
-.private-message-composer{gap:8px;padding:7px 12px;background:#111}
-.private-message-composer input{min-height:46px;height:46px;padding:10px 96px 10px 46px;background:#000;border:0!important;border-radius:25px;color:white;font-size:14px;outline:none!important;box-shadow:none!important}
+.voice-time{min-width:25px;color:#d8e7f6;font-size:9px;text-align:right;font-variant-numeric:tabular-nums}
+.private-message-composer{gap:4px;padding:5px 7px;background:#111}
+.private-message-composer input{min-height:36px;height:36px;padding:6px 72px 6px 40px;background:#000;border:0!important;border-radius:20px;color:white;font-size:14px;outline:none!important;box-shadow:none!important}
 .private-message-composer .emoji-wrap{left:19px}
 .private-message-composer .emoji-toggle{width:28px;height:30px;font-size:22px}
-.private-hashtag-wrap{position:absolute;right:128px;top:50%;transform:translateY(-50%);z-index:2}
+.private-hashtag-wrap{position:absolute;right:105px;top:50%;transform:translateY(-50%);z-index:2}
 .private-hashtag-wrap .mention-toggle{width:22px;height:26px;min-width:22px;font-size:19px;background:transparent;border:0;color:#fff;font-weight:400}
 .mention-wrap{position:relative;flex:0 0 auto}.mention-toggle{width:43px;height:43px;min-width:43px;border-radius:50%;background:#263f5e;border:1px solid #398bd0;color:#7fcaff;font-size:20px;font-weight:900;padding:0}.mention-picker{display:none;position:absolute;bottom:55px;right:0;width:min(310px,calc(100vw - 32px));max-height:310px;overflow:hidden;background:#101d33;border:1px solid #278bd2;border-radius:13px;padding:10px;z-index:800;box-shadow:0 8px 24px #000b}.mention-picker.open{display:block}.mention-picker-title{font-size:13px;color:#9fcfff;font-weight:700;padding:3px 5px 9px}.mention-search{display:block;width:100%;height:43px;margin:0 0 8px;padding:11px 14px;background:#303030;border:1px solid #46536a;border-radius:22px;color:#fff;font-size:15px;outline:none}.mention-search::placeholder{color:#aab3c2}.mention-search:focus{border-color:#398bd0}.mention-results{max-height:220px;overflow-y:auto;overscroll-behavior:contain}.mention-user{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:#192c49;border:1px solid #304966;padding:10px;margin:4px 0;border-radius:9px;color:#fff}.mention-user:active{background:#07549a}.mention-empty{font-size:13px;color:#9baac5;padding:9px 5px}
 .emoji-wrap{position:relative;flex:0 0 auto}

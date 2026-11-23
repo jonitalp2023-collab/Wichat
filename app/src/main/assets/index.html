@@ -85,19 +85,29 @@ body.chat-active #roomTopic{position:fixed;top:calc(62px + env(safe-area-inset-t
 .composer{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:9px 14px;background:#222}
 .composer input{margin:0;min-width:0;flex:1;padding:15px 17px;background:#303030;border:0;border-radius:30px;color:white;font-size:16px}
 .message-composer{position:relative;gap:8px;padding:7px 12px;background:#111}
-.message-composer input{min-height:46px;height:46px;padding:10px 46px;background:#000;border:0!important;border-radius:25px;color:white;font-size:14px;outline:none!important;box-shadow:none!important}
+.message-composer input{min-height:46px;height:46px;padding:10px 100px 10px 46px;background:#000;border:0!important;border-radius:25px;color:white;font-size:14px;outline:none!important;box-shadow:none!important}
 .message-composer input::placeholder{color:#aaa}
 .message-composer .emoji-wrap{position:absolute;left:19px;top:50%;transform:translateY(-50%);z-index:2}
 .message-composer .emoji-toggle{display:flex;align-items:center;justify-content:center;width:28px;height:30px;padding:0;background:transparent;color:#fff;font-size:22px;border-radius:50%}
-.message-composer .mention-wrap{position:absolute;right:80px;top:50%;transform:translateY(-50%);z-index:2}
+.message-composer .mention-wrap{position:absolute;right:128px;top:50%;transform:translateY(-50%);z-index:2}
 .message-composer .mention-toggle{width:24px;height:28px;min-width:24px;padding:0;border:0;border-radius:0;background:transparent;color:#fff;font-size:22px;font-weight:400;line-height:1}
 .send-button{width:53px;height:53px;min-width:53px;border-radius:50%;background:#08a9ed;font-size:25px;padding:0}
 .message-composer .send-button{width:46px;height:46px;min-width:46px;background:#08a9ed;font-size:27px;padding:0}
+.voice-button{display:flex;align-items:center;justify-content:center;width:42px;height:42px;min-width:42px;padding:0;border-radius:50%;background:#263f5e;border:1px solid #398bd0;color:#8bd0ff;flex:0 0 42px}
+.voice-button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.voice-button.recording{background:#c93649;border-color:#ff8290;color:#fff;box-shadow:0 0 0 3px #c9364944;animation:voicePulse 1.1s infinite}
+.voice-button:disabled{opacity:.55;cursor:wait}
+@keyframes voicePulse{50%{box-shadow:0 0 0 6px #c9364922}}
+.voice-player{display:inline-flex;align-items:center;gap:8px;width:min(230px,72vw);max-width:100%;padding:5px 9px;margin:3px 0;border:1px solid #3c5877;border-radius:22px;background:#26374b;vertical-align:middle}
+.voice-play{display:flex;align-items:center;justify-content:center;width:32px;height:32px;min-width:32px;padding:0;border-radius:50%;background:#08a9ed;color:#fff;font-size:15px;line-height:1}
+.voice-progress{height:5px;flex:1;min-width:35px;overflow:hidden;border-radius:6px;background:#52677f;cursor:pointer}
+.voice-progress-fill{height:100%;width:0;background:#68caff;border-radius:6px}
+.voice-time{min-width:35px;color:#d8e7f6;font-size:11px;text-align:right;font-variant-numeric:tabular-nums}
 .private-message-composer{gap:8px;padding:7px 12px;background:#111}
-.private-message-composer input{min-height:46px;height:46px;padding:10px 42px 10px 46px;background:#000;border:0!important;border-radius:25px;color:white;font-size:14px;outline:none!important;box-shadow:none!important}
+.private-message-composer input{min-height:46px;height:46px;padding:10px 96px 10px 46px;background:#000;border:0!important;border-radius:25px;color:white;font-size:14px;outline:none!important;box-shadow:none!important}
 .private-message-composer .emoji-wrap{left:19px}
 .private-message-composer .emoji-toggle{width:28px;height:30px;font-size:22px}
-.private-hashtag-wrap{position:absolute;right:68px;top:50%;transform:translateY(-50%);z-index:2}
+.private-hashtag-wrap{position:absolute;right:128px;top:50%;transform:translateY(-50%);z-index:2}
 .private-hashtag-wrap .mention-toggle{width:22px;height:26px;min-width:22px;font-size:19px;background:transparent;border:0;color:#fff;font-weight:400}
 .mention-wrap{position:relative;flex:0 0 auto}.mention-toggle{width:43px;height:43px;min-width:43px;border-radius:50%;background:#263f5e;border:1px solid #398bd0;color:#7fcaff;font-size:20px;font-weight:900;padding:0}.mention-picker{display:none;position:absolute;bottom:55px;right:0;width:min(310px,calc(100vw - 32px));max-height:310px;overflow:hidden;background:#101d33;border:1px solid #278bd2;border-radius:13px;padding:10px;z-index:800;box-shadow:0 8px 24px #000b}.mention-picker.open{display:block}.mention-picker-title{font-size:13px;color:#9fcfff;font-weight:700;padding:3px 5px 9px}.mention-search{display:block;width:100%;height:43px;margin:0 0 8px;padding:11px 14px;background:#303030;border:1px solid #46536a;border-radius:22px;color:#fff;font-size:15px;outline:none}.mention-search::placeholder{color:#aab3c2}.mention-search:focus{border-color:#398bd0}.mention-results{max-height:220px;overflow-y:auto;overscroll-behavior:contain}.mention-user{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:#192c49;border:1px solid #304966;padding:10px;margin:4px 0;border-radius:9px;color:#fff}.mention-user:active{background:#07549a}.mention-empty{font-size:13px;color:#9baac5;padding:9px 5px}
 .emoji-wrap{position:relative;flex:0 0 auto}
@@ -517,13 +527,13 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="messages"></div>
 <div class="composer message-composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('messageInput')" aria-label="Abrir emojis">😊</button><div id="emojiPickerPublic" class="emoji-picker"></div></div>
 <input id="messageInput" maxlength="1000" placeholder="Escribe aquí..." onkeydown="if(event.key==='Enter')sendMessage()">
-<div class="mention-wrap"><button id="mentionToggle" class="mention-toggle" type="button" aria-label="Mencionar usuario" title="Mencionar usuario" onclick="toggleMentionPicker()">#</button><div id="mentionPicker" class="mention-picker"></div></div><button id="sendBtn" class="send-button" onpointerdown="event.preventDefault()" onclick="sendMessage()" aria-label="Enviar mensaje">➤</button></div></div>
+<div class="mention-wrap"><button id="mentionToggle" class="mention-toggle" type="button" aria-label="Mencionar usuario" title="Mencionar usuario" onclick="toggleMentionPicker()">#</button><div id="mentionPicker" class="mention-picker"></div></div><button id="sendBtn" class="send-button" onpointerdown="event.preventDefault()" onclick="sendMessage()" aria-label="Enviar mensaje">➤</button><button id="roomVoiceBtn" class="voice-button" type="button" onclick="toggleVoiceRecording('room')" aria-label="Grabar mensaje de voz" title="Grabar mensaje de voz"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8"></path></svg></button></div></div>
 <div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><button class="secondary" style="margin:0 0 10px" onclick="openBlockedUsers()">⛔ Usuarios bloqueados</button><div id="usersCountText" class="user-count">0 usuarios conectados</div><input id="userSearchInput" class="user-search" type="search" placeholder="🔎 Buscar usuario..." oninput="renderUsers()" autocomplete="off"><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
 <div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
 <div id="privateView" class="hidden"><div id="privateMessages"></div>
 <div class="composer message-composer private-message-composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')" aria-label="Abrir emojis">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
 <input id="privateInput" maxlength="1000" placeholder="Escribí un mensaje privado..." onkeydown="if(event.key==='Enter')sendPrivateMessage()">
-<div class="mention-wrap private-hashtag-wrap"><button id="privateHashtagToggle" class="mention-toggle" type="button" aria-label="Insertar hashtag" title="Insertar #">#</button></div><button id="privateSendBtn" class="send-button" onpointerdown="event.preventDefault()" onclick="sendPrivateMessage()" aria-label="Enviar mensaje">➤</button></div></div>
+<div class="mention-wrap private-hashtag-wrap"><button id="privateHashtagToggle" class="mention-toggle" type="button" aria-label="Insertar hashtag" title="Insertar #">#</button></div><button id="privateSendBtn" class="send-button" onpointerdown="event.preventDefault()" onclick="sendPrivateMessage()" aria-label="Enviar mensaje">➤</button><button id="privateVoiceBtn" class="voice-button" type="button" onclick="toggleVoiceRecording('private')" aria-label="Grabar mensaje de voz privado" title="Grabar mensaje de voz privado"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8"></path></svg></button></div></div>
 </div>
 <nav id="bottomNav" aria-label="Navegación principal">
 <button id="navRooms" class="nav-btn active" onclick="showMainTab('rooms')" aria-label="Salas"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5"/><rect x="3" y="12" width="18" height="8" rx="1.5"/><path d="M7 6.5h.01M7 16h.01"/></svg></span><span>Salas</span></button>
@@ -1548,6 +1558,183 @@ function reportPublicMessage(message){
 function reportPrivateMessage(message){
   return submitContentReport({targetUserId:message?.sender_id,privateMessageId:message?.id,nick:message?.sender_nickname,content:message?.content});
 }
+
+/* MENSAJES DE VOZ: archivos en buckets privados con acceso por sala o conversación. */
+const VOICE_MIC_ICON="<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"9\" y=\"2\" width=\"6\" height=\"12\" rx=\"3\"></rect><path d=\"M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8\"></path></svg>";
+let activeVoiceRecorder=null,activeVoiceStream=null,activeVoiceChunks=[],activeVoiceContext=null,activeVoiceTimer=null,activeVoiceStartedAt=0;
+let activeVoiceFormat=null,voicePermissionPending=false,voiceUploadPending=false,activeVoicePlayback=null;
+function voiceButtonFor(kind){return $(kind==="private"?"privateVoiceBtn":"roomVoiceBtn");}
+function resetVoiceButton(kind){
+  const button=voiceButtonFor(kind);if(!button)return;
+  button.classList.remove("recording");button.disabled=false;button.innerHTML=VOICE_MIC_ICON;
+  button.title=kind==="private"?"Grabar mensaje de voz privado":"Grabar mensaje de voz";
+}
+function formatVoiceTime(seconds){
+  if(!Number.isFinite(seconds)||seconds<0)return "0:00";
+  const value=Math.floor(seconds);return Math.floor(value/60)+":"+String(value%60).padStart(2,"0");
+}
+function appendVoicePlayer(container,bucket,path){
+  const valid=bucket==="chat-room-audio"
+    ? /^\d+\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(webm|ogg|m4a)$/i.test(String(path||""))
+    : /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(webm|ogg|m4a)$/i.test(String(path||""));
+  if(!valid){container.textContent="Audio no disponible.";return;}
+  const player=document.createElement("span");player.className="voice-player";
+  const play=document.createElement("button");play.type="button";play.className="voice-play";play.textContent="▶";play.title="Reproducir audio";play.setAttribute("aria-label","Reproducir audio");
+  const progress=document.createElement("div");progress.className="voice-progress";progress.title="Avanzar audio";
+  const fill=document.createElement("div");fill.className="voice-progress-fill";progress.appendChild(fill);
+  const time=document.createElement("span");time.className="voice-time";time.textContent="0:00";
+  const audio=document.createElement("audio");audio.preload="none";audio.style.display="none";
+  let signedAt=0;
+  audio.addEventListener("loadedmetadata",()=>{time.textContent=formatVoiceTime(audio.duration);});
+  audio.addEventListener("timeupdate",()=>{
+    if(Number.isFinite(audio.duration)&&audio.duration>0){
+      fill.style.width=Math.min(100,(audio.currentTime/audio.duration)*100)+"%";
+      time.textContent=formatVoiceTime(audio.currentTime)+"/"+formatVoiceTime(audio.duration);
+    }
+  });
+  audio.addEventListener("play",()=>{
+    if(activeVoicePlayback&&activeVoicePlayback!==audio)activeVoicePlayback.pause();
+    activeVoicePlayback=audio;play.textContent="Ⅱ";play.title="Pausar audio";play.setAttribute("aria-label","Pausar audio");
+  });
+  audio.addEventListener("pause",()=>{
+    play.textContent="▶";play.title="Reproducir audio";play.setAttribute("aria-label","Reproducir audio");
+  });
+  audio.addEventListener("ended",()=>{
+    fill.style.width="0%";time.textContent=formatVoiceTime(audio.duration);
+    play.textContent="▶";play.title="Reproducir audio";play.setAttribute("aria-label","Reproducir audio");
+    if(activeVoicePlayback===audio)activeVoicePlayback=null;
+  });
+  audio.addEventListener("error",()=>{signedAt=0;play.disabled=false;time.textContent="Error";});
+  play.addEventListener("click",async()=>{
+    if(!audio.paused){audio.pause();return;}
+    play.disabled=true;
+    try{
+      if(!audio.src||Date.now()-signedAt>55*60*1000){
+        const {data,error}=await db.storage.from(bucket).createSignedUrl(path,3600);
+        if(error||!data?.signedUrl)throw error||new Error("No se pudo preparar el audio.");
+        audio.src=data.signedUrl;signedAt=Date.now();audio.load();
+      }
+      await audio.play();
+    }catch(error){signedAt=0;alert("No se pudo reproducir el audio: "+(error.message||String(error)));}
+    finally{play.disabled=false;}
+  });
+  progress.addEventListener("click",event=>{
+    if(!Number.isFinite(audio.duration)||audio.duration<=0)return;
+    const rect=progress.getBoundingClientRect();audio.currentTime=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width))*audio.duration;
+  });
+  player.append(play,progress,time);container.append(player,audio);
+}
+function voiceRecordingFormat(){
+  const options=[
+    {type:"audio/webm;codecs=opus",mime:"audio/webm",ext:"webm"},
+    {type:"audio/ogg;codecs=opus",mime:"audio/ogg",ext:"ogg"},
+    {type:"audio/mp4",mime:"audio/mp4",ext:"m4a"}
+  ];
+  if(typeof MediaRecorder.isTypeSupported==="function")return options.find(item=>MediaRecorder.isTypeSupported(item.type))||{type:"",mime:"audio/webm",ext:"webm"};
+  return options[0];
+}
+async function toggleVoiceRecording(kind){
+  const button=voiceButtonFor(kind);if(!button||button.disabled||voiceUploadPending||voicePermissionPending)return;
+  if(activeVoiceRecorder){
+    if(activeVoiceContext?.kind===kind){activeVoiceRecorder.stop();return;}
+    alert("Ya hay una grabación en curso. Terminá de grabarla antes de iniciar otra.");return;
+  }
+  if(kind==="private"&&!activePrivateUser){alert("Abrí primero una conversación privada.");return;}
+  if(kind==="room"&&!currentRoom){alert("Primero entrá en una sala.");return;}
+  if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){
+    alert("Este dispositivo o navegador no permite grabar audio desde Chat Argentina.");return;
+  }
+  voicePermissionPending=true;
+  let stream=null;
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    activeVoiceFormat=voiceRecordingFormat();
+    const recorder=activeVoiceFormat.type?new MediaRecorder(stream,{mimeType:activeVoiceFormat.type}):new MediaRecorder(stream);
+    activeVoiceRecorder=recorder;activeVoiceStream=stream;activeVoiceChunks=[];
+    activeVoiceContext=kind==="room"
+      ?{kind:"room",roomId:String(currentRoom)}
+      :{kind:"private",recipientId:String(activePrivateUser.id),recipientNickname:String(activePrivateUser.nick||"Usuario")};
+    activeVoiceStartedAt=Date.now();
+    recorder.ondataavailable=event=>{if(event.data&&event.data.size)activeVoiceChunks.push(event.data);};
+    recorder.onerror=event=>{console.error("Error de grabación:",event.error||event);try{recorder.stop();}catch(_){}};
+    recorder.onstop=()=>{
+      const duration=Date.now()-activeVoiceStartedAt;
+      const chunks=activeVoiceChunks.slice(),context=activeVoiceContext;
+      const mime=activeVoiceFormat?.mime||String(recorder.mimeType||"audio/webm").split(";")[0];
+      const blob=new Blob(chunks,{type:mime});
+      stream.getTracks().forEach(track=>track.stop());
+      activeVoiceRecorder=null;activeVoiceStream=null;activeVoiceChunks=[];activeVoiceContext=null;activeVoiceFormat=null;
+      if(activeVoiceTimer){clearTimeout(activeVoiceTimer);activeVoiceTimer=null;}
+      resetVoiceButton(kind);
+      if(duration<700||blob.size<900){alert("El audio quedó demasiado corto. Grabá un poquito más y volvé a intentarlo.");return;}
+      voiceUploadPending=true;
+      uploadVoiceRecording(blob,context,mime).catch(error=>{
+        console.error("No se pudo enviar el audio:",error);
+        alert("No se pudo enviar el audio: "+(error.message||String(error)));
+      }).finally(()=>{voiceUploadPending=false;resetVoiceButton(kind);});
+    };
+    recorder.start(250);
+    button.classList.add("recording");button.textContent="■";button.title="Grabando... tocá para terminar y enviar";
+    activeVoiceTimer=setTimeout(()=>{
+      if(activeVoiceRecorder===recorder){recorder.stop();alert("La grabación alcanzó el límite de 60 segundos.");}
+    },60000);
+  }catch(error){
+    if(stream)stream.getTracks().forEach(track=>track.stop());
+    activeVoiceRecorder=null;activeVoiceStream=null;activeVoiceContext=null;activeVoiceChunks=[];
+    resetVoiceButton(kind);
+    console.error("No se pudo iniciar el micrófono:",error);
+    alert("No se pudo acceder al micrófono. Revisá los permisos de Chat Argentina e intentá nuevamente.");
+  }finally{voicePermissionPending=false;}
+}
+async function uploadVoiceRecording(blob,context,mimeType){
+  if(!context||!senderId)throw new Error("La sesión del chat ya no está disponible.");
+  const kind=context.kind,button=voiceButtonFor(kind);
+  if(button){button.disabled=true;button.title="Enviando audio...";}
+  const mime=String(mimeType||blob.type||"audio/webm").split(";")[0].toLowerCase();
+  const ext=mime==="audio/ogg"?"ogg":mime==="audio/mp4"?"m4a":"webm";
+  const fileId=crypto.randomUUID();
+  const bucket=kind==="room"?"chat-room-audio":"chat-private-audio";
+  const path=kind==="room"
+    ?context.roomId+"/"+senderId+"/"+fileId+"."+ext
+    :senderId+"/"+context.recipientId+"/"+fileId+"."+ext;
+  const {error:uploadError}=await db.storage.from(bucket).upload(path,blob,{contentType:mime,cacheControl:"3600",upsert:false});
+  if(uploadError)throw uploadError;
+  if(kind==="room"){
+    const room=rooms.find(item=>String(item.id)===String(context.roomId));
+    if(!room)throw new Error("La sala ya no está disponible.");
+    const {data,error}=await db.from("messages").insert({
+      nickname:String(nickname).trim(),message:"🎤 Mensaje de voz "+fileId.slice(0,8),
+      room_id:context.roomId,sender_id:senderId,message_type:"audio",media_url:path
+    }).select("id").maybeSingle();
+    if(error){
+      if(error.code==="42501"){showContentBlocked("content");throw new Error("El audio fue bloqueado por las reglas de la sala.");}
+      if(String(error.message||"").includes("demasiado rápido")||String(error.message||"").includes("repetido")){showContentBlocked("spam");throw new Error("Esperá unos segundos antes de enviar otro audio.");}
+      throw error;
+    }
+    if(!data?.id)throw new Error("El audio no pudo publicarse en la sala.");
+    db.functions.invoke("send-chat-push",{body:{kind:"room",message_id:data.id}}).then(({data:pushData,error})=>{
+      if(error)console.warn("No se pudo enviar la notificación del audio:",error);
+      else if(pushData?.success!==true)console.warn("Notificación del audio no enviada:",pushData);
+    }).catch(error=>console.warn("No se pudo enviar la notificación del audio:",error));
+  }else{
+    if(isUserBlocked(context.recipientId))throw new Error("Desbloqueá a este usuario para enviarle mensajes.");
+    const {data,error}=await db.from("private_messages").insert({
+      sender_id:senderId,recipient_id:context.recipientId,sender_nickname:nickname,
+      content:"🎤 Mensaje de voz "+fileId.slice(0,8),message_type:"audio",media_url:path
+    }).select().single();
+    if(error){
+      if(error.code==="42501"){showContentBlocked("content");throw new Error("El audio fue bloqueado por las reglas del chat.");}
+      if(String(error.message||"").includes("demasiado rápido")||String(error.message||"").includes("repetido")){showContentBlocked("spam");throw new Error("Esperá unos segundos antes de enviar otro audio.");}
+      throw error;
+    }
+    if(activePrivateUser&&String(activePrivateUser.id)===String(context.recipientId))addPrivateMessage(data);
+    db.functions.invoke("send-chat-push",{body:{kind:"private",message_id:data.id}}).then(({data:pushData,error:pushError})=>{
+      if(pushError)console.warn("No se pudo enviar la notificación privada del audio:",pushError);
+      else if(pushData?.success!==true)console.warn("Notificación privada del audio no enviada:",pushData);
+    }).catch(error=>console.warn("No se pudo enviar la notificación privada del audio:",error));
+  }
+}
+
 function addMessage(m,notifyMention=false){
 if(!m)return;
 if(m.sender_id&&isUserBlocked(m.sender_id)){receivedIds.add(m.id);return;}
@@ -1562,7 +1749,7 @@ if(adminOwnerUsers.has(String(m.sender_id||""))){const at=document.createElement
 n.appendChild(document.createTextNode(nick));
 if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,n);
-const t=document.createElement("span");t.className="msgtext";t.textContent=m.message||m.content||"";div.append(n,t);
+const t=document.createElement("span");t.className="msgtext";if(m.message_type==="audio"&&m.media_url){appendVoicePlayer(t,"chat-room-audio",m.media_url);}else{t.textContent=m.message||m.content||"";}div.append(n,t);
 attachMessageReportGesture(div,m,false);
 $("messages").appendChild(div);$("messages").scrollTop=$("messages").scrollHeight;
 }
@@ -1744,7 +1931,7 @@ if(m.sender_id&&(registeredUsers.has(String(m.sender_id))||privateSenderInfo?.re
 if(m.sender_id&&publicAdminUsers.has(String(m.sender_id)))addAdminBadge(who,adminOwnerUsers.has(String(m.sender_id)));
 if(adminOwnerUsers.has(String(m.sender_id||""))){const at=document.createElement("span");at.className="admin-at";at.textContent="@";who.appendChild(at);who.classList.add("admin-unix");}
 who.appendChild(document.createTextNode(privateNick+": "));
-if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";msg.textContent=m.content||"";div.append(who,msg);
+if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";if(m.message_type==="audio"&&m.media_url){appendVoicePlayer(msg,"chat-private-audio",m.media_url);}else{msg.textContent=m.content||"";}div.append(who,msg);
 attachMessageReportGesture(div,m,true);
 box.appendChild(div);box.scrollTop=box.scrollHeight;
 }

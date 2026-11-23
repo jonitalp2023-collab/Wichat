@@ -256,12 +256,16 @@ Deno.serve(async (req: Request) => {
           body: JSON.stringify({
             message: {
               token: row.fcm_token,
-              notification: { title, body: notificationBody },
+              // Data-only evita que Android muestre una notificación automática
+              // sin el PendingIntent específico que construye el servicio de la app.
               data: {
                 kind,
+                title,
+                body: notificationBody,
                 message_id: String(messageId),
                 room_id: roomId === null ? "" : String(roomId),
                 sender_id: senderId,
+                sender_nickname: senderNickname,
               },
               android: {
                 priority: "HIGH",

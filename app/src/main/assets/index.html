@@ -1647,7 +1647,12 @@ async function toggleVoiceRecording(kind){
   voicePermissionPending=true;
   let stream=null;
   try{
-    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    }catch(firstAudioError){
+      console.warn("El micrófono rechazó las opciones de audio avanzadas; se probará el modo básico:",firstAudioError);
+      stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    }
     activeVoiceFormat=voiceRecordingFormat();
     const recorder=activeVoiceFormat.type?new MediaRecorder(stream,{mimeType:activeVoiceFormat.type}):new MediaRecorder(stream);
     activeVoiceRecorder=recorder;activeVoiceStream=stream;activeVoiceChunks=[];
@@ -1683,7 +1688,9 @@ async function toggleVoiceRecording(kind){
     activeVoiceRecorder=null;activeVoiceStream=null;activeVoiceContext=null;activeVoiceChunks=[];
     resetVoiceButton(kind);
     console.error("No se pudo iniciar el micrófono:",error);
-    alert("No se pudo acceder al micrófono. Revisá los permisos de Chat Argentina e intentá nuevamente.");
+    const audioErrorName=error&&error.name?String(error.name):"Error desconocido";
+    const audioErrorMessage=error&&error.message?String(error.message):"Sin detalle adicional";
+    alert("No se pudo acceder al micrófono ("+audioErrorName+"): "+audioErrorMessage+"\n\nRevisá que el permiso de micrófono esté habilitado y volvé a intentar.");
   }finally{voicePermissionPending=false;}
 }
 async function uploadVoiceRecording(blob,context,mimeType){

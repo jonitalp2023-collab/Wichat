@@ -1317,7 +1317,7 @@ $("status").textContent="Cargando "+(room?.name||"sala")+"...";
 messageChannel=db.channel("wichat-messages-"+id).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"room_id=eq."+id},p=>addMessage(p.new,true)).subscribe(s=>{if(s==="SUBSCRIBED"){$("status").textContent="● Conectado";loadRoomMessages(id);}});
 presenceChannel=db.channel("wichat-presence-"+id,{config:{presence:{key:senderId}}});
 presenceChannel.on("presence",{event:"sync"},updatePresenceList).on("presence",{event:"join"},updatePresenceList).on("presence",{event:"leave"},updatePresenceList).subscribe(async state=>{
-if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,is_registered:isRegisteredAccount,online_at:new Date().toISOString()});updatePresenceList();}
+if(state==="SUBSCRIBED"){await presenceChannel.track({nickname,sender_id:senderId,is_admin:isAdmin,is_registered:isRegisteredAccount,online_at:new Date().toISOString()});updatePresenceList();if(window.ChatArgentinaNative?.startRoomPresenceService){window.ChatArgentinaNative.startRoomPresenceService(room?.name||"Sala de chat");}}
 });
 }
 function refreshVisibleIdentityBadges(){
@@ -2628,6 +2628,7 @@ async function deleteBot(id,name){
 
 /* SALIR */
 async function exitChat(){
+if(window.ChatArgentinaNative?.stopRoomPresenceService){window.ChatArgentinaNative.stopRoomPresenceService();}
 closeUserMenu();closeProfileModal();selectedMenuUser=null;await releaseNickname();await releaseAccountDeviceSession();
 if(privateChannel){await db.removeChannel(privateChannel);privateChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}

@@ -1327,6 +1327,10 @@ function refreshVisibleIdentityBadges(){
     const user=roomUsers.get(id);
     const name=message.querySelector(".nickname");
     if(!name)return;
+    if(message.classList.contains("message")){
+      name.style.cursor=user&&id!==String(senderId)?"pointer":"default";
+      name.onclick=user&&id!==String(senderId)?()=>openUserMenu(roomUsers.get(id)):null;
+    }
     if(user?.registered===true||registeredUsers.has(id))addRegisteredPlus(name);
     if(publicAdminUsers.has(id))addAdminBadge(name,adminOwnerUsers.has(id));
   });
@@ -1339,12 +1343,17 @@ Object.keys(state).forEach(key=>{const entries=state[key]||[];if(entries.length)
   const admin=publicAdminUsers.has(id);
   next.set(id,{id,nick:p.nickname||"Usuario",admin,registered:registeredUsers.has(id)});
 }});
-roomUsers=next;renderUsers();renderModerationUsers();renderMentionUsers();refreshVisibleIdentityBadges();
+roomUsers=next;
+if(selectedMenuUser&&!roomUsers.has(String(selectedMenuUser.id)))closeUserMenu();
+renderUsers();renderModerationUsers();renderMentionUsers();refreshVisibleIdentityBadges();
 }
 
 /* MENÚ DE USUARIO */
 async function openUserMenu(user){
 if(!user||!user.id||String(user.id)===String(senderId))return;
+const onlineUser=roomUsers.get(String(user.id));
+if(!onlineUser)return;
+user=onlineUser;
 selectedMenuUser={id:user.id,nick:user.nick||"Usuario",registered:user.registered===true||registeredUsers.has(String(user.id))};
 $("userMenuTitle").textContent=selectedMenuUser.nick;
 $("viewProfileBtn").classList.add("hidden");
@@ -1860,7 +1869,11 @@ if(m.sender_id&&(registeredUsers.has(String(m.sender_id))||senderInfo?.registere
 if(m.sender_id&&publicAdminUsers.has(String(m.sender_id)))addAdminBadge(n,adminOwnerUsers.has(String(m.sender_id)));
 if(adminOwnerUsers.has(String(m.sender_id||""))){const at=document.createElement("span");at.className="admin-at";at.textContent="@";n.appendChild(at);n.classList.add("admin-unix");}
 n.appendChild(document.createTextNode(nick));
-if(m.sender_id&&String(m.sender_id)!==String(senderId)){n.style.cursor="pointer";n.onclick=()=>openUserMenu({id:m.sender_id,nick});}
+if(m.sender_id&&String(m.sender_id)!==String(senderId)){
+  const onlineUser=roomUsers.get(String(m.sender_id));
+  n.style.cursor=onlineUser?"pointer":"default";
+  n.onclick=onlineUser?()=>openUserMenu(roomUsers.get(String(m.sender_id))):null;
+}
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,n);
 const t=document.createElement("span");t.className="msgtext";if(m.message_type==="audio"&&m.media_url){appendVoicePlayer(t,"chat-room-audio",m.media_url);}else{t.textContent=m.message||m.content||"";}div.append(n,t);
 attachMessageReportGesture(div,m,false);

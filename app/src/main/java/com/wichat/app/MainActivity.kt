@@ -514,6 +514,30 @@ class MainActivity : Activity() {
         }
 
         @JavascriptInterface
+        fun startRoomPresenceService(roomName: String) {
+            val safeRoomName = roomName.trim().take(60).ifBlank { "Sala de chat" }
+            runOnUiThread {
+                val serviceIntent = Intent(this@MainActivity, ChatRoomPresenceService::class.java).apply {
+                    action = ChatRoomPresenceService.ACTION_START
+                    putExtra(ChatRoomPresenceService.EXTRA_ROOM_NAME, safeRoomName)
+                }
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(serviceIntent)
+                    else startService(serviceIntent)
+                } catch (error: Exception) {
+                    android.util.Log.e("ChatArgentina", "No se pudo iniciar el servicio de presencia", error)
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun stopRoomPresenceService() {
+            runOnUiThread {
+                stopService(Intent(this@MainActivity, ChatRoomPresenceService::class.java))
+            }
+        }
+
+        @JavascriptInterface
         fun requestFcmToken() {
             requestFcmTokenWithPermission()
         }

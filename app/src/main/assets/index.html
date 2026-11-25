@@ -677,7 +677,7 @@ body.chat-active #chat{padding-bottom:0!important}
 <div id="usersView" class="hidden"><h3>👥 Usuarios en línea</h3><button class="secondary" style="margin:0 0 10px" onclick="openBlockedUsers()">⛔ Usuarios bloqueados</button><div id="usersCountText" class="user-count">0 usuarios conectados</div><input id="userSearchInput" class="user-search" type="search" placeholder="🔎 Buscar usuario..." oninput="renderUsers()" autocomplete="off"><p class="muted">Tocá un Nick para ver sus opciones.</p><div id="usersList"><p class="muted">Esperando usuarios...</p></div></div>
 <div id="roomsView" class="hidden"><h3>💬 Salas disponibles</h3><p class="muted">Elegí la sala a la que querés entrar.</p><div id="roomTabs"></div></div>
 <div id="privateView" class="hidden"><div id="privateMessages"></div>
-<div class="composer message-composer private-message-composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')" aria-label="Abrir emojis">😊</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
+<div class="composer message-composer private-message-composer"><div class="emoji-wrap"><button class="emoji-toggle" onclick="toggleEmoji('privateInput')" aria-label="Abrir emojis">😊</button><button class="menu-toggle" type="button" onclick="openChatNavMenu()" aria-label="Abrir menú" title="Menú">☰</button><div id="emojiPickerPrivate" class="emoji-picker"></div></div>
 <input id="privateInput" maxlength="1000" placeholder="Escribí un mensaje privado..." onkeydown="if(event.key==='Enter')sendPrivateMessage()">
 <div class="mention-wrap private-hashtag-wrap"><button id="privateHashtagToggle" class="mention-toggle" type="button" aria-label="Insertar hashtag" title="Insertar #">#</button></div><button id="privateSendBtn" class="send-button" onpointerdown="event.preventDefault()" onclick="sendPrivateMessage()" aria-label="Enviar mensaje">➤</button><button id="privateVoiceBtn" class="voice-button" type="button" onclick="toggleVoiceRecording('private')" aria-label="Grabar mensaje de voz privado" title="Grabar mensaje de voz privado"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8"></path></svg></button></div></div>
 </div>
@@ -1616,7 +1616,7 @@ async function saveMyProfile(){
  }catch(error){alert("No se pudo guardar tu perfil: "+(error.message||String(error)));}
  finally{btn.disabled=false;}
 }
-async function userMenuPrivate(){if(!selectedMenuUser)return;const user={...selectedMenuUser};closeUserMenu();await openPrivateChat(user);}
+async function userMenuPrivate(){if(!selectedMenuUser)return;const user={...selectedMenuUser};closeUserMenu();closeChatNav();selectedMenuUser=null;await openPrivateChat(user);}
 async function userMenuModerate(action){
 if(!isAdmin||!selectedMenuUser)return;
 const user={...selectedMenuUser};

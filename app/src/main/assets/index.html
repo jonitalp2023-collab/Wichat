@@ -1399,6 +1399,9 @@ if(!allowed){
   else{$("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";}
   return;
 }
+// Si la sala fue elegida desde el menú flotante, cerrarlo y devolver
+// la vista de salas a su lugar antes de mostrar el chat.
+closeChatNav();
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}

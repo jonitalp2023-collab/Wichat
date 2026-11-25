@@ -1379,9 +1379,10 @@ const b=document.createElement("button");b.className="room-tab"+(active?" active
 renderPrivateTabs();
 }
 async function switchRoom(id){
-// Cerrar el menú flotante apenas se selecciona una sala, sin esperar
-// la validación de acceso ni la carga de los mensajes.
+// Al elegir una sala desde el menú, cerrarlo y volver inmediatamente
+// a la vista del chat para que la lista no quede visible ni reaparezca.
 closeChatNav();
+showMainTab("chat");
 const room=rooms.find(r=>String(r.id)===String(id));
 // Bloqueo inmediato de invitados: solo UNIX propietario puede entrar sin cuenta.
 // La membresía de cuentas registradas se valida además en el servidor.

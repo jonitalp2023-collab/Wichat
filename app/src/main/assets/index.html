@@ -55,7 +55,7 @@ body:not(.chat-active) .container{max-width:520px;min-height:100dvh;display:flex
 #login:before{top:-68px}
 #login:after{bottom:-73px;left:-18%;transform:rotate(173deg);border-top-color:#08a9ed}
 #login>*{position:relative;z-index:1}
-#login .brand-logo{width:150px;height:142px;margin:0 auto 7px;filter:drop-shadow(0 0 18px #08a9edaa)}
+
 #login h1{font-size:clamp(25px,6vw,34px);font-weight:900;font-style:italic;letter-spacing:.5px;margin:4px 0 8px;text-shadow:0 2px 12px #168bea55}
 #login .login-subtitle{color:#c4ddf7;font-size:15px;margin:8px 0 25px;line-height:1.45}
 #loginChoices{display:flex;flex-direction:column;gap:11px}
@@ -82,7 +82,7 @@ body:not(.chat-active) .container{max-width:520px;min-height:100dvh;display:flex
 @media(max-width:480px){
  body:not(.chat-active) .container{padding:12px 14px}
  #login{padding:17px 15px 20px;border-radius:24px}
- #login .brand-logo{width:128px;height:120px}
+ #login .login-chat-mark{width:155px;height:125px}
  #login .login-subtitle{font-size:14px;margin-bottom:18px}
  #login .guest-entry{padding:10px 10px 3px}
  #login .login-choice,#login #enterBtn{min-height:59px;font-size:15px}
@@ -90,7 +90,7 @@ body:not(.chat-active) .container{max-width:520px;min-height:100dvh;display:flex
 @media(max-height:720px){
  body:not(.chat-active) .container{align-items:flex-start;overflow-y:auto}
  #login{margin:8px auto}
- #login .brand-logo{width:100px;height:92px}
+ #login .login-chat-mark{width:120px;height:96px}
  #login .login-subtitle{margin-bottom:12px}
 }
 body.chat-active{overflow:hidden}
@@ -592,7 +592,20 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 </div></div>
 <div class="container">
 <section id="login" class="panel">
-<img class="brand-logo" src="https://raw.githubusercontent.com/jonitalp2023-collab/Wichat/main/app/src/main/res/drawable/ic_launcher_logo.png" alt="CHAT ARGENTINA">
+<div class="login-chat-mark" aria-label="Wichat">
+<svg viewBox="0 0 300 190" role="img" aria-hidden="true">
+<defs>
+<linearGradient id="bubbleBlue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#39d9ff"/><stop offset=".52" stop-color="#078ff0"/><stop offset="1" stop-color="#0060cb"/></linearGradient>
+<linearGradient id="bubbleBack" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#31caff"/><stop offset="1" stop-color="#0876e5"/></linearGradient>
+<filter id="chatGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<path d="M33 111C40 48 100 16 171 23c42 4 73 22 91 49" fill="none" stroke="#078ce9" stroke-width="5" stroke-linecap="round"/>
+<path d="M28 125C7 157 52 169 102 165" fill="none" stroke="#08aaff" stroke-width="5" stroke-linecap="round"/>
+<path d="M270 79c24 47-5 83-52 91" fill="none" stroke="#08aaff" stroke-width="5" stroke-linecap="round"/>
+<path d="M158 72c0-24 19-43 43-43h42c23 0 42 19 42 43v48c0 23-19 42-42 42h-14l-29 20 7-20h-6c-24 0-43-19-43-42z" fill="url(#bubbleBack)" filter="url(#chatGlow)" opacity=".95"/>
+<path d="M45 45c0-26 21-47 47-47h89c26 0 47 21 47 47v54c0 26-21 47-47 47h-64l-34 27 9-29c-27-4-47-25-47-52z" fill="url(#bubbleBlue)" stroke="#50d9ff" stroke-width="3" filter="url(#chatGlow)"/>
+<g fill="#fff"><circle cx="103" cy="70" r="10"/><circle cx="137" cy="70" r="10"/><circle cx="171" cy="70" r="10"/></g>
+</svg></div>
 <h1>CHAT ARGENTINA 🇦🇷</h1>
 <p class="login-subtitle">Conectate, conocé gente y disfrutá de conversar.</p>
 <div id="loginChoices">

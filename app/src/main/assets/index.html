@@ -1379,6 +1379,9 @@ const b=document.createElement("button");b.className="room-tab"+(active?" active
 renderPrivateTabs();
 }
 async function switchRoom(id){
+// Cerrar el menú flotante apenas se selecciona una sala, sin esperar
+// la validación de acceso ni la carga de los mensajes.
+closeChatNav();
 const room=rooms.find(r=>String(r.id)===String(id));
 // Bloqueo inmediato de invitados: solo UNIX propietario puede entrar sin cuenta.
 // La membresía de cuentas registradas se valida además en el servidor.
@@ -1399,9 +1402,6 @@ if(!allowed){
   else{$("status").textContent="No tenés acceso a la sala "+(room?.name||"seleccionada")+".";}
   return;
 }
-// Si la sala fue elegida desde el menú flotante, cerrarlo y devolver
-// la vista de salas a su lugar antes de mostrar el chat.
-closeChatNav();
 if(messageChannel){await db.removeChannel(messageChannel);messageChannel=null;}
 if(presenceChannel){await db.removeChannel(presenceChannel);presenceChannel=null;}
 if(topicChannel){await db.removeChannel(topicChannel);topicChannel=null;}

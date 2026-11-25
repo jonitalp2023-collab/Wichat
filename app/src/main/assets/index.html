@@ -1359,7 +1359,8 @@ function openChatNavMenu(){const admin=$("chatNavAdmin");if(admin)admin.classLis
 function closeChatNav(){const content=$("chatNavContent");if(chatNavMovedView&&chatNavPlaceholder){chatNavPlaceholder.parentNode.insertBefore(chatNavMovedView,chatNavPlaceholder);chatNavPlaceholder.remove();chatNavMovedView=null;chatNavPlaceholder=null;}content.innerHTML="";$("chatNavOverlay").classList.remove("show");}
 function openChatNavSection(which){const content=$("chatNavContent");if(which==="chat"){closeChatNav();showMainTab("chat");return;}const view=$(which==="rooms"?"roomsView":"usersView");if(chatNavMovedView)closeChatNav();chatNavPlaceholder=document.createComment("chat-nav-view-placeholder");view.parentNode.insertBefore(chatNavPlaceholder,view);chatNavMovedView=view;content.appendChild(view);$("chatNavOptions").style.display="none";$("chatNavTitle").textContent=which==="rooms"?"Salas":"Usuarios";}
 function openChatNavAction(which){closeChatNav();if(which==="profile")openMyProfile();else if(which==="notifications")openNotifications();else if(which==="admin")openAdmin();else if(which==="exit")exitChat();else if(which==="legal")location.href="legal.html";}
-\n/* NAVEGACIÓN */
+
+/* NAVEGACIÓN */
 function showMainTab(which){$("navProfile").classList.remove("active");
 $("chatView").classList.toggle("hidden",which!=="chat");$("usersView").classList.toggle("hidden",which!=="users");$("roomsView").classList.toggle("hidden",which!=="rooms");$("privateView").classList.add("hidden");
 $("navUsers").classList.toggle("active",which==="users");$("navRooms").classList.toggle("active",which==="rooms");$("navChat").classList.toggle("active",which==="chat");

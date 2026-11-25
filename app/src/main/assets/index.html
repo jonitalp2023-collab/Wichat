@@ -70,6 +70,8 @@ body:not(.chat-active) .container{max-width:520px;min-height:100dvh;display:flex
 #login .choice-icon{font-size:27px;width:35px;text-align:center;flex:0 0 35px}
 #login .login-choice small{display:none}
 #login #enterBtn{order:3;display:block;width:100%;min-height:66px;margin:0;background:linear-gradient(110deg,#142c4e,#102544);border:2px solid #08a9ed;border-radius:40px;color:#fff;font-size:16px;font-weight:800;box-shadow:inset 0 1px 0 #ffffff22}
+#login .guest-entry #enterBtn{order:initial;display:block;width:100%;min-height:54px;margin:5px 0 3px;padding:11px 16px;background:linear-gradient(110deg,#35c7ff 0%,#0789e9 52%,#0058b8 100%);border:2px solid #65dcff;border-radius:16px;color:#fff;font-size:15px;font-weight:900;letter-spacing:.45px;box-shadow:inset 0 1px 0 #ffffff66,0 5px 16px #007bd855}
+#login .guest-entry #enterBtn:active{transform:scale(.98);filter:brightness(1.15)}
 #login #adminPinWrap{margin:8px 0}
 #login .login-form{margin-top:18px;padding:14px;background:rgba(8,25,49,.86);border:1px solid #164b7d;border-radius:18px}
 #login .login-form h2{color:#64caff}
@@ -421,14 +423,14 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 .age-gate-card>p{color:#c4ddf7;font-size:14px;line-height:1.55;margin:10px 0}
 .age-gate-declaration{margin:19px 0 17px;padding:14px;border:1px solid #245b8c;border-radius:17px;background:rgba(14,34,64,.82);color:#e5effb;font-size:13px;line-height:1.5;text-align:left}
 .age-gate-declaration strong{display:block;color:#55c8ff;margin-bottom:5px}
-.age-gate-slider-wrap{margin:18px 0 12px;padding:8px 12px;border:1px solid #078ee8;border-radius:999px;background:#081a33;box-shadow:inset 0 0 14px #087ed822}
+.age-gate-slider-wrap{position:relative;margin:18px 0 12px;padding:7px 12px 10px;border:1px solid #168fe0;border-radius:19px;background:linear-gradient(145deg,#102c50,#07172e);box-shadow:inset 0 1px 10px #001020,0 0 18px #087ed833}
 .age-gate-slider{display:block!important;width:100%!important;height:48px!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;accent-color:#18aaf5;cursor:grab;touch-action:pan-y}
 .age-gate-slider:active{cursor:grabbing}
-.age-gate-slider::-webkit-slider-runnable-track{height:8px;border-radius:99px;background:#244b70}
-.age-gate-slider::-moz-range-track{height:8px;border-radius:99px;background:#244b70}
-.age-gate-slider::-webkit-slider-thumb{-webkit-appearance:none;width:42px;height:42px;margin-top:-17px;border:2px solid #d9f4ff;border-radius:50%;background:#18aaf5;box-shadow:0 0 15px #20baffaa}
-.age-gate-slider::-moz-range-thumb{width:38px;height:38px;border:2px solid #d9f4ff;border-radius:50%;background:#18aaf5;box-shadow:0 0 15px #20baffaa}
-.age-gate-slider-hint{display:block;color:#fff;font-size:14px;font-weight:800;text-align:center;margin-top:2px}
+.age-gate-slider::-webkit-slider-runnable-track{height:10px;border-radius:99px;background:linear-gradient(90deg,#0876c8,#244b70 65%)}
+.age-gate-slider::-moz-range-track{height:10px;border-radius:99px;background:linear-gradient(90deg,#0876c8,#244b70 65%)}
+.age-gate-slider::-webkit-slider-thumb{-webkit-appearance:none;width:44px;height:44px;margin-top:-17px;border:2px solid #c9f1ff;border-radius:14px;background:linear-gradient(145deg,#55d9ff,#0789e9 70%,#0057b5);box-shadow:0 0 17px #20baffbb, inset 0 1px 3px #ffffff88}
+.age-gate-slider::-moz-range-thumb{width:40px;height:40px;border:2px solid #c9f1ff;border-radius:14px;background:linear-gradient(145deg,#55d9ff,#0789e9 70%,#0057b5);box-shadow:0 0 17px #20baffbb,inset 0 1px 3px #ffffff88}
+.age-gate-slider-hint{display:block;color:#d9f3ff;font-size:13px;font-weight:900;letter-spacing:.35px;text-align:center;margin-top:1px;text-transform:uppercase}
 #ageGateError{min-height:18px;color:#ff9292;font-size:12px;margin-top:8px}
 .age-gate-links{display:flex;justify-content:center;flex-wrap:wrap;gap:7px 13px;margin-top:19px;padding-top:15px;border-top:1px solid #21466c}
 .age-gate-links a{color:#45c4ff;font-size:12px;text-decoration:underline;text-underline-offset:3px}
@@ -617,12 +619,13 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="guestForm" class="guest-entry">
 <label for="nickname">Tu Nick para entrar</label>
 <input id="nickname" maxlength="8" oninput="this.value=this.value.replace(/\s/g,'').slice(0,8)" placeholder="Tu apodo..." autocomplete="nickname">
+<button id="enterBtn" onclick="enterChat()">ENTRAR AL CHAT</button>
 <div id="adminPinWrap" class="hidden"><label for="adminPin">PIN de administrador UNIX</label><input id="adminPin" type="password" placeholder="PIN de administrador UNIX"><p class="muted">El Nick UNIX está reservado para el administrador.</p></div>
 <select id="initialRoom" class="hidden"><option value="">Cargando salas...</option></select>
 </div>
 <button class="login-choice" onclick="showLoginMode('register')"><span class="choice-icon">👤</span><span><strong>CREAR CUENTA</strong></span></button>
 <button class="login-choice" onclick="showLoginMode('login')"><span class="choice-icon">➜</span><span><strong>INICIAR SESIÓN</strong></span></button>
-<button id="enterBtn" onclick="enterChat()">ENTRAR COMO INVITADO</button>
+
 </div>
 <div id="registerForm" class="login-form hidden">
 <h2>✨ Crear mi cuenta</h2>

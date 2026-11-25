@@ -45,7 +45,7 @@ jobs:
           scripts = re.findall(r"<script(?![^>]*src=)[^>]*>(.*?)</script>", html, flags=re.S | re.I)
           if not scripts:
               raise SystemExit("No se encontró JavaScript inline para validar")
-          Path("/tmp/chatargentina-inline.js").write_text("\\n".join(scripts), encoding="utf-8")
+          Path("/tmp/chatargentina-inline.js").write_text("\n".join(scripts), encoding="utf-8")
           PY
           node --check /tmp/chatargentina-inline.js
 

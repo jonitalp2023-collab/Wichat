@@ -46,7 +46,53 @@ button:disabled{opacity:.5}
 #login #error{display:block;margin-top:13px;line-height:1.5;overflow-wrap:anywhere}
 #login .hidden{display:none!important}
 #login input,#login select{text-align:left}
-@media(max-width:480px){#login{margin:20px auto;padding:24px 19px}}
+
+/* NUEVO DISEÑO DE ACCESO · conserva la lógica y los IDs existentes */
+body:not(.chat-active){background:radial-gradient(ellipse at 50% 25%,#073d78 0%,#061b3a 43%,#020918 100%);min-height:100dvh}
+body:not(.chat-active) .container{max-width:520px;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:18px 15px}
+#login{position:relative;isolation:isolate;overflow:hidden;width:100%;max-width:480px;margin:0 auto;padding:22px 20px 24px;background:linear-gradient(155deg,rgba(15,37,70,.98),rgba(5,17,38,.99) 72%);border:1px solid #123e70;border-radius:27px;box-shadow:0 18px 55px #0009}
+#login:before,#login:after{content:"";position:absolute;z-index:-1;pointer-events:none;width:150%;height:105px;left:-25%;border:10px solid transparent;border-top-color:#087ed8;border-radius:50%;filter:drop-shadow(0 0 8px #00aaff99);transform:rotate(-7deg)}
+#login:before{top:-68px}
+#login:after{bottom:-73px;left:-18%;transform:rotate(173deg);border-top-color:#08a9ed}
+#login>*{position:relative;z-index:1}
+#login .brand-logo{width:150px;height:142px;margin:0 auto 7px;filter:drop-shadow(0 0 18px #08a9edaa)}
+#login h1{font-size:clamp(25px,6vw,34px);font-weight:900;font-style:italic;letter-spacing:.5px;margin:4px 0 8px;text-shadow:0 2px 12px #168bea55}
+#login .login-subtitle{color:#c4ddf7;font-size:15px;margin:8px 0 25px;line-height:1.45}
+#loginChoices{display:flex;flex-direction:column;gap:11px}
+#login .guest-entry{order:0;margin:0 0 3px;text-align:left;padding:13px 12px 5px;background:rgba(14,34,64,.7);border:1px solid #164b7d;border-radius:22px}
+#login .guest-entry>label{display:none}
+#login .guest-entry input{height:57px;margin:0 0 8px;padding:13px 15px 13px 58px;background:#0b1b35 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234fcaff'%3E%3Cpath d='M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.4 0-8 2.2-8 5v3h16v-3c0-2.8-3.6-5-8-5Z'/%3E%3C/svg%3E") no-repeat 17px center/29px;border:0;border-bottom:2px solid #28baff;border-radius:0;color:#fff;font-size:18px}
+#login .guest-entry input::placeholder{color:#9aabc2}
+#login .guest-entry .login-main-button{display:none}
+#login .login-choice{min-height:66px;margin:0;display:flex;align-items:center;justify-content:center;gap:14px;padding:13px 16px;border:2px solid #078ee8;border-radius:40px;background:linear-gradient(110deg,#0873c9,#00539e);color:#fff;text-align:center;font-size:16px;font-weight:800;box-shadow:inset 0 1px 0 #ffffff33,0 5px 15px #001a35}
+#login .login-choice:nth-of-type(2){background:linear-gradient(110deg,#35c7ff,#0789e9);border-color:#55d8ff;color:#fff}
+#login .login-choice:active{transform:scale(.98);filter:brightness(1.12)}
+#login .choice-icon{font-size:27px;width:35px;text-align:center;flex:0 0 35px}
+#login .login-choice small{display:none}
+#login #enterBtn{order:3;display:block;width:100%;min-height:66px;margin:0;background:linear-gradient(110deg,#142c4e,#102544);border:2px solid #08a9ed;border-radius:40px;color:#fff;font-size:16px;font-weight:800;box-shadow:inset 0 1px 0 #ffffff22}
+#login #adminPinWrap{margin:8px 0}
+#login .login-form{margin-top:18px;padding:14px;background:rgba(8,25,49,.86);border:1px solid #164b7d;border-radius:18px}
+#login .login-form h2{color:#64caff}
+#login .login-form input{background:#091a33;border:1px solid #28608e;border-radius:12px}
+#login .login-main-button{background:linear-gradient(110deg,#0879d0,#16a9ef);border:1px solid #39c7ff;border-radius:40px;min-height:54px}
+#login .login-back{border-radius:40px;background:#263f5e}
+#login #error{color:#ff8585}
+#login .login-footer{color:#819bb9;font-size:10px;margin-top:15px}
+#login .login-footer a{color:#45c4ff}
+@media(max-width:480px){
+ body:not(.chat-active) .container{padding:12px 14px}
+ #login{padding:17px 15px 20px;border-radius:24px}
+ #login .brand-logo{width:128px;height:120px}
+ #login .login-subtitle{font-size:14px;margin-bottom:18px}
+ #login .guest-entry{padding:10px 10px 3px}
+ #login .login-choice,#login #enterBtn{min-height:59px;font-size:15px}
+}
+@media(max-height:720px){
+ body:not(.chat-active) .container{align-items:flex-start;overflow-y:auto}
+ #login{margin:8px auto}
+ #login .brand-logo{width:100px;height:92px}
+ #login .login-subtitle{margin-bottom:12px}
+}
 body.chat-active{overflow:hidden}
 body.chat-active .container{position:fixed;inset:0;max-width:850px;width:100%;height:var(--app-height,100dvh);padding:0;margin:auto}
 #chat{display:none;height:100dvh;padding-bottom:var(--bottom-nav-height,76px)}
@@ -552,13 +598,13 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 <div id="loginChoices">
 <div id="guestForm" class="guest-entry">
 <label for="nickname">Tu Nick para entrar</label>
-<input id="nickname" maxlength="8" oninput="this.value=this.value.replace(/\s/g,'').slice(0,8)" placeholder="Nick (máx. 8 caracteres, sin espacios)" autocomplete="nickname">
+<input id="nickname" maxlength="8" oninput="this.value=this.value.replace(/\s/g,'').slice(0,8)" placeholder="Tu apodo..." autocomplete="nickname">
 <div id="adminPinWrap" class="hidden"><label for="adminPin">PIN de administrador UNIX</label><input id="adminPin" type="password" placeholder="PIN de administrador UNIX"><p class="muted">El Nick UNIX está reservado para el administrador.</p></div>
 <select id="initialRoom" class="hidden"><option value="">Cargando salas...</option></select>
-<button id="enterBtn" class="login-main-button" onclick="enterChat()">ENTRAR AL CHAT</button>
 </div>
-<button class="login-choice" onclick="showLoginMode('register')"><span class="choice-icon">👤</span><span><strong>CREAR CUENTA</strong><small>Registrate gratis en CHAT ARGENTINA</small></span></button>
-<button class="login-choice" onclick="showLoginMode('login')"><span class="choice-icon">🔐</span><span><strong>INICIAR SESIÓN</strong><small>Ya tengo una cuenta</small></span></button>
+<button class="login-choice" onclick="showLoginMode('register')"><span class="choice-icon">👤</span><span><strong>CREAR CUENTA</strong></span></button>
+<button class="login-choice" onclick="showLoginMode('login')"><span class="choice-icon">➜</span><span><strong>INICIAR SESIÓN</strong></span></button>
+<button id="enterBtn" onclick="enterChat()">ENTRAR COMO INVITADO</button>
 </div>
 <div id="registerForm" class="login-form hidden">
 <h2>✨ Crear mi cuenta</h2>

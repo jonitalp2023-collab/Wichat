@@ -1,4 +1,4 @@
 {
-  "version": "1.4.4",
-  "notes": "Nuevo diseño celeste y blanco para salas, navegación, usuarios y barra de mensajes. Se conserva el formato original de nicks y mensajes, con sus colores variados."
+  "version": "1.4.5",
+  "notes": "Corrección de legibilidad: mensajes de salas y privados en negro y botón de menú de tres barras en negro."
 }

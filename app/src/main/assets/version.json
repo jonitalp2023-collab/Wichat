@@ -1,4 +1,4 @@
 {
-  "version": "1.4.3",
-  "notes": "Confirmación de mayoría de edad en ventana flotante sobre el login; botón de aceptación y animación suave."
+  "version": "1.4.4",
+  "notes": "Nuevo diseño celeste y blanco para salas, navegación, usuarios y barra de mensajes. Se conserva el formato original de nicks y mensajes, con sus colores variados."
 }

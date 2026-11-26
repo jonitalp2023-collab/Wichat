@@ -238,6 +238,14 @@ body.chat-active #bottomNav{top:calc(var(--visual-top,0px) + var(--app-height,10
 .profile-card button{width:100%;margin-top:10px;border-radius:12px}
 #profileSaveBtn{background:linear-gradient(100deg,#087bd5,#20a9ed);font-weight:700;box-shadow:0 7px 18px rgba(0,128,220,.22)}
 .profile-card>button.secondary{background:#243752;color:#c8d8ea;border:1px solid #385372}
+.profile-reactions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:16px;padding-top:15px;border-top:1px solid rgba(112,174,225,.16)}
+.profile-reaction{min-width:0;padding:10px 3px!important;margin:0!important;border:1px solid #345273!important;border-radius:13px!important;background:#0b192d!important;color:#eaf6ff!important;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px}
+.profile-reaction .emoji{font-size:24px;line-height:1.2}
+.profile-reaction strong{font-size:14px;color:#fff}
+.profile-reaction.active{border-color:#42baff!important;background:rgba(22,139,234,.25)!important;box-shadow:0 0 0 1px rgba(66,186,255,.25)}
+.profile-reaction:disabled{opacity:.75}
+.profile-photo-placeholder{width:126px;height:126px;border-radius:50%;border:4px solid #43baff;margin:0 auto 13px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1d8fe5,#142a49);font-size:48px;box-shadow:0 0 0 6px rgba(42,151,231,.12),0 10px 28px #0007}
+.profile-photo-wrap{min-height:143px}
 
 /* PANEL ADMIN: ventana fija con desplazamiento vertical propio */
 #adminPanel{
@@ -575,14 +583,13 @@ body.chat-active #chat{padding-bottom:0!important}
 <div class="profile-card">
 <h3 id="profileTitle">Perfil</h3>
 <div id="profileDisplay">
-<div class="profile-hero"><img id="profilePhotoDisplay" class="profile-photo hidden" alt="Foto de perfil">
+<div class="profile-hero"><div class="profile-photo-wrap"><div id="profilePhotoPlaceholder" class="profile-photo-placeholder">👤</div><img id="profilePhotoDisplay" class="profile-photo hidden" alt="Foto de perfil"></div>
 <div class="profile-nick-label">Nick</div><div id="profileNickValue" class="profile-value"></div></div>
 <div class="profile-section"><label>Estado</label><div id="profileStatusValue" class="profile-value"></div></div>
-<div class="profile-section bio"><label>Sobre mí</label><div id="profileBioValue" class="profile-value"></div></div>
+<div id="profileReactions" class="profile-reactions"></div>
 </div>
 <div id="profileEditor" class="hidden"><div class="profile-photo-editor"><img id="profilePhotoPreview" class="profile-photo hidden" alt="Vista previa de la foto"><div><label for="profilePhotoInput">Foto de perfil</label><input id="profilePhotoInput" type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadProfilePhoto(this)"><small class="muted">JPG, PNG o WebP · máximo 3 MB</small></div></div>
 <label for="profileStatusInput">Estado (máximo 40 caracteres)</label><input id="profileStatusInput" type="text" maxlength="40" placeholder="¿Qué estás haciendo?">
-<label for="profileBioInput">Sobre mí (máximo 160 caracteres)</label><textarea id="profileBioInput" maxlength="160" placeholder="Contá algo sobre vos..."></textarea>
 <label class="profile-privacy"><input id="profileVisibleInput" type="checkbox"> Mi perfil es visible para otros usuarios registrados</label>
 <p id="profilePrivacyHint" class="muted">Si desactivás esta opción, solamente vos podrás ver tu perfil.</p>
 <button id="profileSaveBtn" onclick="saveMyProfile()">💾 Guardar perfil</button>
@@ -1515,7 +1522,7 @@ async function userMenuBlock(){
 async function userMenuViewProfile(){
  if(!selectedMenuUser||(!isRegisteredAccount&&!isAdmin))return;
  const target={...selectedMenuUser};closeUserMenu();
- let profileQuery=db.from("chat_profiles").select("nickname,status,bio,avatar_url").eq("user_id",String(target.id)).eq("is_registered",true);
+ let profileQuery=db.from("chat_profiles").select("user_id,nickname,status,avatar_url").eq("user_id",String(target.id)).eq("is_registered",true);
  if(!isAdmin)profileQuery=profileQuery.eq("is_visible",true);
  const {data,error}=await profileQuery.maybeSingle();
  if(error||!data){alert("Este perfil es privado o no está disponible.");return;}
@@ -1532,10 +1539,43 @@ async function showProfileDetails(profile,editable){
  $("profileTitle").textContent=editable?"Mi perfil":"Perfil de "+(profile.nickname||"usuario");
  $("profileNickValue").textContent=profile.nickname||"";
  $("profileStatusValue").textContent=profile.status||"Sin estado";
- $("profileBioValue").textContent=profile.bio||"Este usuario todavía no escribió una descripción.";
  const photo=await resolveProfilePhoto(profile.avatar_url);
+ $("profilePhotoPlaceholder").classList.toggle("hidden",!!photo);
  ["profilePhotoDisplay","profilePhotoPreview"].forEach(id=>{const img=$(id);if(img){img.src=photo;img.classList.toggle("hidden",!photo);}});
  $("profileDisplay").classList.remove("hidden");$("profileEditor").classList.toggle("hidden",!editable);$("profileModal").classList.add("show");
+ await loadProfileReactions(profile.user_id,editable);
+}
+async function loadProfileReactions(targetUserId,editable){
+ const box=$("profileReactions");if(!box)return;
+ box.innerHTML="";
+ if(!targetUserId||!isRegisteredAccount){box.classList.add("hidden");return;}
+ box.classList.remove("hidden");
+ const {data,error}=await db.from("chat_profile_reactions").select("reactor_id,reaction").eq("target_user_id",String(targetUserId));
+ if(error){console.warn("No se pudieron cargar las reacciones del perfil:",error.message);box.classList.add("hidden");return;}
+ const reactions=[{emoji:"👍",label:"Me gusta"},{emoji:"❤️",label:"Corazón"},{emoji:"👎",label:"No me gusta"},{emoji:"😂",label:"Me divierte"}];
+ const mine=(data||[]).find(x=>x.reactor_id===senderId)?.reaction||"";
+ box.innerHTML=reactions.map(r=>{
+  const count=(data||[]).filter(x=>x.reaction===r.emoji).length;
+  return '<button type="button" class="profile-reaction '+(mine===r.emoji?'active':'')+'" '+(editable?'disabled':'')+' onclick="toggleProfileReaction(\''+r.emoji+'\')"><span class="emoji">'+r.emoji+'</span><span>'+r.label+'</span><strong>'+count+'</strong></button>';
+ }).join("");
+ box.dataset.targetUserId=String(targetUserId);
+}
+async function toggleProfileReaction(reaction){
+ const box=$("profileReactions"),targetUserId=box?.dataset.targetUserId;
+ if(!isRegisteredAccount||!senderId||!targetUserId||targetUserId===senderId)return;
+ box.querySelectorAll("button").forEach(b=>b.disabled=true);
+ try{
+  const {data:existing,error:readError}=await db.from("chat_profile_reactions").select("reaction").eq("target_user_id",targetUserId).eq("reactor_id",senderId).maybeSingle();
+  if(readError)throw readError;
+  if(existing?.reaction===reaction){
+   const {error}=await db.from("chat_profile_reactions").delete().eq("target_user_id",targetUserId).eq("reactor_id",senderId);if(error)throw error;
+  }else if(existing){
+   const {error}=await db.from("chat_profile_reactions").update({reaction,created_at:new Date().toISOString()}).eq("target_user_id",targetUserId).eq("reactor_id",senderId);if(error)throw error;
+  }else{
+   const {error}=await db.from("chat_profile_reactions").insert({target_user_id:targetUserId,reactor_id:senderId,reaction});if(error)throw error;
+  }
+  await loadProfileReactions(targetUserId,false);
+ }catch(error){alert("No se pudo guardar la reacción: "+(error.message||String(error)));}
 }
 async function openMyProfile(){
  if(!senderId||(!isRegisteredAccount&&isAdmin))return;
@@ -1553,7 +1593,7 @@ async function openMyProfile(){
  if(error){alert("No se pudo cargar tu perfil: "+error.message);return;}
  const profile=data||{nickname,status:"",bio:"",is_visible:true,avatar_url:""};
  await showProfileDetails(profile,true);
- $("profileStatusInput").value=profile.status||"";$("profileBioInput").value=profile.bio||"";$("profileVisibleInput").checked=profile.is_visible!==false;$("profilePhotoInput").value="";$("navProfile").classList.add("active");
+ $("profileStatusInput").value=profile.status||"";$("profileVisibleInput").checked=profile.is_visible!==false;$("profilePhotoInput").value="";$("navProfile").classList.add("active");
 }
 async function uploadProfilePhoto(input){
  if(!isRegisteredAccount||!senderId)return;
@@ -1614,9 +1654,9 @@ async function saveMyProfile(){
  if(!isRegisteredAccount||!senderId)return;
  const btn=$("profileSaveBtn");btn.disabled=true;
  try{
- const profile={user_id:senderId,nickname:nickname,is_registered:true,is_visible:$("profileVisibleInput").checked,status:$("profileStatusInput").value.trim(),bio:$("profileBioInput").value.trim(),updated_at:new Date().toISOString()};
+ const profile={user_id:senderId,nickname:nickname,is_registered:true,is_visible:$("profileVisibleInput").checked,status:$("profileStatusInput").value.trim(),updated_at:new Date().toISOString()};
  const {error}=await db.from("chat_profiles").upsert(profile,{onConflict:"user_id"});if(error)throw error;
- $("profileStatusValue").textContent=profile.status||"Sin estado";$("profileBioValue").textContent=profile.bio||"Este usuario todavía no escribió una descripción.";alert("Tu perfil se guardó correctamente.");closeProfileModal();
+ $("profileStatusValue").textContent=profile.status||"Sin estado";alert("Tu perfil se guardó correctamente.");closeProfileModal();
  }catch(error){alert("No se pudo guardar tu perfil: "+(error.message||String(error)));}
  finally{btn.disabled=false;}
 }

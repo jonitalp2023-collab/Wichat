@@ -55,4 +55,7 @@ with check (
 drop policy if exists "Quitar reaccion propia" on public.chat_profile_reactions;
 create policy "Quitar reaccion propia"
 on public.chat_profile_reactions for delete to authenticated
-using ((select auth.uid()) = reactor_id);
+using (
+  (select auth.uid()) = reactor_id
+  and coalesce(((select auth.jwt())->>'is_anonymous')::boolean, true) = false
+);

@@ -1589,7 +1589,7 @@ async function openMyProfile(){
   $("navProfile").classList.add("active");
   return;
  }
- const {data,error}=await db.from("chat_profiles").select("nickname,status,bio,is_visible,avatar_url").eq("user_id",senderId).maybeSingle();
+ const {data,error}=await db.from("chat_profiles").select("user_id,nickname,status,bio,is_visible,avatar_url").eq("user_id",senderId).maybeSingle();
  if(error){alert("No se pudo cargar tu perfil: "+error.message);return;}
  const profile=data||{nickname,status:"",bio:"",is_visible:true,avatar_url:""};
  await showProfileDetails(profile,true);

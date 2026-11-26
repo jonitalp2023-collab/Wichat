@@ -1,4 +1,4 @@
 {
-  "version": "1.4.10",
-  "notes": "Barra para escribir mensajes sin contorno, integrada al fondo celeste del chat."
+  "version": "1.4.11",
+  "notes": "Notificaciones con diseño celeste y blanco; mensajes en salas y privados con letra normal, sin negrita."
 }

@@ -511,6 +511,83 @@ body.chat-active #chat{padding-bottom:0!important}
 #chatNavContent:empty{display:none}
 #chatNavContent #roomsView,#chatNavContent #usersView{display:flex!important;max-height:60dvh;overflow:auto;padding:8px 2px;background:transparent}
 #chatNavContent #roomsView h3,#chatNavContent #usersView h3{margin-top:4px}
+
+/* REDISEÑO CHAT · CELESTE Y BLANCO · conserva intactos nick y mensaje */
+body.chat-active{background:#edf6ff;color:#173b5d}
+body.chat-active .container{background:transparent}
+body.chat-active #chat>.panel{background:#f5faff}
+body.chat-active #roomPills{background:rgba(255,255,255,.96);border-bottom:1px solid #dceaf7;box-shadow:0 5px 18px rgba(52,116,171,.08);backdrop-filter:blur(14px)}
+.room-pills{background:transparent}
+.room-pill{background:#f1f7fd;color:#52728e;border:1px solid #d9e8f5;box-shadow:0 2px 7px rgba(48,112,164,.05);transition:background .18s,border-color .18s,transform .18s}
+.room-pill.active{background:linear-gradient(110deg,#218bdc,#46aaf0);color:#fff;border-color:#70bdf0;box-shadow:0 5px 13px rgba(33,139,220,.18)}
+.private-tab{background:#f4f9ff;border:1px solid #d7e7f5;color:#52728e}
+.private-tab.active{background:#e4f2ff;border-color:#83c5f2;color:#1768a9}
+.private-tab-close{background:#dcecf9;color:#3978a8}
+.private-unread{background:#e85d79;color:#fff}
+body.chat-active #roomTopic{background:rgba(255,255,255,.97);border-bottom:1px solid #e0edf8;color:#536f88;box-shadow:0 4px 12px rgba(52,116,171,.05)}
+#roomTopic .topic-label{color:#218bdc}
+#roomTopic .topic-text{color:#526f89}
+#roomTopic.empty .topic-text{color:#91a4b7}
+body.chat-active #chatView,body.chat-active #privateView{background:#f5faff}
+#messages,#privateMessages{background:linear-gradient(180deg,#f8fbff 0%,#f1f7fd 100%);padding:14px 13px}
+.message{background:transparent}
+/* Intencionalmente no se modifican .nickname, .msgtext ni el formato en línea de .message. */
+body.chat-active .composer{background:rgba(255,255,255,.98);border-top:1px solid #e0edf8;box-shadow:0 -5px 18px rgba(52,116,171,.07);padding:9px 10px}
+body.chat-active .message-composer,body.chat-active .private-message-composer{background:rgba(255,255,255,.98)}
+.message-composer input,.private-message-composer input{background:#f2f8fe!important;border:1px solid #d6e7f5!important;color:#173b5d!important;box-shadow:inset 0 1px 2px rgba(42,105,155,.04)!important}
+.message-composer input::placeholder,.private-message-composer input::placeholder{color:#8ca2b6}
+.message-composer .emoji-toggle,.private-message-composer .emoji-toggle{color:#287dbb}
+.message-composer .mention-toggle,.private-message-composer .mention-toggle{color:#287dbb}
+.message-composer .send-button,.private-message-composer .send-button{background:linear-gradient(135deg,#218bdc,#46aaf0);box-shadow:0 4px 10px rgba(33,139,220,.2)}
+.voice-button{background:#e7f3fd;border:1px solid #b9daf3;color:#287dbb}
+.voice-button.recording{background:#c93649;border-color:#ff8290;color:#fff}
+.voice-player{background:#edf6ff;border-color:#c8e0f4}
+.voice-time{color:#52728e}
+.voice-progress{background:#c6dced}
+.voice-progress-fill{background:#3b9de2}
+.emoji-picker,.mention-picker{background:#fff;border:1px solid #c9e1f4;box-shadow:0 14px 35px rgba(40,95,143,.18)}
+.emoji-cats button{background:#edf6ff;color:#3978a8}
+.emoji-cats button.active{background:#218bdc;color:#fff}
+.emoji-grid button,.mention-user{background:#f2f8fe;border:1px solid #dfedf8;color:#244d70}
+.mention-picker-title{color:#1768a9}
+.mention-search{background:#f5f9fd;border:1px solid #d7e7f5;color:#173b5d}
+.mention-search::placeholder,.mention-empty{color:#8ca2b6}
+#usersView,#roomsView{background:linear-gradient(180deg,#f8fbff,#f0f7fd);padding:16px}
+#usersView h3,#roomsView h3{color:#1768a9}
+#usersView .muted,#roomsView .muted{color:#71869a}
+.user-search{background:#fff;color:#173b5d;border:1px solid #d8e7f4;border-radius:15px;box-shadow:0 3px 10px rgba(52,116,171,.04)}
+.user-search:focus{border-color:#69b7f2;box-shadow:0 0 0 3px rgba(68,160,230,.13)}
+.user-search::placeholder{color:#91a4b7}
+.user-item{background:#fff;border:1px solid #dfebf6;border-radius:16px;box-shadow:0 5px 15px rgba(52,116,171,.06);color:#173b5d}
+.user-item:hover{background:#f7fbff}
+.user-name{color:#245a83}
+.user-count{color:#71869a}
+.online-dot{box-shadow:0 0 0 4px rgba(57,217,138,.12)}
+.room-tab{background:#fff;color:#245a83;border:1px solid #dceaf6;border-radius:15px;box-shadow:0 4px 12px rgba(52,116,171,.05);padding:14px 15px}
+.room-tab.active{background:#e9f5ff;border-color:#78bff0;color:#1768a9;box-shadow:0 0 0 2px rgba(75,166,230,.09)}
+#bottomNav{background:rgba(255,255,255,.97);border-top:1px solid #dceaf7;box-shadow:0 -6px 22px rgba(52,116,171,.09);backdrop-filter:blur(14px)}
+.nav-btn{color:#8196a9;border-radius:15px}
+.nav-btn.active{background:#eaf5ff;color:#1768a9}
+.nav-btn.exit{color:#8196a9}
+#adminOpenBtn{color:#b78328}
+#adminOpenBtn.active{background:#fff5df;color:#a8751d}
+#adminOpenBtn:active{background:#fff5df}
+#chatNavOverlay,#userMenuModal,#blockedUsersModal,#moderationModal{background:rgba(27,61,91,.28);backdrop-filter:blur(7px)}
+#chatNavCard,.user-menu-card,.blocked-users-card,.moderation-card{background:#fff!important;border:1px solid #d6e8f6!important;border-radius:24px!important;box-shadow:0 22px 60px rgba(38,94,145,.2)!important;color:#173b5d}
+#chatNavCard h3,.user-menu-card h3,.moderation-card h2{color:#1768a9!important}
+.user-menu-card button,.blocked-users-card button,.moderation-card button{border-radius:13px}
+.user-menu-card .kick-action{background:#eaf2f9;color:#426987}
+.blocked-user-row{border-bottom:1px solid #e4eef7}
+.blocked-user-row button{background:#eaf2f9;color:#426987}
+#chatNavOptions button{background:#f3f8fd!important;border:1px solid #dfebf6!important;color:#245a83!important;border-radius:14px!important}
+#chatNavOptions button:active{background:#e7f3fd!important}
+@media(max-width:420px){
+ body.chat-active .composer{padding-left:7px;padding-right:7px}
+ #messages,#privateMessages{padding-left:10px;padding-right:10px}
+ #bottomNav{gap:3px;padding-left:6px;padding-right:6px}
+ .nav-btn{font-size:10px}
+}
+
 </style>
 </head>
 <body>

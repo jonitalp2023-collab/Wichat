@@ -1,4 +1,4 @@
 {
-  "version": "1.4.2",
-  "notes": "Nuevo diseño moderno del login en celeste y blanco; se conservan las funciones de acceso y registro."
+  "version": "1.4.3",
+  "notes": "Confirmación de mayoría de edad en ventana flotante sobre el login; botón de aceptación y animación suave."
 }

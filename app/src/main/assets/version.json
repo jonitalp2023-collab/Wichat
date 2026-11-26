@@ -1,4 +1,4 @@
 {
-  "version": "1.4.1",
-  "notes": "Mensajes de voz: compatibilidad mejorada con Android WebView y diagnóstico de errores de micrófono."
+  "version": "1.4.2",
+  "notes": "Nuevo diseño moderno del login en celeste y blanco; se conservan las funciones de acceso y registro."
 }

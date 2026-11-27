@@ -812,20 +812,22 @@ body.chat-active .message-composer,body.chat-active .private-message-composer{ba
 #usersView>button[onclick="openBlockedUsers()"]:active{
   background:linear-gradient(110deg,#176fb5,#3298df)!important;
 }
-/* FORMATO DE MENSAJES SEGÚN CAPTURA: Roboto, nick destacado y texto regular negro */
+/* TIPOGRAFÍA Y FORMATO DE LA CAPTURA DE REFERENCIA */
 #messages .message,#privateMessages .private-message{
   display:flex!important;align-items:baseline!important;gap:8px!important;
   background:transparent!important;overflow-wrap:anywhere;
-  font-family:Roboto,"Helvetica Neue",Arial,sans-serif!important;
+  font-family:Roboto,sans-serif!important;
 }
 #messages .message .nickname,#privateMessages .private-message .nickname{
-  flex:0 0 auto;white-space:nowrap;font-family:Roboto,"Helvetica Neue",Arial,sans-serif!important;
-  font-size:16px!important;font-weight:700!important;line-height:1.35!important;
+  flex:0 0 auto;white-space:nowrap;
+  font-family:Roboto,sans-serif!important;font-size:14px!important;
+  font-weight:700!important;line-height:1.4!important;
 }
 #messages .message .msgtext,#privateMessages .private-message .msgtext{
-  flex:1 1 auto;min-width:0;color:#111!important;font-weight:400!important;
-  font-family:Roboto,"Helvetica Neue",Arial,sans-serif!important;
-  font-size:16px!important;line-height:1.35!important;white-space:pre-wrap;
+  flex:1 1 auto;min-width:0;color:#f4f4f4!important;
+  font-family:Roboto,sans-serif!important;font-size:14px!important;
+  font-weight:400!important;line-height:1.4!important;
+  white-space:pre-wrap;overflow-wrap:anywhere;
 }
 #privateMessages .private-message{padding:0!important;margin-bottom:13px!important}
 /* Avisos en la navegación inferior: icono compacto y contador rojo */

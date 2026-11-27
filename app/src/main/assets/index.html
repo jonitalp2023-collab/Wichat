@@ -830,6 +830,34 @@ body.chat-active .message-composer,body.chat-active .private-message-composer{ba
   object-fit:contain!important;
   flex:0 0 auto!important;
 }
+
+/* AJUSTE FINAL: priorizar el texto del mensaje sin modificar los nicks */
+body.chat-active #messages .message .msgtext,
+body.chat-active #privateMessages .private-message .msgtext {
+  font-weight: 700 !important;
+}
+
+/* El layout del chat fijaba el botón en 53px: esta regla lo corrige */
+body.chat-active .message-composer .send-button,
+body.chat-active .private-message-composer .send-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  flex: 0 0 36px !important;
+  aspect-ratio: 1 / 1 !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  line-height: 1 !important;
+  font-size: 19px !important;
+}
+
 </style>
 </head>
 <body>

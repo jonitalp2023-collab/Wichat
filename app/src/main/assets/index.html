@@ -812,6 +812,39 @@ body.chat-active .message-composer,body.chat-active .private-message-composer{ba
 #usersView>button[onclick="openBlockedUsers()"]:active{
   background:linear-gradient(110deg,#176fb5,#3298df)!important;
 }
+/* FORMATO DE MENSAJES SEGÚN REFERENCIA: misma tipografía, texto negro y nick a su lado */
+#messages .message,#privateMessages .private-message{
+  display:flex!important;align-items:baseline!important;gap:8px!important;
+  background:transparent!important;overflow-wrap:anywhere;
+  font-family:Roboto,"Arial",sans-serif!important;
+}
+#messages .message .nickname,#privateMessages .private-message .nickname{
+  flex:0 0 auto;white-space:nowrap;font-family:Roboto,"Arial",sans-serif!important;
+}
+#messages .message .msgtext,#privateMessages .private-message .msgtext{
+  flex:1 1 auto;min-width:0;color:#111!important;font-weight:400!important;
+  font-family:Roboto,"Arial",sans-serif!important;font-size:14px!important;line-height:1.35!important;
+}
+#privateMessages .private-message{padding:0!important;margin-bottom:13px!important}
+/* Campanita celeste fija en la barra superior de salas */
+body.chat-active #roomPills{padding-right:62px!important}
+#roomNotificationBell{
+  position:fixed;top:calc(env(safe-area-inset-top) + 10px);right:10px;z-index:1101;
+  width:42px;height:42px;border:1px solid #78bff0;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(110deg,#218bdc,#08a9ed);color:#fff;
+  box-shadow:0 3px 12px rgba(33,139,220,.22);padding:9px;cursor:pointer;
+}
+#roomNotificationBell svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#roomNotificationBadge{
+  position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;
+  border:2px solid #fff;border-radius:20px;background:#e53955;color:#fff;
+  font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;
+}
+#roomNotificationBadge.hidden{display:none!important}
+@media(min-width:701px){
+ body.chat-active #roomNotificationBell{right:max(10px,calc((100vw - 850px)/2 + 10px))}
+}
 </style>
 </head>
 <body>
@@ -951,6 +984,7 @@ body.chat-active .message-composer,body.chat-active .private-message-composer{ba
 </section>
 <section id="chat"><div class="panel">
 <div id="roomPills" class="room-pills"></div>
+<button id="roomNotificationBell" type="button" onclick="openNotifications()" aria-label="Abrir notificaciones" title="Notificaciones"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span id="roomNotificationBadge" class="hidden">0</span></button>
 <div id="roomTopic" class="empty"><span class="topic-label">📌 Tópico</span><span id="roomTopicText" class="topic-text">Sin tópico</span></div>
 <div id="chatView">
 <div class="chat-welcome"><strong>Conversación general</strong><span id="status">Conectando...</span></div>
@@ -1222,7 +1256,7 @@ function notificationStorageKey(){return "wichat-mentions-"+String(senderId||"")
 function loadMentionNotifications(){try{mentionNotifications=JSON.parse(localStorage.getItem(notificationStorageKey())||"[]");if(!Array.isArray(mentionNotifications))mentionNotifications=[];}catch(_){mentionNotifications=[];}}
 function saveMentionNotifications(){try{localStorage.setItem(notificationStorageKey(),JSON.stringify(mentionNotifications.slice(-100)));}catch(_){}}
 function notificationCount(){return mentionNotifications.length+privateUnread.size;}
-function updateNotificationBadge(){const badge=$("notificationBadge");if(!badge)return;const count=notificationCount();badge.textContent=count>99?"99+":String(count);badge.classList.toggle("hidden",count===0);}
+function updateNotificationBadge(){const count=notificationCount();["notificationBadge","roomNotificationBadge"].forEach(id=>{const badge=$(id);if(!badge)return;badge.textContent=count>99?"99+":String(count);badge.classList.toggle("hidden",count===0);});}
 function addMentionNotification(m){const body=String(m?.message||m?.content||"").toLowerCase();if(!body||String(m.sender_id)===String(senderId)||isUserBlocked(m.sender_id)||!nickname||!body.includes("#"+nickname.toLowerCase()))return;const key=String(m.id||"");if(mentionNotifications.some(n=>n.id===key))return;const room=rooms.find(r=>String(r.id)===String(m.room_id));mentionNotifications.push({id:key,room_id:m.room_id,room_name:room?.name||"Sala",nick:m.nickname||"Usuario",message:String(m.message||m.content||"").slice(0,180),created_at:m.created_at||new Date().toISOString()});saveMentionNotifications();updateNotificationBadge();}
 function openNotifications(){renderNotifications();$("notificationModal").classList.add("show");}
 function closeNotifications(){$("notificationModal").classList.remove("show");}
@@ -2471,7 +2505,7 @@ const privateSenderInfo=m.sender_id?roomUsers.get(String(m.sender_id)):null;
 if(m.sender_id&&(registeredUsers.has(String(m.sender_id))||privateSenderInfo?.registered===true))addRegisteredPlus(who);
 if(m.sender_id&&publicAdminUsers.has(String(m.sender_id)))addAdminBadge(who,adminOwnerUsers.has(String(m.sender_id)));
 if(adminOwnerUsers.has(String(m.sender_id||""))){const at=document.createElement("span");at.className="admin-at";at.textContent="@";who.appendChild(at);who.classList.add("admin-unix");}
-who.appendChild(document.createTextNode(privateNick+": "));
+who.appendChild(document.createTextNode(privateNick));
 if(m.sender_id&&!registeredUsers.has(String(m.sender_id)))ensureRegisteredStatus(m.sender_id,who);const msg=document.createElement("span");msg.className="msgtext";if(m.message_type==="audio"&&m.media_url){appendVoicePlayer(msg,"chat-private-audio",m.media_url);}else{msg.textContent=m.content||"";}div.append(who,msg);
 attachMessageReportGesture(div,m,true);
 box.appendChild(div);box.scrollTop=box.scrollHeight;

@@ -812,18 +812,20 @@ body.chat-active .message-composer,body.chat-active .private-message-composer{ba
 #usersView>button[onclick="openBlockedUsers()"]:active{
   background:linear-gradient(110deg,#176fb5,#3298df)!important;
 }
-/* FORMATO DE MENSAJES SEGÚN REFERENCIA: misma tipografía, texto negro y nick a su lado */
+/* FORMATO DE MENSAJES SEGÚN CAPTURA: Roboto, nick destacado y texto regular negro */
 #messages .message,#privateMessages .private-message{
   display:flex!important;align-items:baseline!important;gap:8px!important;
   background:transparent!important;overflow-wrap:anywhere;
-  font-family:Roboto,"Arial",sans-serif!important;
+  font-family:Roboto,"Helvetica Neue",Arial,sans-serif!important;
 }
 #messages .message .nickname,#privateMessages .private-message .nickname{
-  flex:0 0 auto;white-space:nowrap;font-family:Roboto,"Arial",sans-serif!important;
+  flex:0 0 auto;white-space:nowrap;font-family:Roboto,"Helvetica Neue",Arial,sans-serif!important;
+  font-size:16px!important;font-weight:700!important;line-height:1.35!important;
 }
 #messages .message .msgtext,#privateMessages .private-message .msgtext{
   flex:1 1 auto;min-width:0;color:#111!important;font-weight:400!important;
-  font-family:Roboto,"Arial",sans-serif!important;font-size:14px!important;line-height:1.35!important;
+  font-family:Roboto,"Helvetica Neue",Arial,sans-serif!important;
+  font-size:16px!important;line-height:1.35!important;white-space:pre-wrap;
 }
 #privateMessages .private-message{padding:0!important;margin-bottom:13px!important}
 /* Campanita celeste fija en la barra superior de salas */

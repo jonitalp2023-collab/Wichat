@@ -494,8 +494,8 @@ body.chat-active .send-button{display:flex;align-items:center;justify-content:ce
 .message-composer .mention-wrap,.private-message-composer .private-hashtag-wrap{right:84px}
 @media(max-width:380px){.message-composer .mention-wrap,.private-message-composer .private-hashtag-wrap{right:84px}}
 
-/* Navegación compacta del chat */
-#bottomNav{display:none!important}
+/* Navegación inferior visible durante el chat, incluida la campanita */
+body.chat-active #bottomNav{display:grid!important}
 body.chat-active #chat>.panel{padding-bottom:env(safe-area-inset-bottom)!important}
 body.chat-active #chat{padding-bottom:0!important}
 .message-composer .emoji-wrap{display:flex;align-items:center;gap:5px;left:12px}

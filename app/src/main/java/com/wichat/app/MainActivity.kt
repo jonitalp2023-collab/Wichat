@@ -514,6 +514,17 @@ class MainActivity : Activity() {
         }
 
         @JavascriptInterface
+        fun startConnectionNotification() {
+            val serviceIntent = Intent(this@MainActivity, ChatConnectionService::class.java)
+            ContextCompat.startForegroundService(this@MainActivity, serviceIntent)
+        }
+
+        @JavascriptInterface
+        fun stopConnectionNotification() {
+            stopService(Intent(this@MainActivity, ChatConnectionService::class.java))
+        }
+
+        @JavascriptInterface
         fun requestFcmToken() {
             requestFcmTokenWithPermission()
         }

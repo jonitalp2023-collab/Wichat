@@ -793,6 +793,43 @@ body.chat-active .message-composer,body.chat-active .private-message-composer{ba
   color:#000!important;
   -webkit-text-fill-color:#000!important;
 }
+
+/* MENSAJES: solo el texto en negrita; nicks sin cambios */
+#messages .message .msgtext,
+#privateMessages .private-message .msgtext{
+  font-weight:700!important;
+}
+
+/* ENVIAR: botón circular fijo, sin estirar el icono */
+.message-composer .send-button,
+.private-message-composer .send-button{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:36px!important;
+  height:36px!important;
+  min-width:36px!important;
+  max-width:36px!important;
+  min-height:36px!important;
+  max-height:36px!important;
+  flex:0 0 36px!important;
+  aspect-ratio:1 / 1!important;
+  padding:0!important;
+  border-radius:50%!important;
+  line-height:1!important;
+  font-size:19px!important;
+}
+.message-composer .send-button img,
+.private-message-composer .send-button img,
+.message-composer .send-button svg,
+.private-message-composer .send-button svg{
+  width:19px!important;
+  height:19px!important;
+  max-width:19px!important;
+  max-height:19px!important;
+  object-fit:contain!important;
+  flex:0 0 auto!important;
+}
 </style>
 </head>
 <body>

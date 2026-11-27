@@ -1632,11 +1632,10 @@ loadMentionNotifications();updateNotificationBadge();
 await loadPublicIdentityBadges();
 $("navProfile").classList.toggle("hidden",!senderId||(!isRegisteredAccount&&isAdmin));
 $("login").style.display="none";$("chat").style.display="block";document.body.classList.add("chat-active");
-if(window.ChatArgentinaNative&&typeof window.ChatArgentinaNative.startConnectionNotification==="function")window.ChatArgentinaNative.startConnectionNotification();
 $("adminOpenBtn").classList.toggle("hidden",!isAdmin);renderTabs();await switchRoom(currentRoom);
 subscribeRooms();subscribePrivateNotifications();subscribeModerationEvents();
 if(window.ChatArgentinaNative&&typeof window.ChatArgentinaNative.requestFcmToken==="function")window.ChatArgentinaNative.requestFcmToken();
-}catch(e){if(window.ChatArgentinaNative&&typeof window.ChatArgentinaNative.stopConnectionNotification==="function")window.ChatArgentinaNative.stopConnectionNotification();await releaseNickname();await releaseAccountDeviceSession();currentRoom=null;console.error("Error al ingresar al chat:",e);showError("No se pudo ingresar: "+(e.message||String(e)));btn.disabled=false;}
+}catch(e){await releaseNickname();await releaseAccountDeviceSession();currentRoom=null;console.error("Error al ingresar al chat:",e);showError("No se pudo ingresar: "+(e.message||String(e)));btn.disabled=false;}
 }
 function closeEmojiPickers(){$("emojiPickerPublic").classList.remove("open");$("emojiPickerPrivate").classList.remove("open");$("mentionPicker").classList.remove("open");}
 

@@ -841,6 +841,19 @@ body.chat-active .message-composer,body.chat-active .private-message-composer{ba
   display:flex;align-items:center;justify-content:center;z-index:2;
 }
 #bottomNav #notificationBadge.hidden{display:none!important}
+
+/* CORRECCIÓN DEFINITIVA: texto de mensajes negro en salas y privados */
+#messages, #privateMessages { color:#000!important; }
+#messages .msgtext,
+#messages .message .msgtext,
+#privateMessages .msgtext,
+#privateMessages .private-message .msgtext,
+#messages .msgtext *,
+#privateMessages .msgtext *,
+#privateMessages .private-message .msgtext * {
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+}
 </style>
 </head>
 <body>

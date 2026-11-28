@@ -1,4 +1,4 @@
 {
-  "version": "1.4.14",
-  "notes": "Se restauran los fondos claros; solo se oscurecen los nicks y se amplía ligeramente la barra de escritura."
+  "version": "1.4.15",
+  "notes": "Se restauran los colores individuales automáticos de los nicks, manteniendo los fondos claros y la barra de escritura ajustada."
 }
